@@ -2,23 +2,35 @@ import React, { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { auth, db } from "../../firebase.js";
 import { signInWithEmailAndPassword } from "firebase/auth";
+<<<<<<< HEAD
 import { doc, getDoc, setDoc } from "firebase/firestore";
 import { useWishlist } from "../context/WishlistContext"; // ✅ IMPORT WISHLIST CONTEXT
+=======
+import { doc, getDoc } from "firebase/firestore";
+>>>>>>> 0d8f0c98d3b48644b1f77b806ef849904452b6e8
 
 // User storage utility
 const storeUserData = (userData, uid) => {
   localStorage.setItem("userData", JSON.stringify(userData));
   localStorage.setItem("user", JSON.stringify(userData));
+<<<<<<< HEAD
   localStorage.setItem("token", uid);
+=======
+  // 🔑 Stores the Firebase User UID as 'token' 
+  localStorage.setItem("token", uid); 
+>>>>>>> 0d8f0c98d3b48644b1f77b806ef849904452b6e8
   localStorage.setItem("isLoggedIn", "true");
 };
 
 const UserLogin = () => {
   const navigate = useNavigate();
   const location = useLocation();
+<<<<<<< HEAD
   
   // ✅ GET WISHLIST CONTEXT FOR AUTO-ADD
   const { toggleWishlist } = useWishlist();
+=======
+>>>>>>> 0d8f0c98d3b48644b1f77b806ef849904452b6e8
 
   const [formData, setFormData] = useState({
     email: "",
@@ -55,6 +67,7 @@ const UserLogin = () => {
       const userRef = doc(db, "users", user.uid);
       const userDoc = await getDoc(userRef);
 
+<<<<<<< HEAD
       let userData;
       if (userDoc.exists()) {
         userData = userDoc.data();
@@ -109,6 +122,26 @@ const UserLogin = () => {
         // Normal redirect to previous page or home
         const from = state?.from || '/';
         navigate(from);
+=======
+      if (userDoc.exists()) {
+        const userData = userDoc.data();
+        
+        // Store user data in localStorage
+        storeUserData(userData, user.uid);
+        
+        // ⭐ Check if coming from wishlist button click
+        const { state } = location;
+        if (state?.wishlistRedirect) {
+          // Redirect to wishlist page after successful login
+          navigate('/wishlist');
+        } else {
+          // Otherwise, redirect to home or previous page
+          const from = state?.from || '/';
+          navigate(from);
+        }
+      } else {
+        setError("User data not found. Please contact support.");
+>>>>>>> 0d8f0c98d3b48644b1f77b806ef849904452b6e8
       }
 
     } catch (err) {

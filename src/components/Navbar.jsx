@@ -56,6 +56,7 @@ const Navbar = () => {
   // Firebase Storage instance
   const storage = getStorage();
 
+<<<<<<< HEAD
   // Scroll to top function
   const scrollToTop = () => {
     window.scrollTo({
@@ -64,6 +65,8 @@ const Navbar = () => {
     });
   };
 
+=======
+>>>>>>> 0d8f0c98d3b48644b1f77b806ef849904452b6e8
   // Fetch products for search
   useEffect(() => {
     const fetchData = async () => {
@@ -175,7 +178,10 @@ const Navbar = () => {
     setIsCartOpen(true);
     setIsUserDropdownOpen(false);
     setShowSuggestions(false);
+<<<<<<< HEAD
     scrollToTop();
+=======
+>>>>>>> 0d8f0c98d3b48644b1f77b806ef849904452b6e8
   };
 
   // User icon click handler
@@ -240,7 +246,10 @@ const Navbar = () => {
       setQuery("");
       setShowSuggestions(false);
       setIsMenuOpen(false);
+<<<<<<< HEAD
       scrollToTop();
+=======
+>>>>>>> 0d8f0c98d3b48644b1f77b806ef849904452b6e8
     }
   };
 
@@ -262,7 +271,10 @@ const Navbar = () => {
     setQuery("");
     setShowSuggestions(false);
     setIsMenuOpen(false);
+<<<<<<< HEAD
     scrollToTop();
+=======
+>>>>>>> 0d8f0c98d3b48644b1f77b806ef849904452b6e8
   };
   // --- END SEARCH HANDLER ---
 
@@ -272,12 +284,18 @@ const Navbar = () => {
       // User is logged in - go to wishlist page
       navigate("/wishlist");
       setIsMenuOpen(false);
+<<<<<<< HEAD
       scrollToTop();
+=======
+>>>>>>> 0d8f0c98d3b48644b1f77b806ef849904452b6e8
     } else {
       // User is not logged in - go to login page
       navigate("/login");
       setIsMenuOpen(false);
+<<<<<<< HEAD
       scrollToTop();
+=======
+>>>>>>> 0d8f0c98d3b48644b1f77b806ef849904452b6e8
     }
   };
   // --- END WISHLIST HANDLER ---
@@ -485,7 +503,10 @@ const Navbar = () => {
   const handleViewUploads = () => {
     // Navigate to uploads page or open modal
     navigate("/my-uploads");
+<<<<<<< HEAD
     scrollToTop();
+=======
+>>>>>>> 0d8f0c98d3b48644b1f77b806ef849904452b6e8
   };
 
   // Format file size
@@ -573,10 +594,14 @@ const Navbar = () => {
         hover:brightness-110 hover:drop-shadow-lg 
         cursor-pointer
       "
+<<<<<<< HEAD
       onClick={() => {
         navigate("/");
         scrollToTop();
       }}
+=======
+      onClick={() => navigate("/")}
+>>>>>>> 0d8f0c98d3b48644b1f77b806ef849904452b6e8
     />
   </div>
           {/* Right icons */}
@@ -629,7 +654,10 @@ const Navbar = () => {
               {!user && (
                 <Link
                   to="/login"
+<<<<<<< HEAD
                   onClick={scrollToTop}
+=======
+>>>>>>> 0d8f0c98d3b48644b1f77b806ef849904452b6e8
                   className="w-7 h-7 border border-purple-300 rounded-full flex items-center justify-center bg-white hover:bg-gray-50 transition duration-200"
                 >
                   <svg
@@ -678,7 +706,10 @@ const Navbar = () => {
                             localStorage.setItem("shouldOpenUserDropdown", "false");
                             setTimeout(() => {
                               navigate("/my-orders");
+<<<<<<< HEAD
                               scrollToTop();
+=======
+>>>>>>> 0d8f0c98d3b48644b1f77b806ef849904452b6e8
                             }, 100);
                           }}
                           className="w-full px-6 py-3 text-left text-gray-700 hover:bg-gray-50 flex items-center text-base font-medium border-b border-gray-100"
@@ -749,7 +780,10 @@ const Navbar = () => {
                     window.scrollTo({ top: 0, behavior: "smooth" });
                   } else {
                     navigate("/");
+<<<<<<< HEAD
                     scrollToTop();
+=======
+>>>>>>> 0d8f0c98d3b48644b1f77b806ef849904452b6e8
                   }
                 }}
                 className="w-7 h-7 border border-purple-300 rounded-full flex items-center justify-center bg-white hover:bg-gray-50 transition duration-200"
@@ -787,7 +821,10 @@ const Navbar = () => {
               {!user ? (
                 <Link
                   to="/login"
+<<<<<<< HEAD
                   onClick={scrollToTop}
+=======
+>>>>>>> 0d8f0c98d3b48644b1f77b806ef849904452b6e8
                   className="w-7 h-7 border border-purple-300 rounded-full flex items-center justify-center bg-white hover:bg-gray-50 transition duration-200"
                 >
                   <svg
@@ -873,7 +910,17 @@ const Navbar = () => {
               {/* Home Link - UPDATED */}
               <Link
                 to="/"
+<<<<<<< HEAD
                 onClick={scrollToTop}
+=======
+                onClick={(e) => {
+                  // If already on home page, scroll to top
+                  if (location.pathname === "/") {
+                    e.preventDefault();
+                    window.scrollTo({ top: 0, behavior: "smooth" });
+                  }
+                }}
+>>>>>>> 0d8f0c98d3b48644b1f77b806ef849904452b6e8
                 className={`text-blue-700 hover:text-purple-500 font-medium relative text-sm ${
                   location.pathname === "/" ? "active-nav-item" : ""
                 }`}
@@ -885,7 +932,10 @@ const Navbar = () => {
               </Link>
               <Link
                 to="/e-market"
+<<<<<<< HEAD
                 onClick={scrollToTop}
+=======
+>>>>>>> 0d8f0c98d3b48644b1f77b806ef849904452b6e8
                 className={`text-blue-700 hover:text-purple-500 font-medium relative text-sm ${
                   location.pathname === "/e-market" ? "active-nav-item" : ""
                 }`}
@@ -897,7 +947,10 @@ const Navbar = () => {
               </Link>
               <Link
                 to="/local-market"
+<<<<<<< HEAD
                 onClick={scrollToTop}
+=======
+>>>>>>> 0d8f0c98d3b48644b1f77b806ef849904452b6e8
                 className={`text-blue-700 hover:text-purple-500 font-medium relative text-sm ${
                   location.pathname === "/local-market" ? "active-nav-item" : ""
                 }`}
@@ -909,7 +962,10 @@ const Navbar = () => {
               </Link>
               <Link
                 to="/printing"
+<<<<<<< HEAD
                 onClick={scrollToTop}
+=======
+>>>>>>> 0d8f0c98d3b48644b1f77b806ef849904452b6e8
                 className={`text-blue-700 hover:text-purple-500 font-medium relative text-sm ${
                   location.pathname === "/printing" ? "active-nav-item" : ""
                 }`}
@@ -921,7 +977,10 @@ const Navbar = () => {
               </Link>
               <Link
                 to="/news-today"
+<<<<<<< HEAD
                 onClick={scrollToTop}
+=======
+>>>>>>> 0d8f0c98d3b48644b1f77b806ef849904452b6e8
                 className={`text-blue-700 hover:text-purple-500 font-medium relative text-sm ${
                   location.pathname === "/news-today" ? "active-nav-item" : ""
                 }`}
@@ -934,7 +993,10 @@ const Navbar = () => {
               {/* Oldee Link */}
               <Link
                 to="/oldee"
+<<<<<<< HEAD
                 onClick={scrollToTop}
+=======
+>>>>>>> 0d8f0c98d3b48644b1f77b806ef849904452b6e8
                 className={`text-blue-700 hover:text-purple-500 font-medium relative text-sm ${
                   location.pathname === "/oldee" ? "active-nav-item" : ""
                 }`}
@@ -1039,10 +1101,14 @@ const Navbar = () => {
                 </label>
                 
                 <button
+<<<<<<< HEAD
                   onClick={() => {
                     navigate("/file-downloads");
                     scrollToTop();
                   }}
+=======
+                  onClick={() => navigate("/file-downloads")}
+>>>>>>> 0d8f0c98d3b48644b1f77b806ef849904452b6e8
                   className="flex items-center text-gray-700 hover:text-purple-600 text-xs cursor-pointer transition duration-200"
                 >
                   <svg
@@ -1067,7 +1133,10 @@ const Navbar = () => {
                 href="https://lmart-seller.vercel.app/seller/login"
                 target="_blank"
                 rel="noopener noreferrer"
+<<<<<<< HEAD
                 onClick={scrollToTop}
+=======
+>>>>>>> 0d8f0c98d3b48644b1f77b806ef849904452b6e8
                 className="bg-blue-600 text-white px-3 py-1.5 rounded-lg hover:bg-blue-700 font-medium text-xs transition duration-200 whitespace-nowrap inline-block text-center"
               >
                 Become a Seller
@@ -1075,7 +1144,10 @@ const Navbar = () => {
 
               <Link
                 to="/contact"
+<<<<<<< HEAD
                 onClick={scrollToTop}
+=======
+>>>>>>> 0d8f0c98d3b48644b1f77b806ef849904452b6e8
                 className="bg-purple-600 text-white px-3 py-1.5 rounded-lg hover:bg-purple-700 font-medium text-xs transition duration-200 whitespace-nowrap inline-block text-center"
               >
                 Join US
@@ -1091,6 +1163,7 @@ const Navbar = () => {
           <div className="rounded-lg shadow-lg ring-1 ring-black ring-opacity-5 bg-white divide-y divide-gray-100">
             {/* Header and Close Button */}
             <div className="px-5 pt-3 pb-2 flex items-center justify-between">
+<<<<<<< HEAD
               <img 
                 src={logo} 
                 alt="E-Mart Logo" 
@@ -1101,6 +1174,9 @@ const Navbar = () => {
                   setIsMenuOpen(false);
                 }} 
               />
+=======
+              <img src={logo} alt="E-Mart Logo" className="h-8 w-auto" onClick={() => navigate("/")} />
+>>>>>>> 0d8f0c98d3b48644b1f77b806ef849904452b6e8
               <button
                 onClick={() => setIsMenuOpen(false)}
                 className="bg-white rounded-md p-1.5 inline-flex items-center justify-center text-gray-400 hover:text-gray-500 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-purple-500"
@@ -1139,10 +1215,14 @@ const Navbar = () => {
                   <>
                     <Link
                       to="/my-orders"
+<<<<<<< HEAD
                       onClick={() => {
                         setIsMenuOpen(false);
                         scrollToTop();
                       }}
+=======
+                      onClick={() => setIsMenuOpen(false)}
+>>>>>>> 0d8f0c98d3b48644b1f77b806ef849904452b6e8
                       className="text-sm font-medium text-blue-600 hover:text-blue-500 flex items-center"
                     >
                       📦 My Orders
@@ -1161,10 +1241,14 @@ const Navbar = () => {
                     
                     {/* WishList Button - Mobile - UPDATED */}
                     <button
+<<<<<<< HEAD
                       onClick={() => {
                         handleWishlistClick();
                         setIsMenuOpen(false);
                       }}
+=======
+                      onClick={handleWishlistClick}
+>>>>>>> 0d8f0c98d3b48644b1f77b806ef849904452b6e8
                       className="text-sm font-medium text-pink-600 hover:text-pink-500 flex items-center"
                     >
                       💖 WishList
@@ -1175,9 +1259,19 @@ const Navbar = () => {
                 {/* Mobile Home Link - UPDATED */}
                 <Link
                   to="/"
+<<<<<<< HEAD
                   onClick={() => {
                     setIsMenuOpen(false);
                     scrollToTop();
+=======
+                  onClick={(e) => {
+                    // If already on home page, scroll to top
+                    if (location.pathname === "/") {
+                      e.preventDefault();
+                      window.scrollTo({ top: 0, behavior: "smooth" });
+                    }
+                    setIsMenuOpen(false);
+>>>>>>> 0d8f0c98d3b48644b1f77b806ef849904452b6e8
                   }}
                   className="text-sm font-medium text-gray-900 hover:text-gray-700 flex items-center"
                 >
@@ -1185,50 +1279,70 @@ const Navbar = () => {
                 </Link>
                 <Link
                   to="/e-market"
+<<<<<<< HEAD
                   onClick={() => {
                     setIsMenuOpen(false);
                     scrollToTop();
                   }}
+=======
+                  onClick={() => setIsMenuOpen(false)}
+>>>>>>> 0d8f0c98d3b48644b1f77b806ef849904452b6e8
                   className="text-sm font-medium text-gray-900 hover:text-gray-700 flex items-center"
                 >
                   🛒 E-Store
                 </Link>
                 <Link
                   to="/local-market"
+<<<<<<< HEAD
                   onClick={() => {
                     setIsMenuOpen(false);
                     scrollToTop();
                   }}
+=======
+                  onClick={() => setIsMenuOpen(false)}
+>>>>>>> 0d8f0c98d3b48644b1f77b806ef849904452b6e8
                   className="text-sm font-medium text-gray-900 hover:text-gray-700 flex items-center"
                 >
                   🏪 Local Market
                 </Link>
                 <Link
                   to="/printing"
+<<<<<<< HEAD
                   onClick={() => {
                     setIsMenuOpen(false);
                     scrollToTop();
                   }}
+=======
+                  onClick={() => setIsMenuOpen(false)}
+>>>>>>> 0d8f0c98d3b48644b1f77b806ef849904452b6e8
                   className="text-sm font-medium text-gray-900 hover:text-gray-700 flex items-center"
                 >
                   🖨️ Printing
                 </Link>
                 <Link
                   to="/news-today"
+<<<<<<< HEAD
                   onClick={() => {
                     setIsMenuOpen(false);
                     scrollToTop();
                   }}
+=======
+                  onClick={() => setIsMenuOpen(false)}
+>>>>>>> 0d8f0c98d3b48644b1f77b806ef849904452b6e8
                   className="text-sm font-medium text-gray-900 hover:text-gray-700 flex items-center"
                 >
                   📰 Market News
                 </Link>
                 <Link
                   to="/oldee"
+<<<<<<< HEAD
                   onClick={() => {
                     setIsMenuOpen(false);
                     scrollToTop();
                   }}
+=======
+                  onClick={() => setIsMenuOpen(false)}
+>>>>>>> 0d8f0c98d3b48644b1f77b806ef849904452b6e8
                   className="text-sm font-medium text-gray-900 hover:text-gray-700 flex items-center"
                 >
                   👴 Oldee
@@ -1308,7 +1422,10 @@ const Navbar = () => {
                   onClick={() => {
                     navigate("/become-a-seller");
                     setIsMenuOpen(false);
+<<<<<<< HEAD
                     scrollToTop();
+=======
+>>>>>>> 0d8f0c98d3b48644b1f77b806ef849904452b6e8
                   }}
                   className="w-full bg-blue-600 text-white px-3 py-1.5 rounded-lg hover:bg-blue-700 font-medium text-xs text-center"
                 >
@@ -1319,7 +1436,10 @@ const Navbar = () => {
                   onClick={() => {
                     navigate("/contact");
                     setIsMenuOpen(false);
+<<<<<<< HEAD
                     scrollToTop();
+=======
+>>>>>>> 0d8f0c98d3b48644b1f77b806ef849904452b6e8
                   }}
                   className="w-full bg-purple-600 text-white px-3 py-1.5 rounded-lg hover:bg-purple-700 font-medium text-xs text-center"
                 >
@@ -1356,7 +1476,10 @@ const Navbar = () => {
                     onClick={() => {
                       navigate("/file-downloads");
                       setIsMenuOpen(false);
+<<<<<<< HEAD
                       scrollToTop();
+=======
+>>>>>>> 0d8f0c98d3b48644b1f77b806ef849904452b6e8
                     }}
                     className="flex-1 flex items-center justify-center text-gray-700 hover:text-purple-600 text-xs cursor-pointer border border-gray-300 rounded-lg px-2 py-1.5"
                   >
@@ -1391,16 +1514,21 @@ const Navbar = () => {
                   <>
                     <Link
                       to="/register"
+<<<<<<< HEAD
                       onClick={() => {
                         setIsMenuOpen(false);
                         scrollToTop();
                       }}
+=======
+                      onClick={() => setIsMenuOpen(false)}
+>>>>>>> 0d8f0c98d3b48644b1f77b806ef849904452b6e8
                       className="w-full flex items-center justify-center px-3 py-1.5 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 mb-2"
                     >
                       Sign up
                     </Link>
                     <p className="text-center text-sm font-medium text-gray-500">
                       Existing customer?{' '}
+<<<<<<< HEAD
                       <Link 
                         to="/login" 
                         className="text-indigo-600 hover:text-indigo-500" 
@@ -1409,6 +1537,9 @@ const Navbar = () => {
                           scrollToTop();
                         }}
                       >
+=======
+                      <Link to="/login" className="text-indigo-600 hover:text-indigo-500" onClick={() => setIsMenuOpen(false)}>
+>>>>>>> 0d8f0c98d3b48644b1f77b806ef849904452b6e8
                         Sign in
                       </Link>
                     </p>

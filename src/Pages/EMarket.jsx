@@ -15,7 +15,11 @@ const app = getApps().find(a => a.name === appName) || initializeApp(firebaseCon
 const db = getFirestore(app);
 
 // ---------------- HELPERS (SAME AS LOCALMARKET) ----------------
+<<<<<<< HEAD
 const PLACEHOLDER_IMAGE = "httpshold.co/400x300?text=No+Image";
+=======
+const PLACEHOLDER_IMAGE = "https://placehold.co/400x300?text=No+Image";
+>>>>>>> 0d8f0c98d3b48644b1f77b806ef849904452b6e8
 
 const getMainImageUrl = (product) => {
   if (product.mainImageUrl) return product.mainImageUrl;
@@ -46,11 +50,19 @@ const getPriceData = (product) => {
   return { finalPrice, original, discount, variant };
 };
 
+<<<<<<< HEAD
+=======
+// 👇 NEW HELPER FUNCTION for case-insensitive keyword matching
+>>>>>>> 0d8f0c98d3b48644b1f77b806ef849904452b6e8
 const keywordMatches = (text, query) => {
   if (!text || !query) return false;
   return String(text).toLowerCase().includes(query.toLowerCase());
 };
 
+<<<<<<< HEAD
+=======
+// Extract main categories
+>>>>>>> 0d8f0c98d3b48644b1f77b806ef849904452b6e8
 const extractMainCategories = (products) => {
   const set = new Set(["All Products"]);
   products.forEach(p => {
@@ -59,13 +71,25 @@ const extractMainCategories = (products) => {
   return [...set];
 };
 
+<<<<<<< HEAD
 const extractSubcategories = (products, mainCategory) => {
   const set = new Set(["All"]);
   if (mainCategory === "All Products") {
+=======
+// Extract subcategories for a specific main category
+const extractSubcategories = (products, mainCategory) => {
+  const set = new Set(["All"]);
+  if (mainCategory === "All Products") {
+    // For "All Products", show all subcategories
+>>>>>>> 0d8f0c98d3b48644b1f77b806ef849904452b6e8
     products.forEach(p => {
       if (p.subCategory?.name) set.add(p.subCategory.name);
     });
   } else {
+<<<<<<< HEAD
+=======
+    // For specific main category, show only its subcategories
+>>>>>>> 0d8f0c98d3b48644b1f77b806ef849904452b6e8
     products.forEach(p => {
       if (p.category?.name === mainCategory && p.subCategory?.name) {
         set.add(p.subCategory.name);
@@ -99,8 +123,12 @@ const ToastNotification = ({ message, type = "success", onClose }) => {
 };
 
 // ---------------- PRODUCT CARD COMPONENT ----------------
+<<<<<<< HEAD
 const ProductCard = ({ product, addToCart, getQuantity, updateQuantity, onToggleWishlist, isLoggedIn, location }) => {
   const navigate = useNavigate();
+=======
+const ProductCard = ({ product, addToCart, getQuantity, updateQuantity, navigate, onToggleWishlist }) => {
+>>>>>>> 0d8f0c98d3b48644b1f77b806ef849904452b6e8
   const qty = getQuantity(product.id);
   const { finalPrice, original, discount } = getPriceData(product);
   const rating = product.rating || 4.3;
@@ -111,6 +139,7 @@ const ProductCard = ({ product, addToCart, getQuantity, updateQuantity, onToggle
 
   const handleWishlistToggle = (e) => {
     e.stopPropagation();
+<<<<<<< HEAD
     
     // ✅ DEBUG LOGS
     console.log("Wishlist Clicked!");
@@ -178,6 +207,11 @@ const ProductCard = ({ product, addToCart, getQuantity, updateQuantity, onToggle
     
     if (onToggleWishlist) {
       onToggleWishlist("🛒 Added to Cart");
+=======
+    toggleWishlist(product);
+    if (onToggleWishlist) {
+
+>>>>>>> 0d8f0c98d3b48644b1f77b806ef849904452b6e8
     }
   };
 
@@ -196,11 +230,19 @@ const ProductCard = ({ product, addToCart, getQuantity, updateQuantity, onToggle
           onError={(e) => (e.target.src = PLACEHOLDER_IMAGE)}
         />
 
+<<<<<<< HEAD
         {/* ❤️ WISHLIST HEART BUTTON */}
         <button
           onClick={handleWishlistToggle}
           className={`absolute top-5 right-0 p-2 bg-white rounded-full shadow-md hover:scale-110 transition 
             ${inWishlist ? "text-red-700" : "text-red-400"}`}
+=======
+        {/* ❤️ UPDATED WISHLIST HEART BUTTON */}
+        <button
+          onClick={handleWishlistToggle}
+          className={`absolute top-5 right-0 p-2 bg-white rounded-full shadow-md hover:scale-110 transition 
+            ${inWishlist ? "text-red-700" : "text-red-400" }`}
+>>>>>>> 0d8f0c98d3b48644b1f77b806ef849904452b6e8
           title={inWishlist ? "Remove from Wishlist" : "Add to Wishlist"}
         >
           <svg
@@ -237,7 +279,11 @@ const ProductCard = ({ product, addToCart, getQuantity, updateQuantity, onToggle
         <h3 className="font-medium -mb-5 line-clamp-2 h-12">{product.name}</h3>
 
         {/* Rating */}
+<<<<<<< HEAD
         <div className="flex items-center mb-1">
+=======
+        <div className="flex items-center  mb-1">
+>>>>>>> 0d8f0c98d3b48644b1f77b806ef849904452b6e8
           <span className="text-sm font-medium text-yellow-500 mr-1">
             {rating.toFixed(1)}
           </span>
@@ -271,7 +317,12 @@ const ProductCard = ({ product, addToCart, getQuantity, updateQuantity, onToggle
         {qty > 0 ? (
           <div className="space-y-2">
             <div className="flex items-center justify-between gap-2 mb-2">
+<<<<<<< HEAD
               {/* Quantity controls removed as per original code */}
+=======
+             
+              
+>>>>>>> 0d8f0c98d3b48644b1f77b806ef849904452b6e8
             </div>
             <button
               onClick={(e) => {
@@ -288,7 +339,14 @@ const ProductCard = ({ product, addToCart, getQuantity, updateQuantity, onToggle
           </div>
         ) : (
           <button
+<<<<<<< HEAD
             onClick={handleAddToCart}
+=======
+            onClick={(e) => {
+              e.stopPropagation();
+              addToCart({ id: product.id, ...product, quantity: 1 });
+            }}
+>>>>>>> 0d8f0c98d3b48644b1f77b806ef849904452b6e8
             className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg font-medium transition flex items-center justify-center gap-2"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -315,15 +373,23 @@ const EMarket = () => {
   const [selectedMainCategory, setSelectedMainCategory] = useState("All Products");
   const [subCategories, setSubCategories] = useState(["All"]);
   const [selectedSubCategory, setSelectedSubCategory] = useState("All");
+<<<<<<< HEAD
   const [priceRange, setPriceRange] = useState([0, 5000]); 
+=======
+  const [priceRange, setPriceRange] = useState([0, 5000]);
+>>>>>>> 0d8f0c98d3b48644b1f77b806ef849904452b6e8
   const [loading, setLoading] = useState(true);
   const [showFilters, setShowFilters] = useState(false);
   const [toastMessage, setToastMessage] = useState("");
 
+<<<<<<< HEAD
   // ✅ Get real login status from Wishlist Context
   const { isLoggedIn } = useWishlist();
 
   // Extract Search Query from URL
+=======
+  // 👇 Extract Search Query from URL
+>>>>>>> 0d8f0c98d3b48644b1f77b806ef849904452b6e8
   const searchQuery = useMemo(() => {
     const params = new URLSearchParams(location.search);
     return params.get("q") || "";
@@ -367,7 +433,10 @@ const EMarket = () => {
         const subs = extractSubcategories(list, "All Products");
         setSubCategories(subs);
 
+<<<<<<< HEAD
         // Set initial max price range based on data, capped at MAX_SLIDER
+=======
+>>>>>>> 0d8f0c98d3b48644b1f77b806ef849904452b6e8
         const maxPrice = Math.max(...list.map(p => p.price || 0), 1000);
         setPriceRange([0, Math.min(Math.ceil(maxPrice / 1000) * 1000, MAX_SLIDER)]);
       } catch (err) {
@@ -412,7 +481,11 @@ const EMarket = () => {
       const price = p.price || 0;
       const priceMatch = price >= priceRange[0] && price <= priceRange[1];
 
+<<<<<<< HEAD
       // Check search query filter
+=======
+      // 👇 Check search query filter
+>>>>>>> 0d8f0c98d3b48644b1f77b806ef849904452b6e8
       const searchMatch = !queryTerm || (
         keywordMatches(p.name, queryTerm) ||
         keywordMatches(p.description, queryTerm) ||
@@ -423,8 +496,15 @@ const EMarket = () => {
 
       // Check category filters (only apply if NO search query is present)
       if (queryTerm) {
+<<<<<<< HEAD
         return priceMatch && searchMatch;
       } else {
+=======
+        // If searching, only price and search must match. Ignore category filters.
+        return priceMatch && searchMatch;
+      } else {
+        // If not searching, all filters must match.
+>>>>>>> 0d8f0c98d3b48644b1f77b806ef849904452b6e8
         const mainCategoryMatch =
           selectedMainCategory === "All Products" ||
           cat === selectedMainCategory;
@@ -438,13 +518,19 @@ const EMarket = () => {
     });
   }, [products, selectedMainCategory, selectedSubCategory, priceRange, searchQuery]);
 
+<<<<<<< HEAD
   // Price range handler logic for dual sliders
+=======
+>>>>>>> 0d8f0c98d3b48644b1f77b806ef849904452b6e8
   const handlePriceChange = (index, value) => {
     const v = Number(value) || 0;
     const copy = [...priceRange];
     copy[index] = v;
 
+<<<<<<< HEAD
     // Ensure min is never greater than max
+=======
+>>>>>>> 0d8f0c98d3b48644b1f77b806ef849904452b6e8
     if (copy[0] > copy[1]) {
       if (index === 0) copy[1] = copy[0];
       else copy[0] = copy[1];
@@ -469,6 +555,7 @@ const EMarket = () => {
       {/* Mobile Filter Button */}
       <div className="lg:hidden bg-white border-b shadow-sm">
         <div className="max-w-7xl mx-auto px-4 py-3">
+<<<<<<< HEAD
           <button
             onClick={() => setShowFilters(!showFilters)}
             className="w-10 h-10 flex items-center justify-center rounded-full bg-blue-600 text-white shadow hover:scale-110 transition"
@@ -482,12 +569,33 @@ const EMarket = () => {
             </svg>
           </button>
         </div>
+=======
+  <button
+    onClick={() => setShowFilters(!showFilters)}
+    className="w-10 h-10 flex items-center justify-center rounded-full bg-blue-600 text-white shadow hover:scale-110 transition"
+  >
+    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path
+        strokeLinecap="round"
+       
+        strokeWidth={2}
+        d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"
+      />
+    </svg>
+  </button>
+</div>
+
+>>>>>>> 0d8f0c98d3b48644b1f77b806ef849904452b6e8
       </div>
 
       {/* Category Navbar */}
       <div className="bg-white border-b shadow-sm hidden lg:block">
         <div className="max-w-7xl ml-5 px-4">
           <div className="flex overflow-x-auto py-3 space-x-6">
+<<<<<<< HEAD
+=======
+            {/* 👇 Hide category buttons if a search is active */}
+>>>>>>> 0d8f0c98d3b48644b1f77b806ef849904452b6e8
             {!searchQuery ? (
               mainCategories.map((category) => (
                 <button
@@ -503,6 +611,10 @@ const EMarket = () => {
                 </button>
               ))
             ) : (
+<<<<<<< HEAD
+=======
+              // 👇 Show search term instead of categories
+>>>>>>> 0d8f0c98d3b48644b1f77b806ef849904452b6e8
               <h2 className="text-xl font-semibold py-2">
                 Search Results for: <span className="text-blue-600">"{searchQuery}"</span>
               </h2>
@@ -527,7 +639,11 @@ const EMarket = () => {
                     name="subcategory"
                     checked={selectedSubCategory === subCat}
                     onChange={() => setSelectedSubCategory(subCat)}
+<<<<<<< HEAD
                     className="text-blue-600"
+=======
+                    className="cursor-pointer"
+>>>>>>> 0d8f0c98d3b48644b1f77b806ef849904452b6e8
                   />
                   <span className="text-sm">{subCat}</span>
                 </label>
@@ -536,11 +652,16 @@ const EMarket = () => {
 
             <hr className="my-4" />
 
+<<<<<<< HEAD
             {/* Price Range - DUAL SLIDER WITH MIN/MAX DISPLAY */}
+=======
+            {/* Price Range - SINGLE SLIDER WITH MIN/MAX DISPLAY */}
+>>>>>>> 0d8f0c98d3b48644b1f77b806ef849904452b6e8
             <div className="mb-6">
               <h3 className="text-sm font-medium mb-4">Price Range</h3>
 
               {/* Min/Max Price Display */}
+<<<<<<< HEAD
               <div className="flex justify-between text-sm font-medium text-gray-700 mb-2">
                 <span>Min: ₹{priceRange[0].toLocaleString()}</span>
                 <span>Max: ₹{priceRange[1].toLocaleString()}</span>
@@ -550,22 +671,46 @@ const EMarket = () => {
               <div className="relative pt-1 mb-2">
                 
                 {/* Min Price Slider (Hidden for visual, pointer-events-none) */}
+=======
+              <div className="flex items-center justify-between mb-4">
+                <div className="text-center">
+                  <div className="text-xs text-gray-500 mb-1">Min</div>
+                  <div className="text-sm font-medium">₹{priceRange[0]}</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-xs text-gray-500 mb-1">Max</div>
+                  <div className="text-sm font-medium">₹{priceRange[1]}</div>
+                </div>
+              </div>
+
+              {/* Single Range Slider Container */}
+              <div className="relative pt-1 mb-2">
+                {/* Min Price Slider */}
+>>>>>>> 0d8f0c98d3b48644b1f77b806ef849904452b6e8
                 <input
                   type="range"
                   min="0"
                   max={MAX_SLIDER}
                   value={priceRange[0]}
                   onChange={(e) => handlePriceChange(0, e.target.value)}
+<<<<<<< HEAD
                   className="absolute w-full h-2 bg-transparent appearance-none pointer-events-none z-40 opacity-0" 
                 />
                 
                 {/* Max Price Slider (The visible, operable slider) */}
+=======
+                  className="absolute w-full h-2 bg-transparent appearance-none pointer-events-auto z-10"
+                  style={{ WebkitAppearance: 'none' }}
+                />
+                {/* Max Price Slider */}
+>>>>>>> 0d8f0c98d3b48644b1f77b806ef849904452b6e8
                 <input
                   type="range"
                   min="0"
                   max={MAX_SLIDER}
                   value={priceRange[1]}
                   onChange={(e) => handlePriceChange(1, e.target.value)}
+<<<<<<< HEAD
                   className="absolute w-full h-2 bg-transparent appearance-none pointer-events-auto z-50 custom-range-slider focus:outline-none"
                   style={{ WebkitAppearance: 'none' }}
                 />
@@ -576,6 +721,16 @@ const EMarket = () => {
                 {/* Active Range (Visually represents the blue section) */}
                 <div
                    className="absolute h-2 bg-blue-600 rounded-full pointer-events-none top-1" 
+=======
+                  className="absolute w-full h-2 bg-transparent appearance-none pointer-events-auto z-20"
+                  style={{ WebkitAppearance: 'none' }}
+                />
+                {/* Track Background */}
+                <div className="h-2 bg-gray-200 rounded-full"></div>
+                {/* Active Range */}
+                <div
+                  className="absolute top-0 h-2 bg-blue-500 rounded-full"
+>>>>>>> 0d8f0c98d3b48644b1f77b806ef849904452b6e8
                   style={{
                     left: `${(priceRange[0] / MAX_SLIDER) * 100}%`,
                     width: `${((priceRange[1] - priceRange[0]) / MAX_SLIDER) * 100}%`
@@ -590,11 +745,19 @@ const EMarket = () => {
               </div>
             </div>
           </div>
+<<<<<<< HEAD
           
+=======
+
+>>>>>>> 0d8f0c98d3b48644b1f77b806ef849904452b6e8
           {/* Products Area */}
           <div className="flex-1">
             <div className="mb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <h2 className="text-xl font-semibold ">
+<<<<<<< HEAD
+=======
+                {/* 👇 Update Title based on search query */}
+>>>>>>> 0d8f0c98d3b48644b1f77b806ef849904452b6e8
                 {searchQuery
                   ? `Results for "${searchQuery}"`
                   : selectedMainCategory === "All Products"
@@ -626,7 +789,11 @@ const EMarket = () => {
 
             {/* Products Grid - Responsive */}
             {!loading && filtered.length > 0 && (
+<<<<<<< HEAD
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
+=======
+              <div className="grid grid-cols-1 sm:grid-cols-2  lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
+>>>>>>> 0d8f0c98d3b48644b1f77b806ef849904452b6e8
                 {filtered.map((p) => (
                   <ProductCard
                     key={p.id}
@@ -636,8 +803,11 @@ const EMarket = () => {
                     getQuantity={getQuantity}
                     navigate={navigate}
                     onToggleWishlist={handleWishlistNotification}
+<<<<<<< HEAD
                     isLoggedIn={isLoggedIn} // ✅ Passing the real login status
                     location={location} // ✅ Passing location for login redirect state
+=======
+>>>>>>> 0d8f0c98d3b48644b1f77b806ef849904452b6e8
                   />
                 ))}
               </div>
@@ -645,6 +815,12 @@ const EMarket = () => {
           </div>
         </div>
       </div>
+<<<<<<< HEAD
+=======
+      
+      {/* FIXED CHECKOUT BUTTON */}
+       
+>>>>>>> 0d8f0c98d3b48644b1f77b806ef849904452b6e8
     </div>
   );
 };
