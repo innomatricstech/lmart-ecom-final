@@ -105,9 +105,7 @@ const ProductCard = ({ product, addToCart, getQuantity, updateQuantity, navigate
     
     // Show toast notification
     if (onWishlistToggle) {
-      const message = inWishlist 
-        ? "❌ Removed from Liked Products" 
-        : "❤️ Added to Liked Products";
+     
       onWishlistToggle(message);
     }
   };
@@ -137,27 +135,28 @@ const ProductCard = ({ product, addToCart, getQuantity, updateQuantity, navigate
       {/* Image */}
       <div className="relative h-48">
         {/* Heart Button - Top Right */}
-        <button
+       <button
           onClick={handleWishlistToggle}
-          className={`absolute top-3 right-3 p-2 bg-white rounded-full shadow-md hover:scale-110 transition z-10 ${
-            inWishlist ? "text-red-600" : "text-gray-400"
-          }`}
+          className={`absolute top-5 right-0 p-2 bg-white rounded-full shadow-md hover:scale-110 transition 
+            ${inWishlist ? "text-red-700" : "text-red-400" }`}
           title={inWishlist ? "Remove from Wishlist" : "Add to Wishlist"}
         >
           <svg
-            className="w-5 h-5"
-            fill={inWishlist ? "red" : "none"}
+            className="w-4 h-4"
+            fill={inWishlist ? "#fdd8d8ff" : "none"}
             stroke="currentColor"
-            viewBox="0 0 24 24"
+            viewBox="0 0 26 28"
+            xmlns="http://www.w3.org/2000/svg"
           >
             <path
               strokeLinecap="round"
               strokeLinejoin="round"
               strokeWidth={2}
-              d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-.318-.318a4.5 4.5 0 00-6.364 0z"
+              d="M13 25s-9.5-5.6-12-12.3C-1.4 7.9 1.6 2.4 7 2.1c2.9-.1 5.1 1.8 6 3.4 1-1.6 3.1-3.5 6-3.4 5.4.3 8.4 5.8 6 10.6C22.5 19.4 13 25 13 25z"
             />
           </svg>
         </button>
+
 
         <img
           src={product.image}
@@ -175,10 +174,10 @@ const ProductCard = ({ product, addToCart, getQuantity, updateQuantity, navigate
 
       {/* Content */}
       <div className="p-4">
-        <h3 className="font-medium mb-2 line-clamp-2 h-12">{product.name}</h3>
+        <h3 className="font-medium -mb-5 line-clamp-2 h-12">{product.name}</h3>
 
         {/* Rating */}
-        <div className="flex items-center mb-3">
+        <div className="flex items-center mb-1">
           <span className="text-sm font-medium text-yellow-500 mr-1">
             {rating.toFixed(1)}
           </span>
@@ -197,7 +196,7 @@ const ProductCard = ({ product, addToCart, getQuantity, updateQuantity, navigate
         </div>
 
         {/* Price */}
-        <div className="flex items-center space-x-2 mb-4">
+        <div className="flex items-center space-x-2 mb-1">
           {original > finalPrice ? (
             <>
               <span className="text-red-600 font-semibold text-lg">₹ {finalPrice}</span>
@@ -387,7 +386,7 @@ const LocalMarket = () => {
 
       {/* Category Navbar */}
       <div className="bg-white border-b shadow-sm">
-        <div className="max-w-7xl mx-auto px-4">
+        <div className="max-w-7xl ml-5 px-4">
           <div className="flex overflow-x-auto py-3 space-x-6">
             {mainCategories.map((category) => (
               <button
@@ -406,7 +405,7 @@ const LocalMarket = () => {
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 py-6">
+      <div className="max-w-7xl ml-5 px-4 py-6">
         <div className="flex flex-col lg:flex-row gap-6">
           {/* Sidebar Filters - Responsive */}
           <div className={`${showFilters ? 'block' : 'hidden'} lg:block w-full lg:w-64 bg-white p-4 rounded-lg shadow-sm border lg:sticky lg:top-20 self-start`}>
@@ -498,7 +497,7 @@ const LocalMarket = () => {
                   : selectedMainCategory}
                 {selectedSubCategory !== "All" && ` - ${selectedSubCategory}`}
               </h2>
-              <div className="text-sm text-gray-600 bg-gray-100 px-3 py-1 rounded-full">
+              <div className="text-sm text-gray-600 bg-gray-100 px-3 -mr-[210px] py-1 rounded-full">
                 {filtered.length} products
               </div>
             </div>
@@ -520,7 +519,7 @@ const LocalMarket = () => {
 
             {/* Products Grid - Responsive */}
             {!loading && filtered.length > 0 && (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3  xl:grid-cols-4 gap-4 sm:gap-6">
                 {filtered.map((p) => (
                   <ProductCard
                     key={p.id}

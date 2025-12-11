@@ -545,24 +545,23 @@ const Navbar = () => {
         <div className="flex justify-between items-center">
 
           {/* Logo and Brand */}
-          <div className="flex items-center space-x-3">
-            <div className="relative transform transition-transform duration-300 hover:scale-110">
-              <img
-                src={logo}
-                alt="E-Mart Logo"
-                className="
-                  w-24 h-24
-                  sm:w-64 sm:h-24
-                  object-contain
-                  transition-all duration-300 
-                  hover:brightness-110 hover:drop-shadow-lg 
-                  cursor-pointer
-                "
-                onClick={() => navigate("/")}
-              />
-            </div>
-          </div>
-
+          <div className="relative h-14 flex items-center transform transition-transform duration-300 hover:scale-110">
+    <img
+      src={logo}
+      alt="E-Mart Logo"
+      className="
+        w-32 sm:w-35
+        mt-2
+        ml-8
+        h-auto
+        object-contain
+        transition-all duration-300 
+        hover:brightness-110 hover:drop-shadow-lg 
+        cursor-pointer
+      "
+      onClick={() => navigate("/")}
+    />
+  </div>
           {/* Right icons */}
           <div className="flex items-center space-x-4 pr-4">
             {/* Contact and Icons - Hidden on mobile */}

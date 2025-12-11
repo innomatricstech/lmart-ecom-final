@@ -164,9 +164,9 @@ const ProductCard = ({ product, addToCart, getQuantity, updateQuantity, navigate
       </div>
 
       <div className="p-4">
-        <h3 className="font-medium mb-2 line-clamp-2 h-12">{product.name}</h3>
+        <h3 className="font-medium -mb-5 line-clamp-2 h-12">{product.name}</h3>
 
-        <div className="flex items-center mb-3">
+        <div className="flex items-center mb-1">
           <span className="text-sm font-medium text-yellow-500 mr-1">
             {rating.toFixed(1)}
           </span>
@@ -184,7 +184,7 @@ const ProductCard = ({ product, addToCart, getQuantity, updateQuantity, navigate
           </div>
         </div>
 
-        <div className="flex items-center space-x-2 mb-4">
+        <div className="flex items-center space-x-2 mb-1">
           {original > finalPrice ? (
             <>
               <span className="text-red-600 font-semibold text-lg">₹ {finalPrice}</span>
@@ -413,7 +413,7 @@ const Printing = () => {
 
       {/* Category Navbar */}
       <div className="bg-white border-b shadow-sm">
-        <div className="max-w-7xl mx-auto px-4">
+        <div className="max-w-7xl ml-5 px-4">
           <div className="flex overflow-x-auto py-3 space-x-6">
             {/* Hide category buttons if a search is active */}
             {!searchQuery ? (
@@ -440,7 +440,7 @@ const Printing = () => {
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 py-6">
+      <div className="max-w-7xl ml-5 px-4 py-6">
         <div className="flex flex-col lg:flex-row gap-6">
           {/* Sidebar Filters - Responsive */}
           <div className={`${showFilters ? 'block' : 'hidden'} lg:block w-full lg:w-64 bg-white p-4 rounded-lg shadow-sm border lg:sticky lg:top-20 self-start`}>
@@ -535,7 +535,7 @@ const Printing = () => {
                   : selectedMainCategory}
                 {!searchQuery && selectedSubCategory !== "All" && ` - ${selectedSubCategory}`}
               </h2>
-              <div className="text-sm text-gray-600 bg-gray-100 px-3 py-1 rounded-full">
+              <div className="text-sm text-gray-600 bg-gray-100 -mr-[210px] px-3 py-1 rounded-full">
                 {filtered.length} products
               </div>
             </div>

@@ -104,34 +104,20 @@ const ToastNotification = ({ message, type = "success", onClose }) => {
 };
 
 // ---------------- PRODUCT CARD COMPONENT ----------------
-const ProductCard = ({ product, addToCart, getQuantity, updateQuantity, navigate, onToggleWishlist, currentPath }) => {
+const ProductCard = ({ product, addToCart, getQuantity, updateQuantity, navigate, onToggleWishlist }) => {
   const qty = getQuantity(product.id);
   const { finalPrice, original, discount } = getPriceData(product);
   const rating = product.rating || 4.3;
   
-  // ❤️ Use Wishlist Context and extract authUser state
-  const { toggleWishlist, isProductInWishlist, authUser } = useWishlist();
+  // ❤️ Use Wishlist Context
+  const { toggleWishlist, isProductInWishlist } = useWishlist();
   const inWishlist = isProductInWishlist(product.id);
 
   const handleWishlistToggle = (e) => {
     e.stopPropagation();
-    
-    // ⭐ FIX: Check if user is logged in
-    if (!authUser) {
-      // Redirect to login page, saving the current page path in state
-      navigate('/login', { 
-        state: { from: currentPath } 
-      });
-      return; // Stop execution here
-    }
-
-    // ⭐ If logged in, proceed with the wishlist action
     toggleWishlist(product);
     if (onToggleWishlist) {
-      const message = inWishlist 
-        ? "❌ Removed from Liked Products" 
-        : "❤️ Added to Liked Products";
-      onToggleWishlist(message);
+
     }
   };
 
@@ -153,22 +139,22 @@ const ProductCard = ({ product, addToCart, getQuantity, updateQuantity, navigate
         {/* ❤️ UPDATED WISHLIST HEART BUTTON */}
         <button
           onClick={handleWishlistToggle}
-          className={`absolute top-3 right-3 p-2 bg-white rounded-full shadow-md hover:scale-110 transition 
-            ${inWishlist ? "text-red-600" : "text-gray-400"}`}
+          className={`absolute top-5 right-0 p-2 bg-white rounded-full shadow-md hover:scale-110 transition 
+            ${inWishlist ? "text-red-700" : "text-red-400" }`}
           title={inWishlist ? "Remove from Wishlist" : "Add to Wishlist"}
         >
           <svg
-            className="w-5 h-5"
-            fill={inWishlist ? "red" : "none"}
+            className="w-4 h-4"
+            fill={inWishlist ? "#fdd8d8ff" : "none"}
             stroke="currentColor"
-            viewBox="0 0 24 24"
+            viewBox="0 0 26 28"
             xmlns="http://www.w3.org/2000/svg"
           >
             <path
               strokeLinecap="round"
               strokeLinejoin="round"
               strokeWidth={2}
-              d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-.318-.318a4.5 4.5 0 00-6.364 0z"
+              d="M13 25s-9.5-5.6-12-12.3C-1.4 7.9 1.6 2.4 7 2.1c2.9-.1 5.1 1.8 6 3.4 1-1.6 3.1-3.5 6-3.4 5.4.3 8.4 5.8 6 10.6C22.5 19.4 13 25 13 25z"
             />
           </svg>
         </button>
@@ -188,10 +174,10 @@ const ProductCard = ({ product, addToCart, getQuantity, updateQuantity, navigate
 
       {/* Content */}
       <div className="p-4">
-        <h3 className="font-medium mb-2 line-clamp-2 h-12">{product.name}</h3>
+        <h3 className="font-medium -mb-5 line-clamp-2 h-12">{product.name}</h3>
 
         {/* Rating */}
-        <div className="flex items-center mb-3">
+        <div className="flex items-center  mb-1">
           <span className="text-sm font-medium text-yellow-500 mr-1">
             {rating.toFixed(1)}
           </span>
@@ -210,7 +196,7 @@ const ProductCard = ({ product, addToCart, getQuantity, updateQuantity, navigate
         </div>
 
         {/* Price */}
-        <div className="flex items-center space-x-2 mb-4">
+        <div className="flex items-center space-x-2 mb-1">
           {original > finalPrice ? (
             <>
               <span className="text-red-600 font-semibold text-lg">₹ {finalPrice}</span>
@@ -325,7 +311,7 @@ const EMarket = () => {
         const maxPrice = Math.max(...list.map(p => p.price || 0), 1000);
         setPriceRange([0, Math.min(Math.ceil(maxPrice / 1000) * 1000, MAX_SLIDER)]);
       } catch (err) {
-        console.error("E-Market Fetch Error:", err);
+        console.error("E-Store Fetch Error:", err);
         setToastMessage("Error loading products");
         setTimeout(() => setToastMessage(""), 3000);
       } finally {
@@ -423,21 +409,26 @@ const EMarket = () => {
       {/* Mobile Filter Button */}
       <div className="lg:hidden bg-white border-b shadow-sm">
         <div className="max-w-7xl mx-auto px-4 py-3">
-          <button
-            onClick={() => setShowFilters(!showFilters)}
-            className="w-full flex items-center justify-center gap-2 py-2 bg-blue-600 text-white rounded-lg font-medium transition hover:bg-blue-700"
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
-            </svg>
-            {showFilters ? 'Hide Filters' : 'Show Filters'}
-          </button>
-        </div>
+  <button
+    onClick={() => setShowFilters(!showFilters)}
+    className="w-10 h-10 flex items-center justify-center rounded-full bg-blue-600 text-white shadow hover:scale-110 transition"
+  >
+    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path
+        strokeLinecap="round"
+       
+        strokeWidth={2}
+        d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"
+      />
+    </svg>
+  </button>
+</div>
+
       </div>
 
       {/* Category Navbar */}
       <div className="bg-white border-b shadow-sm hidden lg:block">
-        <div className="max-w-7xl mx-auto px-4">
+        <div className="max-w-7xl ml-5 px-4">
           <div className="flex overflow-x-auto py-3 space-x-6">
             {/* 👇 Hide category buttons if a search is active */}
             {!searchQuery ? (
@@ -464,7 +455,7 @@ const EMarket = () => {
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 py-6">
+      <div className="max-w-7xl ml-5 px-4 py-6">
         <div className="flex flex-col lg:flex-row gap-6">
           {/* Sidebar Filters - Responsive */}
           <div className={`${showFilters ? 'block' : 'hidden'} lg:block w-full lg:w-64 bg-white p-4 rounded-lg shadow-sm border lg:sticky lg:top-20 self-start`}>
@@ -550,7 +541,7 @@ const EMarket = () => {
           {/* Products Area */}
           <div className="flex-1">
             <div className="mb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-              <h2 className="text-xl font-semibold">
+              <h2 className="text-xl font-semibold ">
                 {/* 👇 Update Title based on search query */}
                 {searchQuery
                   ? `Results for "${searchQuery}"`
@@ -559,7 +550,7 @@ const EMarket = () => {
                   : selectedMainCategory}
                 {!searchQuery && selectedSubCategory !== "All" && ` - ${selectedSubCategory}`}
               </h2>
-              <div className="text-sm text-gray-600 bg-gray-100 px-3 py-1 rounded-full">
+              <div className="text-sm text-gray-600 bg-gray-100 -mr-[210px] px-3 py-1 rounded-full">
                 {filtered.length} products
               </div>
             </div>
@@ -583,7 +574,7 @@ const EMarket = () => {
 
             {/* Products Grid - Responsive */}
             {!loading && filtered.length > 0 && (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2  lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
                 {filtered.map((p) => (
                   <ProductCard
                     key={p.id}
@@ -593,7 +584,6 @@ const EMarket = () => {
                     getQuantity={getQuantity}
                     navigate={navigate}
                     onToggleWishlist={handleWishlistNotification}
-                    currentPath={location.pathname} // Passing the current pathname
                   />
                 ))}
               </div>

@@ -7,15 +7,7 @@ const WhatsAppChatWidget = () => {
   return (
     <>
       {/* Help & Support Floating Bubble */}
-      <div className="
-          fixed bottom-28 right-6 
-          bg-gradient-to-r from-blue-500 to-purple-500 
-          text-white font-semibold text-sm
-          px-4 py-2 rounded-xl shadow-lg 
-          flex items-center gap-2
-          animate-fade-slide z-50
-      ">
-        <span>💬 Help & Support</span>
+   
 
         {/* Arrow Pointer */}
         <div className="
@@ -24,8 +16,7 @@ const WhatsAppChatWidget = () => {
             bg-gradient-to-r from-blue-500 to-purple-500 
             rotate-45
         "></div>
-      </div>
-
+      
       {/* Floating WhatsApp Button (Attractive Glow) */}
       <a
         href={`https://wa.me/${whatsappNumber}?text=${encodeURIComponent(defaultMessage)}`}

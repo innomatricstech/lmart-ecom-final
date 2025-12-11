@@ -878,7 +878,7 @@ const ProductDetail = () => {
             onClick={() => navigate("/e-market")}
             className="cursor-pointer hover:text-gray-800 transition-colors"
           >
-            E-Market
+            E-Store
           </button>
           <svg className="w-3 h-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
@@ -932,7 +932,7 @@ const ProductDetail = () => {
                     >
                       <img
                         src={img}
-                        className="h-20 w-full object-cover"
+                        className="h-18 w-full object-cover"
                         alt={`Thumbnail ${i + 1}`}
                       />
                     </button>
@@ -1009,7 +1009,7 @@ const ProductDetail = () => {
                       <button
                         key={c}
                         onClick={() => setSelectedColor(c)}
-                        className={`px-4 py-2.5 rounded-lg border transition-all duration-200 font-medium ${selectedColor === c
+                        className={`px-4 py-1 rounded-lg border transition-all duration-200 font-medium ${selectedColor === c
                           ? "border-purple-600 bg-gradient-to-r from-purple-50 to-pink-50 text-purple-700 shadow-md"
                           : "border-gray-300 hover:border-gray-400 hover:bg-gray-50"
                           }`}
@@ -1033,7 +1033,7 @@ const ProductDetail = () => {
                           key={v.size}
                           onClick={() => setSelectedSize(v.size)}
                           disabled={v.stock === 0}
-                          className={`px-4 py-2.5 rounded-lg border transition-all duration-200 font-medium relative ${selectedSize === v.size
+                          className={`px-4 py-1 rounded-lg border transition-all duration-200 font-medium relative ${selectedSize === v.size
                             ? "border-purple-600 bg-gradient-to-r from-purple-50 to-pink-50 text-purple-700 shadow-md"
                             : v.stock > 0
                               ? "border-gray-300 hover:border-gray-400 hover:bg-gray-50"
