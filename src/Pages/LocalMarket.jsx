@@ -4,11 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { getApps, getApp, initializeApp } from "firebase/app";
 import { getFirestore, collection, getDocs, query, where } from "firebase/firestore";
 import { useCart } from "../context/CartContext";
-<<<<<<< HEAD
 import { useWishlist } from "../context/WishlistContext"; 
-=======
-import { useWishlist } from "../context/WishlistContext"; // Import wishlist hook
->>>>>>> 0d8f0c98d3b48644b1f77b806ef849904452b6e8
 
 // ---------------- FIREBASE INIT ----------------
 const firebaseConfig =
@@ -78,18 +74,10 @@ const extractMainCategories = (products) => {
 const extractSubcategories = (products, mainCategory) => {
   const set = new Set(["All"]);
   if (mainCategory === "All Products") {
-<<<<<<< HEAD
-=======
-    // For "All Products", show all subcategories
->>>>>>> 0d8f0c98d3b48644b1f77b806ef849904452b6e8
     products.forEach(p => {
       if (p.subCategory?.name) set.add(p.subCategory.name);
     });
   } else {
-<<<<<<< HEAD
-=======
-    // For specific main category, show only its subcategories
->>>>>>> 0d8f0c98d3b48644b1f77b806ef849904452b6e8
     products.forEach(p => {
       if (p.category?.name === mainCategory && p.subCategory?.name) {
         set.add(p.subCategory.name);
@@ -100,11 +88,7 @@ const extractSubcategories = (products, mainCategory) => {
 };
 
 // ---------------- PRODUCT CARD COMPONENT ----------------
-<<<<<<< HEAD
 const ProductCard = ({ product, addToCart, getQuantity, updateQuantity, navigate, onWishlistToggle, isLoggedIn }) => {
-=======
-const ProductCard = ({ product, addToCart, getQuantity, updateQuantity, navigate, onWishlistToggle }) => {
->>>>>>> 0d8f0c98d3b48644b1f77b806ef849904452b6e8
   const qty = getQuantity(product.id);
   const { finalPrice, original, discount } = getPriceData(product);
   const rating = product.rating || 4.3;
@@ -115,7 +99,6 @@ const ProductCard = ({ product, addToCart, getQuantity, updateQuantity, navigate
 
   const handleWishlistToggle = (e) => {
     e.stopPropagation(); // Prevent product card click
-<<<<<<< HEAD
 
     // ✅ LOGIN CHECK: Redirect if not logged in
     if (!isLoggedIn) {
@@ -124,17 +107,11 @@ const ProductCard = ({ product, addToCart, getQuantity, updateQuantity, navigate
     }
     // --- LOGIN CHECK END ---
 
-=======
->>>>>>> 0d8f0c98d3b48644b1f77b806ef849904452b6e8
     toggleWishlist(product);
     
     // Show toast notification
     if (onWishlistToggle) {
-<<<<<<< HEAD
       const message = inWishlist ? "💔 Removed from Wishlist" : "❤️ Added to Wishlist";
-=======
-     
->>>>>>> 0d8f0c98d3b48644b1f77b806ef849904452b6e8
       onWishlistToggle(message);
     }
   };
@@ -274,11 +251,8 @@ const ProductCard = ({ product, addToCart, getQuantity, updateQuantity, navigate
 };
 
 // ---------------- MAIN COMPONENT ----------------
-<<<<<<< HEAD
 const MAX_SLIDER = 100000;
 
-=======
->>>>>>> 0d8f0c98d3b48644b1f77b806ef849904452b6e8
 const LocalMarket = () => {
   const navigate = useNavigate();
   const { items = [], addToCart, updateQuantity } = useCart();
@@ -293,13 +267,10 @@ const LocalMarket = () => {
   const [loading, setLoading] = useState(true);
   const [showFilters, setShowFilters] = useState(false);
 
-<<<<<<< HEAD
   // ✅ Get real login status from Wishlist Context
   const { isLoggedIn } = useWishlist();
   // ----------------------------------------------------------
 
-=======
->>>>>>> 0d8f0c98d3b48644b1f77b806ef849904452b6e8
   // Auto hide toast
   useEffect(() => {
     if (toastMessage) {
@@ -348,11 +319,7 @@ const LocalMarket = () => {
         setSubCategories(subs);
 
         const maxPrice = Math.max(...list.map(p => p.price || 0), 1000);
-<<<<<<< HEAD
         setPriceRange([0, Math.min(Math.ceil(maxPrice / 1000) * 1000, MAX_SLIDER)]);
-=======
-        setPriceRange([0, Math.min(Math.ceil(maxPrice / 1000) * 1000, 100000)]);
->>>>>>> 0d8f0c98d3b48644b1f77b806ef849904452b6e8
       } catch (err) {
         console.error("Local Market Fetch Error:", err);
         setToastMessage("Error loading products");
@@ -422,11 +389,7 @@ const LocalMarket = () => {
             className="w-full flex items-center justify-center gap-2 py-2 bg-blue-600 text-white rounded-lg font-medium transition hover:bg-blue-700"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-<<<<<<< HEAD
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 1 0013 6.586V4z" />
-=======
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
->>>>>>> 0d8f0c98d3b48644b1f77b806ef849904452b6e8
             </svg>
             {showFilters ? 'Hide Filters' : 'Show Filters'}
           </button>
@@ -479,7 +442,6 @@ const LocalMarket = () => {
 
             <hr className="my-4" />
 
-<<<<<<< HEAD
             {/* Price Range - DUAL SLIDER WITH MIN/MAX DISPLAY (FIXED) */}
             <div className="mb-6">
               <h3 className="text-sm font-medium mb-4">Price Range</h3>
@@ -523,54 +485,6 @@ const LocalMarket = () => {
                   style={{
                     left: `${(priceRange[0] / MAX_SLIDER) * 100}%`,
                     width: `${((priceRange[1] - priceRange[0]) / MAX_SLIDER) * 100}%`
-=======
-            {/* Price Range - SINGLE SLIDER WITH MIN/MAX DISPLAY */}
-            <div className="mb-6">
-              <h3 className="text-sm font-medium mb-4">Price Range</h3>
-              
-              {/* Min/Max Price Display */}
-              <div className="flex items-center justify-between mb-4">
-                <div className="text-center">
-                  <div className="text-xs text-gray-500 mb-1">Min</div>
-                  <div className="text-sm font-medium">₹{priceRange[0]}</div>
-                </div>
-                <div className="text-center">
-                  <div className="text-xs text-gray-500 mb-1">Max</div>
-                  <div className="text-sm font-medium">₹{priceRange[1]}</div>
-                </div>
-              </div>
-
-              {/* Single Range Slider Container */}
-              <div className="relative pt-1 mb-2">
-                {/* Min Price Slider */}
-                <input
-                  type="range"
-                  min="0"
-                  max="100000"
-                  value={priceRange[0]}
-                  onChange={(e) => handlePriceChange(0, e.target.value)}
-                  className="absolute w-full h-2 bg-transparent appearance-none pointer-events-auto z-10"
-                  style={{ WebkitAppearance: 'none' }}
-                />
-                {/* Max Price Slider */}
-                <input
-                  type="range"
-                  min="0"
-                  max="100000"
-                  value={priceRange[1]}
-                  onChange={(e) => handlePriceChange(1, e.target.value)}
-                  className="absolute w-full h-2 bg-transparent appearance-none pointer-events-auto z-20"
-                  style={{ WebkitAppearance: 'none' }}
-                />
-                {/* Track Background */}
-                <div className="h-2 bg-gray-200 rounded-full"></div>
-                {/* Active Range */}
-                <div 
-                  className="absolute top-0 h-2 bg-blue-500 rounded-full"
-                  style={{
-                    left: `${(priceRange[0] / 100000) * 100}%`,
-                    width: `${((priceRange[1] - priceRange[0]) / 100000) * 100}%`
->>>>>>> 0d8f0c98d3b48644b1f77b806ef849904452b6e8
                   }}
                 ></div>
               </div>
@@ -578,11 +492,7 @@ const LocalMarket = () => {
               {/* Price Labels */}
               <div className="flex justify-between text-xs text-gray-500">
                 <span>₹0</span>
-<<<<<<< HEAD
                 <span>₹{MAX_SLIDER.toLocaleString()}</span>
-=======
-                <span>₹1,00,000</span>
->>>>>>> 0d8f0c98d3b48644b1f77b806ef849904452b6e8
               </div>
             </div>
           </div>
@@ -628,10 +538,7 @@ const LocalMarket = () => {
                     getQuantity={getQuantity}
                     navigate={navigate}
                     onWishlistToggle={(msg) => setToastMessage(msg)}
-<<<<<<< HEAD
                     isLoggedIn={isLoggedIn} // ✅ Passing the real login status
-=======
->>>>>>> 0d8f0c98d3b48644b1f77b806ef849904452b6e8
                   />
                 ))}
               </div>
@@ -640,11 +547,6 @@ const LocalMarket = () => {
         </div>
       </div>
       
-<<<<<<< HEAD
-=======
-      {/* FIXED CHECKOUT BUTTON */}
-      
->>>>>>> 0d8f0c98d3b48644b1f77b806ef849904452b6e8
     </div>
   );
 };

@@ -931,17 +931,17 @@ const Oldee = () => {
 
       {/* Main approved grid */}
       <div className="max-w-6xl mx-auto px-4 py-16">
-<<<<<<< HEAD
+ 
         {/* <h1 className="text-3xl font-bold text-gray-900 mb-6">Oldee Marketplace</h1>
         <p className="text-gray-600 mb-8">
           Only <span className="font-semibold">active</span> products are visible here.
         </p> */}
-=======
+ 
         <h1 className="text-3xl font-bold text-gray-900 mb-6">Oldee Marketplace</h1>
         <p className="text-gray-600 mb-8">
           Only <span className="font-semibold">active</span> products are visible here.
         </p>
->>>>>>> 0d8f0c98d3b48644b1f77b806ef849904452b6e8
+ 
 
         {loadingApproved ? (
           <p className="text-sm text-gray-600">Loading products…</p>

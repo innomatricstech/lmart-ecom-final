@@ -77,9 +77,8 @@ const NewsToday = () => {
     <div className="min-h-screen bg-gray-50">
 
       {/* Header Section */}
-<<<<<<< HEAD
-     
-=======
+ 
+ 
       <div className="bg-gradient-to-r from-purple-700 to-indigo-800 text-white">
         <div className="max-w-7xl mx-auto px-4 py-12">
           <h1 className="text-4xl md:text-5xl font-bold mb-4">📰 News Today</h1>
@@ -87,7 +86,7 @@ const NewsToday = () => {
         </div>
       </div>
 
->>>>>>> 0d8f0c98d3b48644b1f77b806ef849904452b6e8
+ 
       {/* Categories Filter */}
       <div className="bg-white border-b sticky top-0 z-10">
         <div className="max-w-7xl mx-auto px-4 py-3">

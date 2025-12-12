@@ -1,11 +1,7 @@
 import { createContext, useContext, useEffect, useState } from "react";
 import { db } from "../../firebase";
 import { doc, setDoc, getDoc } from "firebase/firestore";
-<<<<<<< HEAD
 import { getAuth, onAuthStateChanged, signOut } from "firebase/auth";
-=======
-import { getAuth, onAuthStateChanged } from "firebase/auth";
->>>>>>> 0d8f0c98d3b48644b1f77b806ef849904452b6e8
 
 const WishlistContext = createContext();
 
@@ -16,23 +12,16 @@ export const WishlistProvider = ({ children }) => {
   const [wishlist, setWishlist] = useState([]);
   const [loading, setLoading] = useState(true);
 
-<<<<<<< HEAD
   // ✅ Enhanced isLoggedIn - checks both Firebase auth AND localStorage
   const isLoggedIn = !!authUser || !!localStorage.getItem("token");
 
-=======
->>>>>>> 0d8f0c98d3b48644b1f77b806ef849904452b6e8
   // Listen for auth state changes
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       setAuthUser(user);
 
       if (user) {
-<<<<<<< HEAD
         // User is logged in via Firebase - load their wishlist
-=======
-        // User is logged in - load their wishlist
->>>>>>> 0d8f0c98d3b48644b1f77b806ef849904452b6e8
         try {
           const userDocRef = doc(db, "users", user.uid);
           const userDoc = await getDoc(userDocRef);
@@ -50,7 +39,6 @@ export const WishlistProvider = ({ children }) => {
           setWishlist([]);
         }
       } else {
-<<<<<<< HEAD
         // User is logged out - check localStorage for manual login
         const token = localStorage.getItem("token");
         if (token) {
@@ -71,17 +59,12 @@ export const WishlistProvider = ({ children }) => {
           // No Firebase auth AND no localStorage token = truly logged out
           setWishlist([]);
         }
-=======
-        // User is logged out - clear wishlist
-        setWishlist([]);
->>>>>>> 0d8f0c98d3b48644b1f77b806ef849904452b6e8
       }
       
       setLoading(false);
     });
 
     return () => unsubscribe();
-<<<<<<< HEAD
   }, [auth]);
 
   // Sync localStorage token with Firebase auth
@@ -117,27 +100,12 @@ export const WishlistProvider = ({ children }) => {
         } catch (e) {
           console.error("Error saving wishlist to localStorage:", e);
         }
-=======
-  }, []);
-
-  // Save wishlist to Firestore whenever it changes
-  useEffect(() => {
-    if (!authUser || loading) return;
-
-    const saveWishlist = async () => {
-      try {
-        const userDocRef = doc(db, "users", authUser.uid);
-        await setDoc(userDocRef, { wishlist }, { merge: true });
-      } catch (error) {
-        console.error("Error saving wishlist:", error);
->>>>>>> 0d8f0c98d3b48644b1f77b806ef849904452b6e8
       }
     };
 
     saveWishlist();
   }, [wishlist, authUser, loading]);
 
-<<<<<<< HEAD
   // ✅ Toggle wishlist function - UPDATED with strict login check
   const toggleWishlist = (product) => {
     // ✅ STRICT CHECK: User must be logged in via Firebase OR localStorage
@@ -151,30 +119,16 @@ export const WishlistProvider = ({ children }) => {
 
     console.log("✅ User is logged in, toggling wishlist for product:", product.name);
     
-=======
-  // Toggle wishlist function
-  const toggleWishlist = (product) => {
-    if (!authUser) {
-      return false; // User not logged in
-    }
-
->>>>>>> 0d8f0c98d3b48644b1f77b806ef849904452b6e8
     setWishlist((prevWishlist) => {
       const isAlreadyInWishlist = prevWishlist.some(item => item.id === product.id);
       
       if (isAlreadyInWishlist) {
         // Remove from wishlist
-<<<<<<< HEAD
         console.log("🗑️ Removing from wishlist");
         return prevWishlist.filter(item => item.id !== product.id);
       } else {
         // Add to wishlist
         console.log("❤️ Adding to wishlist");
-=======
-        return prevWishlist.filter(item => item.id !== product.id);
-      } else {
-        // Add to wishlist
->>>>>>> 0d8f0c98d3b48644b1f77b806ef849904452b6e8
         return [...prevWishlist, {
           id: product.id,
           name: product.name,
@@ -182,17 +136,12 @@ export const WishlistProvider = ({ children }) => {
           image: product.image,
           originalPrice: product.originalPrice,
           discount: product.discount,
-<<<<<<< HEAD
           rating: product.rating,
           addedAt: new Date().toISOString()
-=======
-          rating: product.rating
->>>>>>> 0d8f0c98d3b48644b1f77b806ef849904452b6e8
         }];
       }
     });
     
-<<<<<<< HEAD
     return true; // Successfully toggled
   };
 
@@ -242,13 +191,6 @@ export const WishlistProvider = ({ children }) => {
   // ✅ Clear wishlist (for testing)
   const clearWishlist = () => {
     setWishlist([]);
-=======
-    return true;
-  };
-
-  const isProductInWishlist = (productId) => {
-    return authUser ? wishlist.some(item => item.id === productId) : false;
->>>>>>> 0d8f0c98d3b48644b1f77b806ef849904452b6e8
   };
 
   return (
@@ -257,17 +199,12 @@ export const WishlistProvider = ({ children }) => {
         wishlist,
         toggleWishlist,
         isProductInWishlist,
-<<<<<<< HEAD
         getWishlistCount,
         clearWishlist,
         loading,
         authUser,
         isLoggedIn, // ✅ EXPOSED: Now accessible to all components
         logout
-=======
-        loading,
-        authUser,
->>>>>>> 0d8f0c98d3b48644b1f77b806ef849904452b6e8
       }}
     >
       {children}
