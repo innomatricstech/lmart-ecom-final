@@ -269,8 +269,8 @@ const Home = () => {
               formattedDate:
                 posterData.date || formatPosterDate(posterData.createdAt),
               title: posterData.title || "New Poster",
-              subtitle:
-                posterData.subtitle || "Latest addition to our collection",
+              // CHANGED: Use subContents field first, then subtitle as fallback
+              subtitle: posterData.subContents || posterData.subtitle || "Latest addition to our collection",
             });
           }
         });

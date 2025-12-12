@@ -59,7 +59,8 @@ const Checkout = () => {
 
   const [checkoutItems, setCheckoutItems] = useState([]);
   const [total, setTotal] = useState(0);
-  const [currentStep, setCurrentStep] = useState(skipToPayment ? 2 : 1);
+  // ⭐ MODIFIED LINE: Check for 'isBuyNow' or 'skipToPayment' to start at Step 2
+  const [currentStep, setCurrentStep] = useState(isBuyNow || skipToPayment ? 2 : 1);
   const [processingPayment, setProcessingPayment] = useState(false);
 
   const [form, setForm] = useState({

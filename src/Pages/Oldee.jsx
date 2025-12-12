@@ -937,10 +937,7 @@ const Oldee = () => {
           Only <span className="font-semibold">active</span> products are visible here.
         </p> */}
  
-        <h1 className="text-3xl font-bold text-gray-900 mb-6">Oldee Marketplace</h1>
-        <p className="text-gray-600 mb-8">
-          Only <span className="font-semibold">active</span> products are visible here.
-        </p>
+         
  
 
         {loadingApproved ? (
