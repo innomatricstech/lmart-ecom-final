@@ -12,7 +12,7 @@ import {
   query,
   where,
   orderBy,
-  limit as fbLimit,
+  limit,
   deleteDoc,
 } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
@@ -25,15 +25,15 @@ const MAX_MB = 5;
 const CUSTOMER_COLLECTION = "customers";
 const USERS_COLLECTION_MIRROR = "users";
 const COLLECTION = "oldee";
-
-const ADMIN_EMAILS = ["admin@example.com", "iammoulahussain@gmail.com"];
+const ADMIN_COLLECTION = "adminUsers"; // New collection for admin users
+const fbLimit = limit;
 
 const SellProductForm = ({
   user,
   onCancel,
   onSave,
   initialSummaryOpen = false,
-  editDoc = null, 
+  editDoc = null,
 }) => {
   const isEdit = !!editDoc;
 
@@ -50,8 +50,8 @@ const SellProductForm = ({
     negotiation: editDoc?.negotiation || "flexible",
   });
 
-  const [images, setImages] = useState([]); 
-  const [existingImages, setExistingImages] = useState(editDoc?.imageURLs || []); 
+  const [images, setImages] = useState([]);
+  const [existingImages, setExistingImages] = useState(editDoc?.imageURLs || []);
   const [step, setStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSummaryPanelOpen, setIsSummaryPanelOpen] = useState(initialSummaryOpen);
@@ -130,8 +130,7 @@ const SellProductForm = ({
       const index = temp.findIndex(img => img.preview === url);
       if (index > -1) {
         const [moved] = temp.splice(index, 1);
-        const [movedNew] = temp.splice(index, 1);
-        setImages([movedNew, ...temp]);
+        setImages([moved, ...temp]);
       }
     }
   };
@@ -203,7 +202,7 @@ const SellProductForm = ({
       await saveCustomerDetails();
 
       const price = Number(formData.price);
-      const offerPrice = formData.offerPrice === "" ? null : Number(formData.offerPrice);
+      const offerPrice = formData.offerPrice !== "" ? Number(formData.offerPrice) : null;
 
       const sellerSnapshot = {
         uid: user.uid,
@@ -245,7 +244,6 @@ const SellProductForm = ({
           status: editDoc.status || (editDoc.approved ? "active" : "pending"),
           marketplace: "oldee",
           updatedAt: serverTimestamp(),
-          isSold: editDoc.isSold ?? false, 
         };
         await updateDoc(doc(db, COLLECTION, editDoc.id), updatePayload);
         onSave({ id: editDoc.id, ...updatePayload });
@@ -738,9 +736,6 @@ const ProductsViewer = ({ user, isAdmin, onClose, onEdit }) => {
                         {p.approved ? "Approved" : "Pending"}
                       </span>
                       <span className="ml-2 px-2 py-1 rounded-full bg-gray-100 text-gray-700">{p.negotiation}</span>
-                      {p.isSold && (
-                        <span className="ml-2 px-2 py-1 rounded-full bg-red-100 text-red-700">Sold</span>
-                      )}
                     </div>
                   </div>
                 </div>
@@ -767,18 +762,50 @@ const ProductsViewer = ({ user, isAdmin, onClose, onEdit }) => {
 const Oldee = () => {
   const [currentUser, setCurrentUser] = useState(null);
   const [loadingAuth, setLoadingAuth] = useState(true);
-
   const [showUpload, setShowUpload] = useState(false);
   const [showViewer, setShowViewer] = useState(false);
   const [editingDoc, setEditingDoc] = useState(null);
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [approvedItems, setApprovedItems] = useState([]);
   const [loadingApproved, setLoadingApproved] = useState(true);
+  const [adminUsers, setAdminUsers] = useState([]); // Store admin users from Firestore
+  const [loadingAdmins, setLoadingAdmins] = useState(true);
 
-  const isAdmin = useMemo(
-    () => !!currentUser && ADMIN_EMAILS.includes(currentUser.email || ""),
-    [currentUser]
-  );
+  // Function to fetch admin users from Firestore
+  const fetchAdminUsers = async () => {
+    try {
+      setLoadingAdmins(true);
+      const q = query(collection(db, ADMIN_COLLECTION), where("isAdmin", "==", true));
+      const snapshot = await getDocs(q);
+      const admins = [];
+      snapshot.forEach(doc => {
+        admins.push({
+          id: doc.id,
+          uid: doc.data().uid,
+          email: doc.data().email,
+          ...doc.data()
+        });
+      });
+      setAdminUsers(admins);
+    } catch (error) {
+      console.error("Error fetching admin users:", error);
+    } finally {
+      setLoadingAdmins(false);
+    }
+  };
+
+  // Check if current user is admin based on Firestore collection
+  const isAdmin = useMemo(() => {
+    if (!currentUser?.uid || loadingAdmins) return false;
+    
+    // Check if user's UID exists in adminUsers array
+    const isAdminByUid = adminUsers.some(admin => admin.uid === currentUser.uid);
+    
+    // Also check by email as fallback
+    const isAdminByEmail = adminUsers.some(admin => admin.email === currentUser.email);
+    
+    return isAdminByUid || isAdminByEmail;
+  }, [currentUser, adminUsers, loadingAdmins]);
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, (u) => {
@@ -788,48 +815,24 @@ const Oldee = () => {
     return () => unsub();
   }, []);
 
-  // Load approved products for main page - UPDATED VERSION
+  // Fetch admin users when component mounts
+  useEffect(() => {
+    fetchAdminUsers();
+  }, []);
+
   const loadApproved = async () => {
     setLoadingApproved(true);
     try {
-      // 🚩 STRICT FILTER: Only show active AND unsold products
       const qRef = query(
         collection(db, COLLECTION),
-        where("status", "==", "active"), // Must have active status
-        where("isSold", "==", false), // Must not be marked as sold
+        where("status", "==", "active"),
         orderBy("createdAt", "desc"),
         fbLimit(30)
       );
       const snap = await getDocs(qRef);
       setApprovedItems(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
     } catch (e) {
-      console.error("Query error (might need composite index):", e);
-      
-      // 🛠️ FALLBACK: Manual filtering
-      try {
-        const qRef = query(
-          collection(db, COLLECTION),
-          orderBy("createdAt", "desc"),
-          fbLimit(50)
-        );
-        const snap = await getDocs(qRef);
-        const items = snap.docs
-          .map((d) => ({ id: d.id, ...d.data() }))
-          .filter(item => {
-            // Exclude if status is "sold" OR isSold is true
-            const isSold = item.isSold === true;
-            const isSoldStatus = item.status === "sold";
-            const isActive = item.status === "active";
-            
-            // Show only if active AND not sold
-            return isActive && !isSold && !isSoldStatus;
-          })
-          .slice(0, 30);
-        setApprovedItems(items);
-      } catch (error) {
-        console.error("Fallback query also failed:", error);
-        setApprovedItems([]);
-      }
+      console.error("approved load error:", e);
     } finally {
       setLoadingApproved(false);
     }
@@ -901,9 +904,10 @@ const Oldee = () => {
       />
     );
   }
+
   return (
     <div className="min-h-screen bg-gray-50 relative">
-      <div className="max-w-6xl mx-auto px-4 pt-6 flex justify-end gap-3">
+      <div className="max-w-7=6xl mx-auto px-4 pt-6 flex gap-3 ml-[1370px]">
         {currentUser && (
           <>
             <button
@@ -912,25 +916,54 @@ const Oldee = () => {
             >
               Upload
             </button>
-            <button
+            {/* <button
               onClick={openViewer}
               className="px-6 py-2 rounded-full bg-gray-900 hover:bg-black text-white font-semibold shadow-md transition-all duration-300"
             >
               View My Listings
-            </button>
+            </button> */}
+            
+            {/* Admin-only button to view ALL products */}
+            {isAdmin && (
+              <button
+                onClick={() => {
+                  setSelectedProduct(null);
+                  setShowViewer(true);
+                }}
+                className="px-6 py-2 rounded-full bg-purple-600 hover:bg-purple-700 text-white font-semibold shadow-md transition-all duration-300"
+              >
+                View All Products (Admin)
+              </button>
+            )}
           </>
         )}
       </div>
 
-      <div className="max-w-6xl mx-auto px-4 py-16">
+      <div className="max-w-6xl ml-6 px-4 py-10 -mt-12">
+        <div className="flex justify-between items-center mb-6">
+          {/* <div>
+            <h1 className="text-3xl font-bold text-gray-900">Oldee Marketplace</h1>
+            <p className="text-gray-600 mt-2">
+              Only <span className="font-semibold">active</span> products are visible here.
+            </p>
+          </div> */}
+          
+          {/* Display admin status badge */}
+          {isAdmin && (
+            <div className="px-4 py-2 bg-purple-100 text-purple-700 rounded-full text-sm font-semibold">
+              👑 Admin Mode
+            </div>
+          )}
+        </div>
+
         {loadingApproved ? (
           <p className="text-sm text-gray-600">Loading products…</p>
         ) : approvedItems.length === 0 ? (
           <div className="rounded-xl border bg-white p-8 text-center text-gray-600">
-            No active products available.
+            No active products yet.
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
             {approvedItems.map((p) => (
               <div
                 key={p.id}
@@ -943,7 +976,7 @@ const Oldee = () => {
                 <div className="p-4">
                   <h3 className="font-semibold text-gray-900">{p.name}</h3>
                   <div className="text-sm text-gray-700 mt-1">
-                    ₹{p.offerPrice != null ? p.offerPrice : p.price}
+                    ₹{p.price}
                     {p.offerPrice != null && (
                       <>
                         {" "}
@@ -953,13 +986,6 @@ const Oldee = () => {
                     )}
                   </div>
                   <p className="text-xs text-gray-600 mt-2 line-clamp-2">{p.description}</p>
-                  {p.isSold && (
-                    <div className="mt-2">
-                      <span className="inline-block bg-red-100 text-red-700 text-xs px-2 py-1 rounded-full">
-                        Sold
-                      </span>
-                    </div>
-                  )}
                 </div>
               </div>
             ))}

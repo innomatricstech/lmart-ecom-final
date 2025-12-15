@@ -277,7 +277,8 @@ const OldeeProductDetails = ({ product, onBack, onEdit }) => {
             </div>
             
             {/* 🚩 SHOW EDIT BUTTON FOR SELLER/ADMIN (EVEN IF SOLD) */}
-            {(onEdit && (product.sellerId === auth.currentUser?.uid || isAdmin)) && (
+            {/* FIX: Removed references to auth and isAdmin as they are outside scope. Rely on the 'onEdit' prop being passed. */}
+            {onEdit && (
               <div className="mt-6 text-center">
                 <button
                   onClick={() => onEdit(product)}

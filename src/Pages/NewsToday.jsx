@@ -67,14 +67,14 @@ const NewsToday = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center ">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-purple-600"></div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 -ml-[200px]">
 
       {/* Header Section */}
  
@@ -103,7 +103,7 @@ const NewsToday = () => {
       </div>
 
       {/* Main Content */}
-      <div className="max-w-7xl mx-auto px-4 py-8">
+      <div className="max-w-7xl mx-auto px-5 py-2">
 
      
 
@@ -121,7 +121,7 @@ const NewsToday = () => {
         </div>
 
         {/* Articles Grid - IMAGE ON TOP LAYOUT */}
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-10">
           {filtered.map((article) => (
             <div
               key={article.id}

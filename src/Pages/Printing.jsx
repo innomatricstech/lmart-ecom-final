@@ -450,7 +450,7 @@ const Printing = () => {
 
   /* --------------------- RENDER --------------------- */
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 ml-5">
       <ToastNotification message={toastMessage} onClose={() => setToastMessage("")} />
 
       {/* Mobile Filter Button */}
@@ -494,7 +494,7 @@ const Printing = () => {
         </div>
       </div>
 
-      <div className="px-2 sm:px-4 py-4 sm:py-6">
+      <div className="px-2 sm:px-4 py-4 sm:py-6  ">
         <div className="flex flex-col lg:flex-row gap-4 sm:gap-6">
           {/* Sidebar Filters */}
           <div className={`${showFilters ? 'block' : 'hidden'} lg:block w-full lg:w-64 bg-white p-4 rounded-lg shadow-sm border lg:sticky lg:top-20 self-start z-20 max-h-[calc(100vh-120px)] overflow-y-auto`}>
@@ -658,7 +658,7 @@ const Printing = () => {
                   </div>
                 )}
               </div>
-              <div className="hidden sm:block text-sm text-gray-600 bg-gray-100 px-3 py-1 rounded-full">{filtered.length} products</div>
+              <div className="hidden sm:block text-sm text-gray-600 bg-gray-100 px-3 py-1 rounded-full mr-5">{filtered.length} products</div>
             </div>
 
             {loading && <div className="text-center py-10 text-gray-500">Loading products…</div>}

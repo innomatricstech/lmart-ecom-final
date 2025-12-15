@@ -454,7 +454,7 @@ const LocalMarket = () => {
   
   // ---------------- RENDER ----------------
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 ml-5">
       <ToastNotification message={toastMessage} onClose={() => setToastMessage("")} />
 
       {/* Mobile Filter Button */}
@@ -660,7 +660,7 @@ const LocalMarket = () => {
                   </div>
                 )}
               </div>
-              <div className="hidden sm:block text-sm text-gray-600 bg-gray-100 px-3 py-1 rounded-full">{filtered.length} products</div>
+              <div className="hidden sm:block text-sm text-gray-600 bg-gray-100 px-3 py-1 mr-5 rounded-full">{filtered.length} products</div>
             </div>
 
             {loading && <div className="text-center py-10 text-gray-500">Loading products…</div>}
