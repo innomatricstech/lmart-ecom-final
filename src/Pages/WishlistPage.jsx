@@ -17,7 +17,7 @@ const WishlistPage = () => {
       quantity: 1, 
       image: product.image 
     });
-    alert(`${product.name} added to cart!`);
+    
   };
 
   const handleRemoveFromWishlist = (product) => {

@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useCart } from "../context/CartContext";
-import { db } from '../../firebase'; 
-import { collection, addDoc, doc, getDoc, serverTimestamp } from "firebase/firestore";
+import { db, storage } from '../../firebase'; 
+import { collection, addDoc, doc, getDoc, updateDoc, serverTimestamp } from "firebase/firestore"; // Added updateDoc
+import { ref, getDownloadURL } from "firebase/storage";
 import emailjs from '@emailjs/browser';
 
 // 🔑 EMAIL.JS CONFIGURATION
@@ -11,7 +12,8 @@ const EMAILJS_COD_TEMPLATE_ID = "template_1g7dneu";
 const EMAILJS_PAID_TEMPLATE_ID = "your_actual_paid_template_id_here"; 
 const EMAILJS_PUBLIC_KEY = "3oPaXcWIwr2sMfais"; 
 const EMAILJS_AUTO_REPLY_TEMPLATE_ID = "template_1c9n9w2"; 
-const ADMIN_EMAIL = "your.shop.admin@example.com";
+const ADMIN_EMAIL = "your.shop.admin@example.com";''
+
 
 // 📧 AUTO REPLY FUNCTION
 const sendAutoReply = async (templateParams) => {
@@ -62,6 +64,7 @@ const Checkout = () => {
   // ⭐ MODIFIED LINE: Check for 'isBuyNow' or 'skipToPayment' to start at Step 2
   const [currentStep, setCurrentStep] = useState(isBuyNow || skipToPayment ? 2 : 1);
   const [processingPayment, setProcessingPayment] = useState(false);
+  const [loadingImages, setLoadingImages] = useState({});
 
   const [form, setForm] = useState({
     name: "",
@@ -143,7 +146,46 @@ const Checkout = () => {
     };
 
     fetchUserData();
-  }, [navigate, location.pathname]); // Added dependencies
+  }, [navigate, location.pathname]);
+
+  // 🔥 NEW FUNCTION: Fetch complete product data for oldee items
+  const fetchOldeeProductDetails = async (productId) => {
+    try {
+      const oldeeRef = doc(db, "oldee", productId);
+      const oldeeSnap = await getDoc(oldeeRef);
+      
+      if (oldeeSnap.exists()) {
+        const oldeeData = oldeeSnap.data();
+        
+        // Get image URL
+        let imageUrl = "https://via.placeholder.com/150?text=No+Image";
+        
+        if (oldeeData.imageURLs && oldeeData.imageURLs.length > 0) {
+          imageUrl = oldeeData.imageURLs[0];
+        } else if (oldeeData.imageUrl) {
+          imageUrl = oldeeData.imageUrl;
+        } else if (oldeeData.image) {
+          imageUrl = oldeeData.image;
+        }
+        
+        return {
+          id: productId,
+          name: oldeeData.name || "Unnamed Product",
+          price: oldeeData.price || 0,
+          image: imageUrl,
+          description: oldeeData.description || "",
+          sellerName: oldeeData.seller?.displayName || "Unknown Seller",
+          sellerId: oldeeData.seller?.uid || oldeeData.sellerId,
+          isOldee: true
+        };
+      }
+      
+      return null;
+    } catch (error) {
+      console.error(`Error fetching oldee product ${productId}:`, error);
+      return null;
+    }
+  };
 
   // 🔥 NEW FUNCTION: Fetch Seller IDs from Products
   const fetchSellerIdsForProducts = async (productIds) => {
@@ -151,24 +193,43 @@ const Checkout = () => {
       const sellerInfo = {};
       
       for (const id of productIds) {
+        // Try to fetch from main products collection first
         const productRef = doc(db, "products", id);
         const productSnap = await getDoc(productRef);
 
         if (productSnap.exists()) {
+          // Product is from main collection
           const productData = productSnap.data();
           sellerInfo[id] = {
             sellerId: productData.sellerId || productData.sellerID || null,
             sellerName: productData.sellerName || "Unknown Seller",
-            // You can add more seller info here if needed
             sellerEmail: productData.sellerEmail || "",
-            sellerPhone: productData.sellerPhone || ""
+            sellerPhone: productData.sellerPhone || "",
+            productType: "new"
           };
         } else {
-          console.warn(`Product not found for ID: ${id}`);
-          sellerInfo[id] = {
-            sellerId: null,
-            sellerName: "Unknown Seller"
-          };
+          // Try to fetch from oldee collection
+          const oldeeRef = doc(db, "oldee", id);
+          const oldeeSnap = await getDoc(oldeeRef);
+          
+          if (oldeeSnap.exists()) {
+            // Product is from oldee collection
+            const oldeeData = oldeeSnap.data();
+            sellerInfo[id] = {
+              sellerId: oldeeData.sellerId || oldeeData.seller?.uid || null,
+              sellerName: oldeeData.seller?.displayName || "Unknown Seller",
+              sellerEmail: oldeeData.seller?.email || "",
+              sellerPhone: oldeeData.seller?.contactNumber || oldeeData.contactNumber || "",
+              productType: "old"
+            };
+          } else {
+            console.warn(`Product not found for ID: ${id} in either collection`);
+            sellerInfo[id] = {
+              sellerId: null,
+              sellerName: "Unknown Seller",
+              productType: "unknown"
+            };
+          }
         }
       }
 
@@ -212,68 +273,135 @@ const Checkout = () => {
 
   // Load cart items and calculate total
   useEffect(() => {
-    if (isCartEmpty) return;
-    
-    let itemsToUse;
-
-    if (isBuyNow && buyNowItem) {
-      itemsToUse = [buyNowItem];
-    } else {
-      const stored = sessionStorage.getItem("selectedCartItems");
-      itemsToUse = stored && JSON.parse(stored).length > 0 
-        ? JSON.parse(stored) 
-        : items.filter(item => item.quantity > 0);
-    }
-
-    if (!itemsToUse || itemsToUse.length === 0) {
-      console.error("No items to checkout after validation");
-      setIsCartEmpty(true);
-      return;
-    }
-
-    const itemsWithCustomization = itemsToUse.map(item => {
-      const processedItem = {
-        ...item,
-        quantity: item.quantity || 1,
-        selectedColor: item.selectedColor || "",
-        selectedSize: item.selectedSize || "",
-        selectedRam: item.selectedRam || "",
-        colors: item.colors || [],
-        sizes: item.sizes || [],
-        rams: item.rams || []
-      };
+    const loadCheckoutItems = async () => {
+      if (isCartEmpty) return;
       
-      if (isBuyNow) {
-        if (processedItem.colors.length > 0 && !processedItem.selectedColor) {
-          processedItem.selectedColor = processedItem.colors[0];
-        }
-        if (processedItem.sizes.length > 0 && !processedItem.selectedSize) {
-          processedItem.selectedSize = processedItem.sizes[0];
-        }
-        if (processedItem.rams.length > 0 && !processedItem.selectedRam) {
-          processedItem.selectedRam = processedItem.rams[0];
-        }
+      let itemsToUse = [];
+
+      if (isBuyNow && buyNowItem) {
+        // ⭐ MODIFICATION: Use offerPrice if available for buyNowItem (negotiated price)
+        const priceToUse = buyNowItem.offerPrice 
+            && typeof buyNowItem.offerPrice === 'number' 
+            && buyNowItem.offerPrice > 0 
+            ? buyNowItem.offerPrice 
+            : buyNowItem.price;
+
+        itemsToUse = [{
+            ...buyNowItem, 
+            price: priceToUse // Set the effective price for checkout
+        }];
+        // END MODIFICATION
+      } else {
+        const stored = sessionStorage.getItem("selectedCartItems");
+        itemsToUse = stored && JSON.parse(stored).length > 0 
+          ? JSON.parse(stored) 
+          : items.filter(item => item.quantity > 0);
       }
-      
-      return processedItem;
-    });
 
-    setCheckoutItems(itemsWithCustomization);
-    console.log("Checkout Items:", itemsWithCustomization);
+      if (!itemsToUse || itemsToUse.length === 0) {
+        console.error("No items to checkout after validation");
+        setIsCartEmpty(true);
+        return;
+      }
 
-    const sum = itemsWithCustomization.reduce(
+      // 🔥 ENHANCED: Check each item for oldee products and fetch missing data
+      const enhancedItems = await Promise.all(
+        itemsToUse.map(async (item) => {
+          // Set loading state for this item
+          setLoadingImages(prev => ({ ...prev, [item.id]: true }));
+          
+          // If item already has a proper image URL, use it
+          if (item.image && item.image.startsWith('http')) {
+            setLoadingImages(prev => ({ ...prev, [item.id]: false }));
+            return {
+              ...item,
+              quantity: item.quantity || 1,
+              selectedColor: item.selectedColor || "",
+              selectedSize: item.selectedSize || "",
+              selectedRam: item.selectedRam || "",
+              colors: item.colors || [],
+              sizes: item.sizes || [],
+              rams: item.rams || []
+            };
+          }
+          
+          // Try to fetch from oldee collection
+          try {
+            const oldeeData = await fetchOldeeProductDetails(item.id);
+            if (oldeeData) {
+              console.log(`✅ Loaded oldee product: ${oldeeData.name}`, oldeeData.image);
+              
+              // Only update price if it wasn't already set by a negotiated offerPrice (for BuyNow)
+              const finalPrice = item.price || oldeeData.price;
+              
+              return {
+                ...item,
+                name: item.name || oldeeData.name,
+                price: finalPrice, // Use the already set price (offerPrice or original) or fetched oldee price
+                image: oldeeData.image,
+                quantity: item.quantity || 1,
+                selectedColor: item.selectedColor || "",
+                selectedSize: item.selectedSize || "",
+                selectedRam: item.selectedRam || "",
+                colors: item.colors || [],
+                sizes: item.sizes || [],
+                rams: item.rams || [],
+                isOldee: true
+              };
+            }
+          } catch (error) {
+            console.warn(`Could not fetch oldee data for ${item.id}:`, error);
+          }
+          
+          // Return item as-is if no oldee data found
+          return {
+            ...item,
+            quantity: item.quantity || 1,
+            selectedColor: item.selectedColor || "",
+            selectedSize: item.selectedSize || "",
+            selectedRam: item.selectedRam || "",
+            colors: item.colors || [],
+            sizes: item.sizes || [],
+            rams: item.rams || []
+          };
+        })
+      );
+
+      setCheckoutItems(enhancedItems);
+      console.log("Enhanced Checkout Items:", enhancedItems);
+
+      // Calculate total
+      const rawSum = enhancedItems.reduce(
         (acc, item) => acc + (item.price || 0) * (item.quantity || 0),
         0
-    );
-    setTotal(sum);
-    setIsCartEmpty(false);
+      );
+      
+      // 🎯 MODIFICATION: Force the total to 2 decimal places for financial accuracy
+      const finalTotal = parseFloat(rawSum.toFixed(2));
+      
+      setTotal(finalTotal);
+      setIsCartEmpty(false);
 
-    // 🔥 FETCH SELLER INFO FOR ALL PRODUCTS
-    const productIds = itemsWithCustomization.map(item => item.id);
-    if (productIds.length > 0) {
-      fetchSellerIdsForProducts(productIds);
-    }
+      // 🔥 FETCH SELLER INFO FOR ALL PRODUCTS
+      const productIds = enhancedItems.map(item => item.id);
+      if (productIds.length > 0) {
+        fetchSellerIdsForProducts(productIds);
+      }
+    };
+
+    loadCheckoutItems();
   }, [items, isBuyNow, buyNowItem, isCartEmpty]);
+
+  // Get image URL for a product
+  const getProductImage = (item) => {
+    // Use item's image if available
+    if (item.image && item.image.startsWith('http')) {
+      return item.image;
+    }
+    
+    // Fallback to placeholder
+    return "https://via.placeholder.com/150?text=No+Image";
+  };
 
   // Reverse Geocoding Function - Convert coordinates to address
   const reverseGeocode = async (latitude, longitude) => {
@@ -526,29 +654,65 @@ const Checkout = () => {
     setErrors({ form: "", customization: "", payment: "" });
   };
 
-  // 🔥 UPDATED: Save Order to Firebase with Seller Info (Seller Order Write Logic Removed)
+  // 🚨 **ONLY CHANGE ADDED**: Function to mark Oldee products as sold
+  const markOldeeProductsAsSold = async () => {
+    try {
+      for (const item of checkoutItems) {
+        // Check if this is an Oldee product
+        if (item.isOldee || productSellerInfo[item.id]?.productType === "old") {
+          console.log(`Marking Oldee product ${item.id} as sold...`);
+          
+          // Update the product in Firestore to mark it as sold
+          await updateDoc(doc(db, "oldee", item.id), {
+            isSold: true,
+            status: "sold",
+            soldAt: serverTimestamp(),
+            updatedAt: serverTimestamp()
+          });
+          
+          console.log(`✅ Product ${item.id} marked as sold`);
+        }
+      }
+    } catch (error) {
+      console.error("Error marking Oldee products as sold:", error);
+      // Don't throw error here, just log it
+    }
+  };
+
+  // 🔥 UPDATED: Save Order to Firebase with Seller Info
   const saveOrderToFirebase = async (data, userId) => {
     try {
+      // 🚨 **ADDED**: Mark Oldee products as sold before saving order
+      if (data.paymentMethod === "cod") {
+        await markOldeeProductsAsSold();
+      }
+      
       const ordersCollectionRef = collection(db, "users", userId, "orders"); 
       
       // 🔥 BUILD ORDER ITEMS WITH SELLER INFO
       const orderItems = checkoutItems.map(item => {
         const sellerInfo = productSellerInfo[item.id] || {
           sellerId: null,
-          sellerName: "Unknown Seller"
+          sellerName: "Unknown Seller",
+          productType: "unknown"
         };
+
+        // Get the correct image URL
+        const itemImage = getProductImage(item);
 
         return {
           id: item.id,
           name: item.name,
           price: item.price,
           quantity: item.quantity || 1,
-          image: item.image || "",
+          image: itemImage,
           selectedColor: item.selectedColor || "",
           selectedSize: item.selectedSize || "",
           selectedRam: item.selectedRam || "",
           sellerId: sellerInfo.sellerId,
-          sellerName: sellerInfo.sellerName
+          sellerName: sellerInfo.sellerName,
+          productType: sellerInfo.productType || "new",
+          marketplace: sellerInfo.productType === "old" ? "oldee" : "emart"
         };
       });
 
@@ -560,9 +724,9 @@ const Checkout = () => {
       const orderData = {
         ...data,
         items: orderItems,
-        sellerIds: sellerIds, // Array of unique seller IDs
-        sellerNames: sellerNames, // Array of unique seller names
-        primarySellerId: sellerIds[0] || null, // First seller as primary (optional)
+        sellerIds: sellerIds,
+        sellerNames: sellerNames,
+        primarySellerId: sellerIds[0] || null,
         customerID: userId,
         createdAt: serverTimestamp(),
         locationDetails: locationDetails.latitude ? {
@@ -577,19 +741,13 @@ const Checkout = () => {
           country: locationDetails.country,
           fetchedAt: new Date().toISOString()
         } : null,
-        isMultiSeller: sellerIds.length > 1 // Flag for multi-seller orders
+        isMultiSeller: sellerIds.length > 1,
+        marketplace: orderItems.some(item => item.productType === "old") ? "oldee" : "emart"
       };
 
       const docRef = await addDoc(ordersCollectionRef, orderData);
       const orderId = docRef.id;
       console.log("✅ Order saved with ID: ", orderId);
-      console.log("📦 Seller information:", {
-        sellerIds,
-        sellerNames,
-        isMultiSeller: sellerIds.length > 1
-      });
-      
-      // 🔥 THE BLOCK THAT USED TO WRITE TO THE SELLERS COLLECTION HAS BEEN REMOVED HERE.
       
       // Prepare order data for email
       const orderDataForEmail = {
@@ -606,7 +764,7 @@ const Checkout = () => {
           (item.selectedColor ? ` (Color: ${item.selectedColor})` : '') + 
           (item.selectedSize ? ` (Size: ${item.selectedSize})` : '') + 
           (item.selectedRam ? ` (RAM: ${item.selectedRam})` : '') + 
-          ` @ ₹${item.price.toLocaleString()}`
+          ` @ ₹${item.price.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
       ).join('\n');
 
       // 🔥 ADD SELLER INFO TO EMAIL
@@ -619,11 +777,12 @@ const Checkout = () => {
           customer_name: orderDataForEmail.customerInfo.name,
           order_id: orderId,
           order_date: new Date().toLocaleDateString(),
-          total_amount: `₹${orderDataForEmail.amount.toLocaleString()}`,
+          total_amount: `₹${orderDataForEmail.amount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
           payment_method: data.paymentMethod === "cod" ? "Cash on Delivery (Pending)" : "Online Payment (Confirmed)",
           shipping_address: `${orderDataForEmail.customerInfo.address}, ${orderDataForEmail.customerInfo.city}, ${orderDataForEmail.customerInfo.pincode}, Phone: ${orderDataForEmail.customerInfo.phone}`,
           order_items: orderItemsString,
           seller_info: sellerInfoText,
+          marketplace: orderData.marketplace || "emart",
           location_details: locationDetails.latitude ? 
             `Location: ${locationDetails.latitude}, ${locationDetails.longitude}\n${form.address}` : "No location data"
       };
@@ -635,9 +794,10 @@ const Checkout = () => {
         email: orderDataForEmail.customerInfo.email,
         customer_name: orderDataForEmail.customerInfo.name,
         order_id: orderId,
-        total_amount: `₹${orderDataForEmail.amount.toLocaleString()}`,
+        total_amount: `₹${orderDataForEmail.amount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
         order_items: orderItemsString || "Items will be updated",
-        seller_info: sellerInfoText // Add seller info to customer email
+        seller_info: sellerInfoText,
+        marketplace: orderData.marketplace || "emart"
       };
       
       await sendAutoReply(autoReplyParams);
@@ -658,7 +818,8 @@ const Checkout = () => {
     return {
       id: `order_${Date.now()}`,
       currency: "INR",
-      amount: amount * 100,
+      // Amount must be in the smallest currency unit (paise)
+      amount: amount * 100, 
     };
   };
 
@@ -686,7 +847,7 @@ const Checkout = () => {
       
       const options = {
         key: "rzp_test_RD3J1sajzD89a8",
-        amount: order.amount,
+        amount: order.amount, // Amount is in paise
         currency: order.currency,
         name: "L-mart",
         description: "Order Payment",
@@ -705,7 +866,7 @@ const Checkout = () => {
                 paymentId: response.razorpay_payment_id,
                 orderId: `ORD-${Date.now()}`,
                 razorpayOrderId: response.razorpay_order_id,
-                amount: total,
+                amount: total, // Use the total state value (e.g., 2455.00)
                 items: checkoutItems,
                 customerInfo: form,
                 paymentMethod: "razorpay",
@@ -979,6 +1140,8 @@ const Checkout = () => {
           </div>
         )}
 
+         
+
         {/* ERROR MESSAGES */}
         {errors.customization && (
           <div className="mb-4 text-red-600 font-semibold text-center p-3 bg-red-50 rounded-lg">
@@ -1005,17 +1168,37 @@ const Checkout = () => {
               {checkoutItems.map((item) => (
                 <div key={item.id} className="border rounded-lg p-4 bg-gray-50">
                   <div className="flex flex-col md:flex-row gap-4 mb-4">
-                    <img
-                      src={item.image}
-                      alt={item.name}
-                      className="w-20 h-20 object-cover rounded-lg"
-                    />
+                    <div className="relative">
+                      {loadingImages[item.id] && (
+                        <div className="absolute inset-0 flex items-center justify-center bg-gray-100 rounded-lg">
+                          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-purple-600"></div>
+                        </div>
+                      )}
+                      <img
+                        src={getProductImage(item)}
+                        alt={item.name}
+                        className={`w-20 h-20 object-cover rounded-lg ${loadingImages[item.id] ? 'opacity-0' : 'opacity-100'}`}
+                        onLoad={() => setLoadingImages(prev => ({ ...prev, [item.id]: false }))}
+                        onError={(e) => {
+                          e.target.onerror = null;
+                          e.target.src = "https://via.placeholder.com/150?text=No+Image";
+                          setLoadingImages(prev => ({ ...prev, [item.id]: false }));
+                        }}
+                      />
+                    </div>
                     <div className="flex-1">
                       <h4 className="font-bold text-lg">{item.name}</h4>
                       <p className="text-gray-600">Quantity: {item.quantity}</p>
                       <p className="text-purple-600 font-bold">
-                        ₹{(item.price * item.quantity).toLocaleString()}
+                        {/* Ensure display is localized */}
+                        ₹{(item.price * item.quantity).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                       </p>
+                      {/* 🔥 SHOW PRODUCT TYPE BADGE */}
+                      {item.isOldee && (
+                        <span className="inline-block bg-orange-100 text-orange-800 text-xs px-2 py-1 rounded-full mt-1">
+                          Second-hand Product
+                        </span>
+                      )}
                     </div>
                   </div>
 
@@ -1271,12 +1454,44 @@ const Checkout = () => {
               {checkoutItems.map((item) => (
                 <div key={item.id} className="border p-3 rounded-lg bg-gray-50">
                   <div className="flex justify-between items-start mb-2">
-                    <div>
-                      <p className="font-semibold">{item.name}</p>
-                      <p className="text-gray-600 text-sm">Qty: {item.quantity}</p>
+                    <div className="flex items-start gap-3">
+                      <div className="relative">
+                        {loadingImages[item.id] && (
+                          <div className="absolute inset-0 flex items-center justify-center bg-gray-100 rounded">
+                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-purple-600"></div>
+                          </div>
+                        )}
+                        <img
+                          src={getProductImage(item)}
+                          alt={item.name}
+                          className={`w-16 h-16 object-cover rounded ${loadingImages[item.id] ? 'opacity-0' : 'opacity-100'}`}
+                          onLoad={() => setLoadingImages(prev => ({ ...prev, [item.id]: false }))}
+                          onError={(e) => {
+                            e.target.onerror = null;
+                            e.target.src = "https://via.placeholder.com/150?text=No+Image";
+                            setLoadingImages(prev => ({ ...prev, [item.id]: false }));
+                          }}
+                        />
+                      </div>
+                      <div>
+                        <p className="font-semibold">{item.name}</p>
+                        <p className="text-gray-600 text-sm">Qty: {item.quantity}</p>
+                        {/* 🔥 SHOW PRODUCT TYPE BADGE */}
+                        {item.isOldee && (
+                          <span className="inline-block bg-orange-100 text-orange-800 text-xs px-2 py-0.5 rounded-full mt-1">
+                            Second-hand
+                          </span>
+                        )}
+                        {/* Show original price if offer price was used */}
+                        {isBuyNow && buyNowItem.offerPrice && buyNowItem.offerPrice !== buyNowItem.price && (
+                            <p className="text-xs text-red-500 line-through">
+                                Original: ₹{buyNowItem.price.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            </p>
+                        )}
+                      </div>
                     </div>
                     <p className="font-bold text-purple-600">
-                      ₹{(item.price * item.quantity).toLocaleString()}
+                      ₹{(item.price * item.quantity).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </p>
                   </div>
                   
@@ -1288,6 +1503,13 @@ const Checkout = () => {
                         item.selectedSize && `Size: ${item.selectedSize}`,
                         item.selectedRam && `RAM: ${item.selectedRam}`
                       ].filter(Boolean).join(", ")}
+                    </div>
+                  )}
+                  
+                  {/* 🔥 SHOW SELLER INFO */}
+                  {productSellerInfo[item.id] && (
+                    <div className="text-xs text-gray-500 mt-2">
+                      Sold by: {productSellerInfo[item.id].sellerName}
                     </div>
                   )}
                 </div>
@@ -1330,7 +1552,7 @@ const Checkout = () => {
             {/* TOTAL */}
             <div className="text-right text-xl font-bold mb-6 mt-4">
               Total:{" "}
-              <span className="text-purple-600">₹{total.toLocaleString()}</span>
+              <span className="text-purple-600">₹{total.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
             </div>
 
             {/* ACTION BUTTONS */}

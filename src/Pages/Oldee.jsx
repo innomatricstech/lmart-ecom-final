@@ -117,7 +117,6 @@ const SellProductForm = ({
   const removeExistingImage = (url) =>
     setExistingImages((prev) => prev.filter((u) => u !== url));
 
-  // 🚩 NEW HANDLER: Set an image URL as primary (move to start)
   const setAsPrimary = (url, isExisting = true) => {
     if (isExisting) {
       const temp = [...existingImages];
@@ -204,7 +203,7 @@ const SellProductForm = ({
       await saveCustomerDetails();
 
       const price = Number(formData.price);
-      const offerPrice = formData.offerPrice !== "" ? Number(formData.offerPrice) : null;
+      const offerPrice = formData.offerPrice === "" ? null : Number(formData.offerPrice);
 
       const sellerSnapshot = {
         uid: user.uid,
@@ -246,6 +245,7 @@ const SellProductForm = ({
           status: editDoc.status || (editDoc.approved ? "active" : "pending"),
           marketplace: "oldee",
           updatedAt: serverTimestamp(),
+          isSold: editDoc.isSold ?? false, 
         };
         await updateDoc(doc(db, COLLECTION, editDoc.id), updatePayload);
         onSave({ id: editDoc.id, ...updatePayload });
@@ -305,7 +305,6 @@ const SellProductForm = ({
   const hasDiscount = offerPriceNum !== null && offerPriceNum < priceNum;
   const discountPct = hasDiscount ? Math.round(((priceNum - offerPriceNum) / priceNum) * 100) : 0;
 
-  // Combine all images for Step 2 display
   const allImages = [
     ...existingImages.map(url => ({ url, isExisting: true, isPrimary: url === existingImages[0] })),
     ...images.map(img => ({ url: img.preview, isExisting: false, isPrimary: existingImages.length === 0 && img.preview === images[0]?.preview })),
@@ -313,10 +312,8 @@ const SellProductForm = ({
   const totalImageCount = existingImages.length + images.length;
   const showPrimaryButton = totalImageCount > 1;
 
-
   return (
     <div className="flex relative w-full max-w-4xl mx-auto">
-      {/* MAIN FORM */}
       <div className="bg-white p-6 rounded-2xl shadow-xl border border-gray-200 w-full">
         <div className="mb-1 flex justify-between items-center">
           <h2 className="text-2xl font-bold text-gray-900 mb-2">
@@ -352,7 +349,6 @@ const SellProductForm = ({
           {isEdit ? "Update your listing details" : "Fill in the details to list your item for sale"}
         </p>
 
-        {/* steps */}
         <div className="flex justify-between mb-8 relative">
           <div className="absolute top-4 left-0 w-full h-1 bg-gray-200 -z-10">
             <motion.div
@@ -375,7 +371,6 @@ const SellProductForm = ({
 
         <form onSubmit={handleSubmit}>
           <AnimatePresence mode="wait">
-            {/* Step 1 */}
             {step === 1 && (
               <motion.div key="step1" initial={{ x: 50, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: -50, opacity: 0 }} className="space-y-4">
                 <div>
@@ -391,7 +386,6 @@ const SellProductForm = ({
                   />
                 </div>
 
-                {/* PRICE */}
                 <div>
                   <label className="block text-left text-sm font-semibold text-gray-800 mb-1">Price (₹) *</label>
                   <div className="relative">
@@ -410,7 +404,6 @@ const SellProductForm = ({
                   </div>
                 </div>
 
-                {/* OFFER PRICE */}
                 <div>
                   <label className="block text-left text-sm font-semibold text-gray-800 mb-1">
                     Offer Price (₹)
@@ -450,7 +443,6 @@ const SellProductForm = ({
               </motion.div>
             )}
 
-            {/* Step 2 */}
             {step === 2 && (
               <motion.div key="step2" initial={{ x: 50, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: -50, opacity: 0 }} className="space-y-4">
                 <div>
@@ -458,7 +450,6 @@ const SellProductForm = ({
                     Images (Max {MAX_FILES})
                   </label>
 
-                  {/* Image Gallery Display */}
                   {totalImageCount > 0 && (
                     <div className="mb-4 p-4 border border-dashed border-blue-300 rounded-xl">
                       <p className="text-sm font-medium text-gray-700 mb-3">
@@ -472,18 +463,15 @@ const SellProductForm = ({
                             animate={{ scale: 1, opacity: 1 }}
                             exit={{ scale: 0.8, opacity: 0 }}
                             className="relative rounded-lg overflow-hidden border-2"
-                            // 🚩 Added border to highlight primary image
                             style={{ borderColor: img.isPrimary ? '#3b82f6' : '#e5e7eb' }}
                           >
                             <img src={img.url} alt={`Product ${idx + 1}`} className="w-full h-20 object-cover" />
 
-                            {/* Primary Tag */}
                             {img.isPrimary ? (
                               <div className="absolute top-0 left-0 bg-blue-500 text-white text-xs font-bold px-2 py-0.5 rounded-br-lg">
                                 Primary
                               </div>
                             ) : showPrimaryButton ? (
-                              // Set as Primary Button
                               <button
                                 type="button"
                                 onClick={() => setAsPrimary(img.url, img.isExisting)}
@@ -494,7 +482,6 @@ const SellProductForm = ({
                               </button>
                             ) : null}
 
-                            {/* Remove Button */}
                             <button
                               type="button"
                               onClick={() => img.isExisting ? removeExistingImage(img.url) : removeNewImage(images.findIndex(i => i.preview === img.url))}
@@ -509,7 +496,6 @@ const SellProductForm = ({
                     </div>
                   )}
 
-                  {/* Upload Dropzone */}
                   {totalImageCount < MAX_FILES && (
                     <div className="border-2 border-dashed border-gray-300 rounded-2xl p-6 text-center hover:border-blue-400 transition-colors duration-200">
                       <input
@@ -519,7 +505,6 @@ const SellProductForm = ({
                         onChange={handleImageUpload}
                         className="hidden"
                         id="image-upload"
-                        // Disable if max files reached (though already checked in handler)
                         disabled={totalImageCount >= MAX_FILES}
                       />
                       <label htmlFor="image-upload" className="cursor-pointer block">
@@ -537,7 +522,6 @@ const SellProductForm = ({
                     </div>
                   )}
 
-                  {/* Negotiation Options */}
                   <div className="mt-4">
                     <label className="block text-left text-sm font-semibold text-gray-800 mb-1">Price Negotiation</label>
                     <div className="flex space-x-2">
@@ -558,7 +542,6 @@ const SellProductForm = ({
               </motion.div>
             )}
 
-            {/* Step 3 */}
             {step === 3 && (
               <motion.div key="step3" initial={{ x: 50, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: -50, opacity: 0 }} className="space-y-4">
                 <div>
@@ -598,7 +581,6 @@ const SellProductForm = ({
             )}
           </AnimatePresence>
 
-          {/* nav buttons */}
           <div className="flex justify-between mt-8 space-x-3">
             {step > 1 ? (
               <button
@@ -653,18 +635,16 @@ const ProductsViewer = ({ user, isAdmin, onClose, onEdit }) => {
 
   const load = async () => {
     setLoading(true);
-    // 🚩 ADDED: Exit early if no user is available
     if (!user) {
       setLoading(false);
       return;
     }
     try {
-      // Logic: If admin, show all products. If not admin, show only products where sellerId matches user.uid.
       const qRef = isAdmin
         ? query(collection(db, COLLECTION), orderBy("createdAt", "desc"), fbLimit(50))
         : query(
           collection(db, COLLECTION),
-          where("sellerId", "==", user?.uid || "__"), // This filters the products to match the logged-in customer's ID
+          where("sellerId", "==", user?.uid || "__"),
           orderBy("createdAt", "desc"),
           fbLimit(50)
         );
@@ -721,7 +701,6 @@ const ProductsViewer = ({ user, isAdmin, onClose, onEdit }) => {
           </div>
         </div>
 
-        {/* 🚩 ADDED: Display Login Required message if no user */}
         {!user ? (
           <div className="bg-white p-8 rounded-2xl shadow-xl border border-red-300 w-full max-w-md mx-auto text-center mt-20">
             <h3 className="text-xl font-bold text-red-600 mb-4">🔐 Login Required</h3>
@@ -759,6 +738,9 @@ const ProductsViewer = ({ user, isAdmin, onClose, onEdit }) => {
                         {p.approved ? "Approved" : "Pending"}
                       </span>
                       <span className="ml-2 px-2 py-1 rounded-full bg-gray-100 text-gray-700">{p.negotiation}</span>
+                      {p.isSold && (
+                        <span className="ml-2 px-2 py-1 rounded-full bg-red-100 text-red-700">Sold</span>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -782,23 +764,14 @@ const ProductsViewer = ({ user, isAdmin, onClose, onEdit }) => {
   );
 };
 
-
-/* ============================================
-   Oldee (Main Component)
-============================================ */
 const Oldee = () => {
   const [currentUser, setCurrentUser] = useState(null);
   const [loadingAuth, setLoadingAuth] = useState(true);
 
-  // overlays
   const [showUpload, setShowUpload] = useState(false);
   const [showViewer, setShowViewer] = useState(false);
   const [editingDoc, setEditingDoc] = useState(null);
-
-  // NEW STATE for product details
   const [selectedProduct, setSelectedProduct] = useState(null);
-
-  // approved items for main page
   const [approvedItems, setApprovedItems] = useState([]);
   const [loadingApproved, setLoadingApproved] = useState(true);
 
@@ -815,20 +788,48 @@ const Oldee = () => {
     return () => unsub();
   }, []);
 
-  // Load approved products for main page
+  // Load approved products for main page - UPDATED VERSION
   const loadApproved = async () => {
     setLoadingApproved(true);
     try {
+      // 🚩 STRICT FILTER: Only show active AND unsold products
       const qRef = query(
         collection(db, COLLECTION),
-        where("status", "==", "active"), // Filter by status: "active" as per previous request
+        where("status", "==", "active"), // Must have active status
+        where("isSold", "==", false), // Must not be marked as sold
         orderBy("createdAt", "desc"),
         fbLimit(30)
       );
       const snap = await getDocs(qRef);
       setApprovedItems(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
     } catch (e) {
-      console.error("approved load error:", e);
+      console.error("Query error (might need composite index):", e);
+      
+      // 🛠️ FALLBACK: Manual filtering
+      try {
+        const qRef = query(
+          collection(db, COLLECTION),
+          orderBy("createdAt", "desc"),
+          fbLimit(50)
+        );
+        const snap = await getDocs(qRef);
+        const items = snap.docs
+          .map((d) => ({ id: d.id, ...d.data() }))
+          .filter(item => {
+            // Exclude if status is "sold" OR isSold is true
+            const isSold = item.isSold === true;
+            const isSoldStatus = item.status === "sold";
+            const isActive = item.status === "active";
+            
+            // Show only if active AND not sold
+            return isActive && !isSold && !isSoldStatus;
+          })
+          .slice(0, 30);
+        setApprovedItems(items);
+      } catch (error) {
+        console.error("Fallback query also failed:", error);
+        setApprovedItems([]);
+      }
     } finally {
       setLoadingApproved(false);
     }
@@ -838,7 +839,6 @@ const Oldee = () => {
     loadApproved();
   }, [currentUser]);
 
-  // --- Handlers ---
   const openCreate = () => {
     if (!currentUser) {
       return;
@@ -868,7 +868,6 @@ const Oldee = () => {
     setShowUpload(true);
   };
 
-  // NEW Handlers for product details
   const viewProductDetails = (product) => {
     setSelectedProduct(product);
   }
@@ -877,7 +876,6 @@ const Oldee = () => {
     setSelectedProduct(null);
   }
 
-  // Determine what to render
   if (loadingAuth) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -886,17 +884,15 @@ const Oldee = () => {
     );
   }
 
-  // RENDER THE NEW DETAILS PAGE if a product is selected
   if (selectedProduct) {
     return (
       <OldeeProductDetails
         product={selectedProduct}
         onBack={closeProductDetails}
-        // Only allow editing if the current user is the seller or an admin
         onEdit={
           currentUser?.uid === selectedProduct.sellerId || isAdmin
             ? (p) => {
-              closeProductDetails(); // Close details view
+              closeProductDetails();
               setEditingDoc(p);
               setShowUpload(true);
             }
@@ -907,9 +903,7 @@ const Oldee = () => {
   }
   return (
     <div className="min-h-screen bg-gray-50 relative">
-      {/* Top-right corner buttons */}
       <div className="max-w-6xl mx-auto px-4 pt-6 flex justify-end gap-3">
-        {/* 🔑 ONLY SHOW UPLOAD and VIEW BUTTONS IF currentUser IS PRESENT */}
         {currentUser && (
           <>
             <button
@@ -928,23 +922,12 @@ const Oldee = () => {
         )}
       </div>
 
-
-      {/* Main approved grid */}
       <div className="max-w-6xl mx-auto px-4 py-16">
- 
-        {/* <h1 className="text-3xl font-bold text-gray-900 mb-6">Oldee Marketplace</h1>
-        <p className="text-gray-600 mb-8">
-          Only <span className="font-semibold">active</span> products are visible here.
-        </p> */}
- 
-         
- 
-
         {loadingApproved ? (
           <p className="text-sm text-gray-600">Loading products…</p>
         ) : approvedItems.length === 0 ? (
           <div className="rounded-xl border bg-white p-8 text-center text-gray-600">
-            No active products yet.
+            No active products available.
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
@@ -952,7 +935,7 @@ const Oldee = () => {
               <div
                 key={p.id}
                 className="bg-white border rounded-2xl shadow-sm overflow-hidden cursor-pointer hover:shadow-lg transform hover:-translate-y-1 transition-all duration-300"
-                onClick={() => viewProductDetails(p)} // CLICK HANDLER ADDED
+                onClick={() => viewProductDetails(p)}
               >
                 {Array.isArray(p.imageURLs) && p.imageURLs[0] && (
                   <img src={p.imageURLs[0]} alt={p.name} className="w-full h-44 object-cover" />
@@ -960,7 +943,7 @@ const Oldee = () => {
                 <div className="p-4">
                   <h3 className="font-semibold text-gray-900">{p.name}</h3>
                   <div className="text-sm text-gray-700 mt-1">
-                    ₹{p.price}
+                    ₹{p.offerPrice != null ? p.offerPrice : p.price}
                     {p.offerPrice != null && (
                       <>
                         {" "}
@@ -970,6 +953,13 @@ const Oldee = () => {
                     )}
                   </div>
                   <p className="text-xs text-gray-600 mt-2 line-clamp-2">{p.description}</p>
+                  {p.isSold && (
+                    <div className="mt-2">
+                      <span className="inline-block bg-red-100 text-red-700 text-xs px-2 py-1 rounded-full">
+                        Sold
+                      </span>
+                    </div>
+                  )}
                 </div>
               </div>
             ))}
@@ -977,7 +967,6 @@ const Oldee = () => {
         )}
       </div>
 
-      {/* Full-screen Upload modal (access controlled inside SellProductForm) */}
       <AnimatePresence>
         {showUpload && (
           <motion.div
@@ -1011,7 +1000,6 @@ const Oldee = () => {
         )}
       </AnimatePresence>
 
-      {/* Full-screen Viewer modal (access controlled inside ProductsViewer) */}
       <AnimatePresence>
         {showViewer && (
           <ProductsViewer

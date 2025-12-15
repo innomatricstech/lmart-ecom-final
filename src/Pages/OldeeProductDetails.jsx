@@ -5,6 +5,29 @@ import { useNavigate } from "react-router-dom";
 const OldeeProductDetails = ({ product, onBack, onEdit }) => {
   const navigate = useNavigate();
 
+  // 🚩 ADD THIS CHECK: Show sold product message
+  if (product?.status === "sold" || product?.isSold === true) {
+    return (
+      <div className="fixed inset-0 z-50 bg-white flex flex-col items-center justify-center">
+        <div className="max-w-md p-8 text-center">
+          <div className="w-24 h-24 mx-auto mb-6 flex items-center justify-center bg-red-100 rounded-full">
+            <span className="text-4xl">🔒</span>
+          </div>
+          <h3 className="text-2xl font-bold text-red-600 mb-3">Product Sold</h3>
+          <p className="text-gray-600 mb-6">
+            This product is no longer available for purchase.
+          </p>
+          <button
+            onClick={onBack}
+            className="px-6 py-3 bg-gray-800 text-white font-semibold rounded-xl hover:bg-gray-900 transition"
+          >
+            ← Back to Marketplace
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   if (!product) {
     return (
       <div className="fixed inset-0 z-50 bg-white flex items-center justify-center">
@@ -32,7 +55,7 @@ const OldeeProductDetails = ({ product, onBack, onEdit }) => {
   } = product;
 
   // ✅ Always send message to this fixed WhatsApp number
-  const FIXED_WHATSAPP_NUMBER = "918762978777"; // 91 + 87629 78777
+  const FIXED_WHATSAPP_NUMBER = "918762978777";
 
   const openWhatsApp = () => {
     const msg = `Hi ${seller?.displayName || "Seller"}, I'm interested in "${name}" (Listing ID: ${
@@ -56,7 +79,7 @@ const OldeeProductDetails = ({ product, onBack, onEdit }) => {
       state: {
         item: product,
         buyNow: true,
-        skipToPayment: true, // ⬅️ CHANGED FROM false TO true
+        skipToPayment: true,
       },
     });
   };
@@ -131,11 +154,26 @@ const OldeeProductDetails = ({ product, onBack, onEdit }) => {
 
             {/* Details & Pricing */}
             <div className="lg:col-span-1 space-y-6">
+              {/* 🚩 ADD SOLD BADGE IF STATUS IS SOLD (for edge cases) */}
+              {(status === "sold" || product.isSold === true) && (
+                <div className="px-4 py-3 bg-red-100 border border-red-300 rounded-xl">
+                  <div className="flex items-center">
+                    <span className="text-red-600 text-xl mr-2">🔒</span>
+                    <div>
+                      <p className="font-bold text-red-700">SOLD</p>
+                      <p className="text-sm text-red-600">This item is no longer available</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               <div>
                 <span
                   className={`px-3 py-1 text-sm font-semibold rounded-full ${
                     status === "active"
                       ? "bg-emerald-100 text-emerald-700"
+                      : status === "sold"
+                      ? "bg-red-100 text-red-700"
                       : "bg-yellow-100 text-yellow-700"
                   }`}
                 >
@@ -204,17 +242,29 @@ const OldeeProductDetails = ({ product, onBack, onEdit }) => {
                   {new Date(product.updatedAt.toDate()).toLocaleDateString()}
                 </p>
               )}
+              {/* 🚩 SHOW SOLD DATE IF APPLICABLE */}
+              {product.soldAt?.toDate && (
+                <p className="text-sm text-red-500 font-medium">
+                  Sold on: {new Date(product.soldAt.toDate()).toLocaleDateString()}
+                </p>
+              )}
             </div>
           </div>
 
           {/* Action Buttons */}
           <div className="mt-10 pt-6 border-t border-gray-200">
             <div className="flex flex-wrap items-center justify-center gap-4">
+              {/* 🚩 DISABLE BUY NOW BUTTON IF SOLD */}
               <button
                 onClick={handleBuyNow}
-                className="px-8 py-3 bg-blue-600 text-white font-bold rounded-xl shadow-lg hover:bg-blue-700 transition"
+                disabled={status === "sold" || product.isSold === true}
+                className={`px-8 py-3 rounded-xl shadow-lg font-bold transition ${
+                  status === "sold" || product.isSold === true
+                    ? "bg-gray-400 text-gray-700 cursor-not-allowed"
+                    : "bg-blue-600 hover:bg-blue-700 text-white"
+                }`}
               >
-                Buy Now
+                {status === "sold" || product.isSold === true ? "Sold Out" : "Buy Now"}
               </button>
 
               <button
@@ -225,6 +275,18 @@ const OldeeProductDetails = ({ product, onBack, onEdit }) => {
                 Chat with Seller
               </button>
             </div>
+            
+            {/* 🚩 SHOW EDIT BUTTON FOR SELLER/ADMIN (EVEN IF SOLD) */}
+            {(onEdit && (product.sellerId === auth.currentUser?.uid || isAdmin)) && (
+              <div className="mt-6 text-center">
+                <button
+                  onClick={() => onEdit(product)}
+                  className="px-6 py-2 text-sm border-2 border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-50"
+                >
+                  Edit Listing
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </div>
