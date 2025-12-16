@@ -74,7 +74,8 @@ const NewsToday = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 -ml-[200px]">
+    // REMOVED -ml-[200px] class from this container
+    <div className="min-h-screen bg-gray-50"> 
 
       {/* Header Section */}
  
@@ -84,7 +85,8 @@ const NewsToday = () => {
  
       {/* Categories Filter */}
       <div className="bg-white border-b sticky top-0 z-10">
-        <div className="max-w-7xl mx-auto px-4 py-3">
+        {/* Changed max-w-7xl to max-w-full to expand the container */}
+        <div className="max-w-full mx-auto px-4 py-3"> 
           <div className="flex overflow-x-auto pb-2 space-x-2 scrollbar-hide">
             {categories.map((c) => (
               <button
@@ -103,7 +105,8 @@ const NewsToday = () => {
       </div>
 
       {/* Main Content */}
-      <div className="max-w-7xl mx-auto px-5 py-2">
+      {/* Changed max-w-7xl to max-w-full to expand the container */}
+      <div className="max-w-full mx-auto px-5 py-2"> 
 
      
 
