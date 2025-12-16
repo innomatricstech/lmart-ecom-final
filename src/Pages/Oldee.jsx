@@ -1074,10 +1074,10 @@ const Oldee = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header with Actions */}
+      {/* Header with Actions - MODIFIED FOR FULL WIDTH */}
       <div className="bg-white border-b shadow-sm">
-        <div className="max-w-5xl mx-auto px-4 py-4 ml-[1200px]">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="w-full px-8 py-4"> {/* Changed to w-full and added px-8 for padding */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-end gap-4"> {/* Changed justify-between to justify-end */}
              
             
             <div className="flex items-center gap-3">
@@ -1154,8 +1154,8 @@ const Oldee = () => {
         </div>
       </div>
 
-      {/* Main Content */}
-      <div className="max-w-7xl mx-auto px-4 py-8 ml-5">
+      {/* Main Content - MODIFIED FOR FULL WIDTH */}
+      <div className="w-full px-8 py-8"> {/* Changed from max-w-7xl mx-auto px-4 py-8 ml-5 to w-full px-8 py-8 */}
          
 
         {loadingApproved ? (
@@ -1182,7 +1182,7 @@ const Oldee = () => {
             )}
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6"> {/* Changed xl:grid-cols-5 to xl:grid-cols-6 */}
             {approvedItems.map((p) => (
               <div
                 key={p.id}

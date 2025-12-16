@@ -10,12 +10,7 @@ const WhatsAppChatWidget = () => {
    
 
         {/* Arrow Pointer */}
-        <div className="
-            absolute -bottom-2 right-4 
-            w-3 h-3 
-            bg-gradient-to-r from-blue-500 to-purple-500 
-            rotate-45
-        "></div>
+         
       
       {/* Floating WhatsApp Button (Attractive Glow) */}
       <a
