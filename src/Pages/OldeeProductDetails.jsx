@@ -168,18 +168,8 @@ const OldeeProductDetails = ({ product, onBack, onEdit }) => {
               )}
 
               <div>
-                <span
-                  className={`px-3 py-1 text-sm font-semibold rounded-full ${
-                    status === "active"
-                      ? "bg-emerald-100 text-emerald-700"
-                      : status === "sold"
-                      ? "bg-red-100 text-red-700"
-                      : "bg-yellow-100 text-yellow-700"
-                  }`}
-                >
-                  Status: {status?.toUpperCase() || "UNKNOWN"}
-                </span>
-                <span className="ml-3 px-3 py-1 text-sm font-semibold rounded-full bg-blue-100 text-blue-700">
+              
+                <span className="ml-3 px-6 py-1 text-sm font-semibold rounded-full bg-blue-100 text-blue-700">
                   {negotiation
                     ? negotiation.charAt(0).toUpperCase() + negotiation.slice(1)
                     : "N/A"}

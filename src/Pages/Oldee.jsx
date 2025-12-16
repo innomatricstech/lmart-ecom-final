@@ -25,9 +25,9 @@ const MAX_MB = 5;
 const CUSTOMER_COLLECTION = "customers";
 const USERS_COLLECTION_MIRROR = "users";
 const COLLECTION = "oldee";
-const ADMIN_COLLECTION = "adminUsers"; // New collection for admin users
-const fbLimit = limit;
+const ADMIN_COLLECTION = "adminUsers";
 
+// SellProductForm Component (unchanged from your original)
 const SellProductForm = ({
   user,
   onCancel,
@@ -627,30 +627,57 @@ const SellProductForm = ({
   );
 };
 
-const ProductsViewer = ({ user, isAdmin, onClose, onEdit }) => {
+const ProductsViewer = ({ user, isAdmin, onClose, onEdit, isUserViewer = false }) => {
   const [loading, setLoading] = useState(true);
   const [items, setItems] = useState([]);
+  const [error, setError] = useState(null);
 
   const load = async () => {
     setLoading(true);
+    setError(null);
     if (!user) {
       setLoading(false);
       return;
     }
     try {
-      const qRef = isAdmin
-        ? query(collection(db, COLLECTION), orderBy("createdAt", "desc"), fbLimit(50))
-        : query(
+      let qRef;
+      
+      if (isUserViewer) {
+        // Show only current user's products WITHOUT orderBy to avoid index issues
+        qRef = query(
           collection(db, COLLECTION),
-          where("sellerId", "==", user?.uid || "__"),
-          orderBy("createdAt", "desc"),
-          fbLimit(50)
+          where("sellerId", "==", user.uid)
+          // Removed orderBy to avoid index requirement temporarily
         );
+      } else if (isAdmin) {
+        // Admin viewing ALL products
+        qRef = query(
+          collection(db, COLLECTION)
+          // Removed orderBy to avoid index requirement temporarily
+        );
+      } else {
+        // Default fallback
+        qRef = query(
+          collection(db, COLLECTION),
+          where("sellerId", "==", user.uid)
+        );
+      }
+      
       const snap = await getDocs(qRef);
-      const arr = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+      let arr = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+      
+      // Sort in JavaScript instead of Firestore to avoid index requirement
+      arr.sort((a, b) => {
+        const dateA = a.createdAt?.toDate?.() || new Date(0);
+        const dateB = b.createdAt?.toDate?.() || new Date(0);
+        return dateB.getTime() - dateA.getTime(); // Descending
+      });
+      
       setItems(arr);
     } catch (e) {
       console.error("Viewer load error:", e);
+      setError(e.message);
+      alert("Error loading products: " + e.message + "\n\nPlease create the required Firestore index or click the link in the error message.");
     } finally {
       setLoading(false);
     }
@@ -658,7 +685,7 @@ const ProductsViewer = ({ user, isAdmin, onClose, onEdit }) => {
 
   useEffect(() => {
     load();
-  }, [user, isAdmin]);
+  }, [user, isAdmin, isUserViewer]);
 
   const approveItem = async (id, approved) => {
     try {
@@ -667,17 +694,20 @@ const ProductsViewer = ({ user, isAdmin, onClose, onEdit }) => {
         status: approved ? "active" : "pending",
         updatedAt: serverTimestamp(),
       });
-      setItems((prev) => prev.map((it) => (it.id === id ? { ...it, approved, status: approved ? "active" : "pending" } : it)));
+      setItems((prev) => prev.map((it) => 
+        (it.id === id ? { ...it, approved, status: approved ? "active" : "pending" } : it)
+      ));
     } catch (e) {
       alert("Failed to update approval: " + e.message);
     }
   };
 
   const removeItem = async (id) => {
-    if (!window.confirm("Delete this listing?")) return;
+    if (!window.confirm("Are you sure you want to delete this listing?")) return;
     try {
       await deleteDoc(doc(db, COLLECTION, id));
       setItems((prev) => prev.filter((x) => x.id !== id));
+      alert("Listing deleted successfully!");
     } catch (e) {
       alert("Failed to delete: " + e.message);
     }
@@ -690,68 +720,184 @@ const ProductsViewer = ({ user, isAdmin, onClose, onEdit }) => {
       exit={{ opacity: 0 }}
       className="fixed inset-0 bg-white/95 backdrop-blur-sm z-50 p-4 md:p-8 overflow-auto"
     >
-      <div className="max-w-6xl mx-auto">
+      <div className="max-w-7xl mx-auto">
         <div className="flex items-center justify-between mb-6">
-          <h3 className="text-2xl font-bold">{isAdmin ? "All Products" : "My Products"}</h3>
+          <div>
+            <h3 className="text-2xl font-bold">
+              {isUserViewer ? "My Products" : "All Products (Admin View)"}
+            </h3>
+          
+          </div>
           <div className="flex gap-2">
-            <button onClick={load} className="px-3 py-2 rounded-lg border">Refresh</button>
-            <button onClick={onClose} className="px-3 py-2 rounded-lg bg-black text-white">Close</button>
+            <button 
+              onClick={load} 
+              className="px-4 py-2 rounded-lg border border-gray-300 hover:bg-gray-100 flex items-center gap-2"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+              Refresh
+            </button>
+            <button 
+              onClick={onClose} 
+              className="px-4 py-2 rounded-lg bg-black text-white hover:bg-gray-800"
+            >
+              Close
+            </button>
           </div>
         </div>
+
+        {error && (
+          <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+            <div className="flex items-start">
+              <div className="flex-shrink-0">
+                <svg className="h-5 w-5 text-red-400" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                </svg>
+              </div>
+              <div className="ml-3">
+                <h3 className="text-sm font-medium text-red-800">Firestore Index Error</h3>
+                <div className="mt-2 text-sm text-red-700">
+                  <p>You need to create a Firestore index for this query.</p>
+                  <p className="mt-1">
+                    Please click this link to create it:{" "}
+                    <a 
+                      href="https://console.firebase.google.com/v1/r/project/emart-ecommerce/firestore/indexes?create_composite=Ck1wcm9qZWNOcy9lbWFydC1lY29tbWVyY2UvZGF0YWJhc2VzLyhkZWZhdWx0KS9jb2xsZWN0aW9uR3JvdXBzL29sZGVIL2luZGV4ZXMvXxABGgwKCHNIbGxIcklkEAEaDQoJY3JIYXRIZEF0EAlaDAoIX19uYW1IX18OAg" 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="underline font-medium"
+                    >
+                      Create Firestore Index
+                    </a>
+                  </p>
+                  <p className="mt-1 text-xs">After creating the index, wait 1-5 minutes and refresh this page.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         {!user ? (
           <div className="bg-white p-8 rounded-2xl shadow-xl border border-red-300 w-full max-w-md mx-auto text-center mt-20">
             <h3 className="text-xl font-bold text-red-600 mb-4">🔐 Login Required</h3>
-            <p className="text-gray-600 mb-6">Please log in or sign up to view your product listings.</p>
+            <p className="text-gray-600 mb-6">Please log in to view your product listings.</p>
             <button onClick={onClose} className="w-full bg-red-500 hover:bg-red-600 text-white py-3 rounded-xl font-bold">
               Close Viewer
             </button>
           </div>
         ) : loading ? (
-          <p className="text-sm text-gray-600">Loading…</p>
+          <div className="text-center py-20">
+            <div className="inline-block animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-blue-500 mb-4"></div>
+            <p className="text-gray-600">Loading products...</p>
+          </div>
         ) : items.length === 0 ? (
-          <p className="text-sm text-gray-600">No products found.</p>
+          <div className="text-center py-20 bg-gray-50 rounded-2xl border border-gray-200">
+            <div className="w-16 h-16 mx-auto mb-4 text-gray-400">
+              <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+              </svg>
+            </div>
+            <h4 className="text-lg font-semibold text-gray-700 mb-2">
+              {isUserViewer ? "No Products Found" : "No Products Available"}
+            </h4>
+            <p className="text-gray-500 max-w-md mx-auto">
+              {isUserViewer 
+                ? "You haven't uploaded any products yet. Click the 'Upload' button to list your first item!"
+                : "There are no products in the database yet."
+              }
+            </p>
+          </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {items.map((p) => (
-              <div key={p.id} className="border rounded-xl p-4 bg-white shadow-sm">
-                {Array.isArray(p.imageURLs) && p.imageURLs[0] && (
-                  <img src={p.imageURLs[0]} alt={p.name} className="w-full h-40 object-cover rounded-lg mb-3" />
-                )}
-                <div className="flex items-start justify-between">
-                  <div>
-                    <h4 className="font-semibold text-gray-900">{p.name}</h4>
-                    <div className="text-sm text-gray-700">
-                      ₹{p.price}
-                      {p.offerPrice != null && (
-                        <>
-                          {"  "}
-                          <span className="line-through text-gray-400">₹{p.price}</span>{" "}
-                          <span className="font-semibold text-emerald-700">₹{p.offerPrice}</span>
-                        </>
+          <div>
+            <div className="mb-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+              {items.map((p) => (
+                <div key={p.id} className="border border-gray-200 rounded-xl p-4 bg-white shadow-sm hover:shadow-md transition-all duration-300">
+                  {Array.isArray(p.imageURLs) && p.imageURLs[0] && (
+                    <div className="relative h-48 mb-4 rounded-lg overflow-hidden">
+                      <img 
+                        src={p.imageURLs[0]} 
+                        alt={p.name} 
+                        className="w-full h-full object-cover" 
+                      />
+                      <div className="absolute top-2 left-2">
+                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                          p.approved 
+                            ? "bg-emerald-100 text-emerald-700" 
+                            : "bg-yellow-100 text-yellow-700"
+                        }`}>
+                          {p.approved ? "Approved" : "Pending"}
+                        </span>
+                      </div>
+                    </div>
+                  )}
+                  
+                  <div className="mb-3">
+                    <h4 className="font-semibold text-gray-900 text-sm mb-1">{p.name}</h4>
+                    <div className="text-sm">
+                      {p.offerPrice != null ? (
+                        <div className="flex items-center gap-2">
+                          <span className="font-bold text-emerald-700">₹{p.offerPrice}</span>
+                          <span className="line-through text-gray-400 text-xs">₹{p.price}</span>
+                          <span className="text-xs bg-emerald-50 text-emerald-600 px-1.5 py-0.5 rounded">
+                            {Math.round(((p.price - p.offerPrice) / p.price) * 100)}% OFF
+                          </span>
+                        </div>
+                      ) : (
+                        <span className="font-bold text-gray-900">₹{p.price}</span>
                       )}
                     </div>
-                    <div className="mt-1 text-xs">
-                      <span className={`px-2 py-1 rounded-full ${p.approved ? "bg-emerald-100 text-emerald-700" : "bg-yellow-100 text-yellow-700"}`}>
-                        {p.approved ? "Approved" : "Pending"}
-                      </span>
-                      <span className="ml-2 px-2 py-1 rounded-full bg-gray-100 text-gray-700">{p.negotiation}</span>
-                    </div>
+                    <p className="text-xs text-gray-600 mt-2 line-clamp-2">{p.description}</p>
                   </div>
-                </div>
 
-                <p className="text-xs text-gray-600 mt-2 line-clamp-2">{p.description}</p>
+                  <div className="flex items-center justify-between mb-3">
+                    <span className={`px-2 py-1 text-xs rounded-full ${
+                      p.negotiation === 'fixed' 
+                        ? 'bg-blue-100 text-blue-700'
+                        : p.negotiation === 'flexible'
+                        ? 'bg-orange-100 text-orange-700'
+                        : 'bg-purple-100 text-purple-700'
+                    }`}>
+                      {p.negotiation}
+                    </span>
+                    {!isUserViewer && p.seller && (
+                      <span className="text-xs text-gray-500 truncate ml-2">
+                        by {p.seller.displayName || p.seller.email?.split('@')[0] || 'User'}
+                      </span>
+                    )}
+                  </div>
 
-                <div className="flex gap-2 mt-4">
-                  <button onClick={() => onEdit(p)} className="flex-1 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm">
-                    Edit
-                  </button>
-                  <button onClick={() => removeItem(p.id)} className="flex-1 py-2 rounded-lg bg-red-600 hover:bg-red-700 text-white text-sm">
-                    Delete
-                  </button>
+                  <div className="flex gap-2">
+                    <button 
+                      onClick={() => onEdit(p)} 
+                      className="flex-1 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium transition-colors"
+                    >
+                      Edit
+                    </button>
+                     
+                  </div>
+                  
+                  {/* Admin-only approval toggle */}
+                  {isAdmin && !isUserViewer && (
+                    <div className="mt-3 pt-3 border-t border-gray-100">
+                      <button
+                        onClick={() => approveItem(p.id, !p.approved)}
+                        className={`w-full py-1.5 text-xs rounded-lg font-medium ${
+                          p.approved 
+                            ? 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                            : 'bg-green-100 text-green-700 hover:bg-green-200'
+                        }`}
+                      >
+                        {p.approved ? 'Unapprove' : 'Approve'}
+                      </button>
+                    </div>
+                  )}
                 </div>
-              </div>
-            ))}
+              ))}
+            </div>
+            
+            <div className="mt-6 pt-6 border-t border-gray-200 text-center">
+               
+            </div>
           </div>
         )}
       </div>
@@ -768,10 +914,10 @@ const Oldee = () => {
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [approvedItems, setApprovedItems] = useState([]);
   const [loadingApproved, setLoadingApproved] = useState(true);
-  const [adminUsers, setAdminUsers] = useState([]); // Store admin users from Firestore
+  const [adminUsers, setAdminUsers] = useState([]);
   const [loadingAdmins, setLoadingAdmins] = useState(true);
+  const [isUserViewer, setIsUserViewer] = useState(false);
 
-  // Function to fetch admin users from Firestore
   const fetchAdminUsers = async () => {
     try {
       setLoadingAdmins(true);
@@ -794,14 +940,10 @@ const Oldee = () => {
     }
   };
 
-  // Check if current user is admin based on Firestore collection
   const isAdmin = useMemo(() => {
     if (!currentUser?.uid || loadingAdmins) return false;
     
-    // Check if user's UID exists in adminUsers array
     const isAdminByUid = adminUsers.some(admin => admin.uid === currentUser.uid);
-    
-    // Also check by email as fallback
     const isAdminByEmail = adminUsers.some(admin => admin.email === currentUser.email);
     
     return isAdminByUid || isAdminByEmail;
@@ -815,7 +957,6 @@ const Oldee = () => {
     return () => unsub();
   }, []);
 
-  // Fetch admin users when component mounts
   useEffect(() => {
     fetchAdminUsers();
   }, []);
@@ -823,16 +964,30 @@ const Oldee = () => {
   const loadApproved = async () => {
     setLoadingApproved(true);
     try {
+      // Temporarily remove orderBy to avoid index requirement
       const qRef = query(
         collection(db, COLLECTION),
-        where("status", "==", "active"),
-        orderBy("createdAt", "desc"),
-        fbLimit(30)
+        where("status", "==", "active")
+        // Removed: orderBy("createdAt", "desc"), limit(30)
       );
       const snap = await getDocs(qRef);
-      setApprovedItems(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
+      let items = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+      
+      // Sort in JavaScript instead
+      items.sort((a, b) => {
+        const dateA = a.createdAt?.toDate?.() || new Date(0);
+        const dateB = b.createdAt?.toDate?.() || new Date(0);
+        return dateB.getTime() - dateA.getTime(); // Descending
+      });
+      
+      // Limit to 30 items
+      items = items.slice(0, 30);
+      
+      setApprovedItems(items);
     } catch (e) {
       console.error("approved load error:", e);
+      // Continue without error - show empty state
+      setApprovedItems([]);
     } finally {
       setLoadingApproved(false);
     }
@@ -844,6 +999,7 @@ const Oldee = () => {
 
   const openCreate = () => {
     if (!currentUser) {
+      alert("Please login to upload products");
       return;
     }
     setEditingDoc(null);
@@ -851,13 +1007,21 @@ const Oldee = () => {
     setShowUpload(true);
   };
 
-  const openViewer = () => {
+  const openUserViewer = () => {
     if (!currentUser) {
+      alert("Please login to view your listings");
       return;
     }
+    setIsUserViewer(true);
     setSelectedProduct(null);
     setShowViewer(true);
-  }
+  };
+
+  const openAdminViewer = () => {
+    setIsUserViewer(false);
+    setSelectedProduct(null);
+    setShowViewer(true);
+  };
 
   const handleSave = () => {
     setShowUpload(false);
@@ -873,16 +1037,19 @@ const Oldee = () => {
 
   const viewProductDetails = (product) => {
     setSelectedProduct(product);
-  }
+  };
 
   const closeProductDetails = () => {
     setSelectedProduct(null);
-  }
+  };
 
   if (loadingAuth) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <p className="text-gray-600">Authenticating…</p>
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-blue-500 mx-auto mb-4"></div>
+          <p className="text-gray-600">Authenticating…</p>
+        </div>
       </div>
     );
   }
@@ -895,10 +1062,10 @@ const Oldee = () => {
         onEdit={
           currentUser?.uid === selectedProduct.sellerId || isAdmin
             ? (p) => {
-              closeProductDetails();
-              setEditingDoc(p);
-              setShowUpload(true);
-            }
+                closeProductDetails();
+                setEditingDoc(p);
+                setShowUpload(true);
+              }
             : null
         }
       />
@@ -906,93 +1073,182 @@ const Oldee = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 relative">
-      <div className="max-w-7=6xl mx-auto px-4 pt-6 flex gap-3 ml-[1370px]">
-        {currentUser && (
-          <>
-            <button
-              onClick={openCreate}
-              className="px-6 py-2 rounded-full bg-blue-600 hover:bg-blue-700 text-white font-semibold shadow-md transition-all duration-300"
-            >
-              Upload
-            </button>
-            {/* <button
-              onClick={openViewer}
-              className="px-6 py-2 rounded-full bg-gray-900 hover:bg-black text-white font-semibold shadow-md transition-all duration-300"
-            >
-              View My Listings
-            </button> */}
+    <div className="min-h-screen bg-gray-50">
+      {/* Header with Actions */}
+      <div className="bg-white border-b shadow-sm">
+        <div className="max-w-5xl mx-auto px-4 py-4 ml-[1200px]">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+             
             
-            {/* Admin-only button to view ALL products */}
-            {isAdmin && (
-              <button
-                onClick={() => {
-                  setSelectedProduct(null);
-                  setShowViewer(true);
-                }}
-                className="px-6 py-2 rounded-full bg-purple-600 hover:bg-purple-700 text-white font-semibold shadow-md transition-all duration-300"
-              >
-                View All Products (Admin)
-              </button>
-            )}
-          </>
-        )}
+            <div className="flex items-center gap-3">
+              {currentUser ? (
+                <>
+                  {isAdmin && (
+                    <div className="px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-sm font-medium flex items-center">
+                      <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
+                      </svg>
+                      Admin
+                    </div>
+                  )}
+                  
+                  {/* Horizontal buttons - side by side */}
+                  <div className="flex items-center gap-2  ">
+                    {/* VIEW MY LISTINGS BUTTON */}
+                    <button
+                      onClick={openUserViewer}
+                      className="px-4 py-2 rounded-lg bg-gray-800 hover:bg-black text-white font-medium text-sm transition-colors flex items-center gap-2"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                      </svg>
+                      View my listings
+                    </button>
+                    
+                    {/* UPLOAD BUTTON */}
+                    <button
+                      onClick={openCreate}
+                      className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-medium text-sm transition-colors flex items-centergap-2"
+                    >
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                      </svg>
+                      Upload
+                    </button>
+                    
+                    {isAdmin && (
+                      <button
+                        onClick={openAdminViewer}
+                        className="px-4 py-2 rounded-lg bg-purple-600 hover:bg-purple-700 text-white font-medium text-sm transition-colors flex items-center gap-2"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                        </svg>
+                        All Products
+                      </button>
+                    )}
+                  </div>
+                </>
+              ) : (
+                <>
+                  {/* For non-logged in users - also horizontal */}
+                  <div className="flex items-center gap-2">
+                    {/* UPLOAD BUTTON */}
+                    <button
+                      onClick={openCreate}
+                      className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-medium text-sm transition-colors flex items-center gap-2"
+                    >
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                      </svg>
+                      Upload
+                    </button>
+                    
+                  
+                     
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
       </div>
 
-      <div className="max-w-6xl ml-6 px-4 py-10 -mt-12">
-        <div className="flex justify-between items-center mb-6">
-          {/* <div>
-            <h1 className="text-3xl font-bold text-gray-900">Oldee Marketplace</h1>
-            <p className="text-gray-600 mt-2">
-              Only <span className="font-semibold">active</span> products are visible here.
-            </p>
-          </div> */}
-          
-          {/* Display admin status badge */}
-          {isAdmin && (
-            <div className="px-4 py-2 bg-purple-100 text-purple-700 rounded-full text-sm font-semibold">
-              👑 Admin Mode
-            </div>
-          )}
-        </div>
+      {/* Main Content */}
+      <div className="max-w-7xl mx-auto px-4 py-8 ml-5">
+         
 
         {loadingApproved ? (
-          <p className="text-sm text-gray-600">Loading products…</p>
+          <div className="text-center py-20">
+            <div className="inline-block animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-blue-500 mb-4"></div>
+            <p className="text-gray-600">Loading products…</p>
+          </div>
         ) : approvedItems.length === 0 ? (
-          <div className="rounded-xl border bg-white p-8 text-center text-gray-600">
-            No active products yet.
+          <div className="text-center py-20 bg-white rounded-2xl border border-gray-200 shadow-sm">
+            <div className="w-16 h-16 mx-auto mb-4 text-gray-400">
+              <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+              </svg>
+            </div>
+            <h3 className="text-lg font-semibold text-gray-700 mb-2">No Products Available</h3>
+            <p className="text-gray-500 mb-6">Be the first to list a vintage item!</p>
+            {currentUser && (
+              <button
+                onClick={openCreate}
+                className="px-6 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-medium"
+              >
+                List Your First Item
+              </button>
+            )}
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
             {approvedItems.map((p) => (
               <div
                 key={p.id}
-                className="bg-white border rounded-2xl shadow-sm overflow-hidden cursor-pointer hover:shadow-lg transform hover:-translate-y-1 transition-all duration-300"
+                className="bg-white border border-gray-200 rounded-xl overflow-hidden hover:shadow-lg transition-all duration-300 cursor-pointer group"
                 onClick={() => viewProductDetails(p)}
               >
-                {Array.isArray(p.imageURLs) && p.imageURLs[0] && (
-                  <img src={p.imageURLs[0]} alt={p.name} className="w-full h-44 object-cover" />
-                )}
+                <div className="relative h-56 overflow-hidden">
+                  {Array.isArray(p.imageURLs) && p.imageURLs[0] && (
+                    <img 
+                      src={p.imageURLs[0]} 
+                      alt={p.name} 
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" 
+                    />
+                  )}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent"></div>
+                  {p.offerPrice != null && (
+                    <div className="absolute top-3 right-3 bg-red-500 text-white text-xs font-bold px-2 py-1 rounded">
+                      SALE
+                    </div>
+                  )}
+                </div>
+                
                 <div className="p-4">
-                  <h3 className="font-semibold text-gray-900">{p.name}</h3>
-                  <div className="text-sm text-gray-700 mt-1">
-                    ₹{p.price}
-                    {p.offerPrice != null && (
-                      <>
-                        {" "}
-                        <span className="line-through text-gray-400">₹{p.price}</span>{" "}
-                        <span className="font-semibold text-emerald-700">₹{p.offerPrice}</span>
-                      </>
+                  <h3 className="font-semibold text-gray-900 mb-1 truncate">{p.name}</h3>
+                  <div className="mb-2">
+                    {p.offerPrice != null ? (
+                      <div className="flex items-center gap-2">
+                        <span className="font-bold text-lg text-emerald-700">₹{p.offerPrice}</span>
+                        <span className="line-through text-gray-400 text-sm">₹{p.price}</span>
+                        <span className="text-xs bg-emerald-50 text-emerald-600 px-1.5 py-0.5 rounded">
+                          {Math.round(((p.price - p.offerPrice) / p.price) * 100)}% OFF
+                        </span>
+                      </div>
+                    ) : (
+                      <span className="font-bold text-lg text-gray-900">₹{p.price}</span>
                     )}
                   </div>
-                  <p className="text-xs text-gray-600 mt-2 line-clamp-2">{p.description}</p>
+                  <p className="text-sm text-gray-600 line-clamp-2 mb-3">{p.description}</p>
+                  <div className="flex items-center justify-between">
+                    <span className={`text-xs px-2 py-1 rounded-full ${
+                      p.negotiation === 'fixed' 
+                        ? 'bg-blue-100 text-blue-700'
+                        : p.negotiation === 'flexible'
+                        ? 'bg-orange-100 text-orange-700'
+                        : 'bg-purple-100 text-purple-700'
+                    }`}>
+                      {/* {p.negotiation} */}
+                    </span>
+                    <span className="text-xs text-gray-500">
+                      {/* {p.seller?.displayName || 'Seller'} */}
+                    </span>
+                  </div>
                 </div>
               </div>
             ))}
           </div>
         )}
+        
+        {approvedItems.length > 0 && (
+          <div className="mt-8 text-center">
+             
+          </div>
+        )}
       </div>
 
+      {/* Upload Form Modal */}
       <AnimatePresence>
         {showUpload && (
           <motion.div
@@ -1001,17 +1257,6 @@ const Oldee = () => {
             exit={{ opacity: 0 }}
             className="fixed inset-0 bg-white/95 backdrop-blur-sm z-50 overflow-auto p-4 md:p-8"
           >
-            <div className="flex justify-end mb-4">
-              <button
-                onClick={() => {
-                  setShowUpload(false);
-                  setEditingDoc(null);
-                }}
-                className="px-3 py-2 rounded-lg border"
-              >
-                Close
-              </button>
-            </div>
             <SellProductForm
               user={currentUser}
               onCancel={() => {
@@ -1026,6 +1271,7 @@ const Oldee = () => {
         )}
       </AnimatePresence>
 
+      {/* Products Viewer Modal */}
       <AnimatePresence>
         {showViewer && (
           <ProductsViewer
@@ -1033,6 +1279,7 @@ const Oldee = () => {
             isAdmin={isAdmin}
             onClose={() => setShowViewer(false)}
             onEdit={handleEditFromViewer}
+            isUserViewer={isUserViewer}
           />
         )}
       </AnimatePresence>

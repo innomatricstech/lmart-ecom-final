@@ -121,7 +121,7 @@ const NewsToday = () => {
         </div>
 
         {/* Articles Grid - IMAGE ON TOP LAYOUT */}
-        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-10">
+        <div className="grid md:grid-cols-3 lg:grid-cols-5 gap-10 ">
           {filtered.map((article) => (
             <div
               key={article.id}
