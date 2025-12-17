@@ -448,7 +448,7 @@ const Home = () => {
           animation-delay: 0.6s;
         }
 
-        .delay-700 {
+        .delay-700
           animation-delay: 0.7s;
         }
 
@@ -810,7 +810,7 @@ const Home = () => {
                       </svg>
                     </div>
                     <h3 className="text-base font-bold text-gray-900 text-center group-hover:text-blue-600 transition-colors">
-                      E-Store
+                     
                     </h3>
                   </div>
                 </div>
@@ -1275,7 +1275,11 @@ const Home = () => {
                       {/* Product Info */}
                       <div className="p-3">
                         {/* Product Title */}
-                        <Link to={`/product/${product.id}`}>
+                        <Link
+  to={`/product/${product.id}?source=${product.productTag || "e-market"}`}
+  state={{ product }}
+>
+
                           <h3 className="font-semibold text-gray-900 mb-2 text-sm hover:text-blue-600 transition-colors line-clamp-2 h-10">
                             {product.name}
                           </h3>
@@ -1475,7 +1479,11 @@ const Home = () => {
                   {/* Product Info */}
                   <div className="p-3">
                     {/* Product Title */}
-                    <Link to={`/product/${product.id}`}>
+                    <Link
+  to={`/product/${product.id}`}
+  state={{ product, source: product.productTag }}
+>
+
                       <h3 className="font-semibold text-gray-900 mb-2 text-sm hover:text-blue-600 transition-colors line-clamp-2 h-10">
                         {product.name}
                       </h3>

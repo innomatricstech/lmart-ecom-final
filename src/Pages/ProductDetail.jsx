@@ -12,13 +12,15 @@ import {
   serverTimestamp,
   runTransaction,
 } from "firebase/firestore";
-import { getStorage } from "firebase/storage";
+import { getStorage, ref, getDownloadURL } from "firebase/storage";
 import { useCart } from "../context/CartContext";
 
 // ⭐ Star Rating Component
 const StarRating = ({ rating = 0, size = "w-4 h-4", color = "text-yellow-500", showText = false }) => {
   const fullStars = Math.floor(rating);
   const hasHalfStar = rating % 1 >= 0.5;
+
+  
   
   return (
     <div className="flex items-center">
@@ -62,7 +64,7 @@ const StarRating = ({ rating = 0, size = "w-4 h-4", color = "text-yellow-500", s
 };
 
 // ⭐ Review Modal Component
-const WriteReviewModal = ({ onClose, onSubmit, productName, currentUser }) => {
+const WriteReviewModal = ({ onClose, onSubmit, productName, currentUser, productId, navigate }) => {
   const [rating, setRating] = useState(0);
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
@@ -103,6 +105,14 @@ const WriteReviewModal = ({ onClose, onSubmit, productName, currentUser }) => {
     }
   };
 
+  const handleClose = () => {
+    onClose();
+    // Clear the state to prevent reopening on refresh
+    if (window.history.state?.state?.showReviewModal) {
+      navigate(`/product/${productId}`, { replace: true });
+    }
+  };
+
   return (
     <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50 backdrop-blur-sm">
       <div className="bg-white rounded-xl shadow-2xl p-6 w-full max-w-md m-4">
@@ -111,7 +121,7 @@ const WriteReviewModal = ({ onClose, onSubmit, productName, currentUser }) => {
             Write a Review – {productName}
           </h2>
           <button
-            onClick={onClose}
+            onClick={handleClose}
             className="text-gray-500 hover:text-black transition-colors p-1 hover:bg-gray-100 rounded-full w-8 h-8 flex items-center justify-center"
           >
             ✕
@@ -255,7 +265,9 @@ const ProductDetail = () => {
   const [product, setProduct] = useState(null);
   const [loading, setLoading] = useState(true);
   const [images, setImages] = useState([]);
+  const [videos, setVideos] = useState([]);
   const [currentImg, setCurrentImg] = useState("");
+  const [currentIsVideo, setCurrentIsVideo] = useState(false);
   const [selectedColor, setSelectedColor] = useState("");
   const [selectedSize, setSelectedSize] = useState("");
   const [variant, setVariant] = useState(null);
@@ -277,97 +289,192 @@ const ProductDetail = () => {
   const [colorImageMap, setColorImageMap] = useState({}); // Map colors to image indices
   
   // ⭐ FIXED: Define storePath and storeLabel using useMemo for Breadcrumb
-  const { storePath, storeLabel } = useMemo(() => {
-    const urlParams = new URLSearchParams(location.search);
-    const source = urlParams.get('source');
+
+  const productTag =
+  location.state?.source || product?.productTag || null;
+
+const source = location.state?.source;
+
+const { storePath, storeLabel } = useMemo(() => {
+  if (source === "local-market") {
+    return { storePath: "/local-market", storeLabel: "Local Market" };
+  }
+
+  if (source === "printing") {
+    return { storePath: "/printing", storeLabel: "Printing" };
+  }
+
+  if (source === "e-market") {
+    return { storePath: "/e-market", storeLabel: "E-store" };
+  }
+
+  // ❌ NO DEFAULT
+  return { storePath: null, storeLabel: null };
+}, [source]);
+
     
-    // Default values
-    const defaultValues = { storePath: '/e-market', storeLabel: 'E-store' };
-    
-    if (!source) {
-      // If no source parameter, check if product has productTag from navigation state
-      if (productState?.productTag) {
-        const tag = productState.productTag.toLowerCase();
-        if (tag.includes('local') || tag.includes('market')) {
-          return { storePath: '/local-market', storeLabel: 'Local Market' };
-        } else if (tag.includes('print')) {
-          return { storePath: '/printing', storeLabel: 'Printing' };
-        }
-      }
-      return defaultValues;
-    }
-    
-    // Map source parameter to correct values
-    switch(source.toLowerCase()) {
-      case 'local-market':
-        return { storePath: '/local-market', storeLabel: 'Local Market' };
-      case 'printing':
-        return { storePath: '/printing', storeLabel: 'Printing' };
-      case 'e-market':
-      case 'e-store':
-      default:
-        return { storePath: '/e-market', storeLabel: 'E-store' };
-    }
-  }, [location.search, productState?.productTag]);
 
   // 🔝 AUTO SCROLL TO TOP
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, [productId]);
 
-  // 🔄 GET CURRENT LOGGED IN USER
+  // Debug useEffect for image loading
+  useEffect(() => {
+    console.log('Image Debug:', {
+      images,
+      videos,
+      currentImg,
+      currentIsVideo,
+      productId,
+      product: product?.name,
+      imageLoading
+    });
+  }, [images, videos, currentImg, currentIsVideo, productId, product, imageLoading]);
+
+  // 🔄 GET CURRENT LOGGED IN USER - IMPROVED VERSION
   useEffect(() => {
     const getUserData = async () => {
       try {
         const token = localStorage.getItem("token");
-        const userId = localStorage.getItem("userId");
-        const userName = localStorage.getItem("userName");
+        const userDataStr = localStorage.getItem("userData");
+        const userStr = localStorage.getItem("user");
         
-        if (userId && token) {
-          try {
-            const userRef = doc(db, "users", userId);
-            const userSnap = await getDoc(userRef);
-            
-            if (userSnap.exists()) {
-              const userData = userSnap.data();
-              setCurrentUser({
-                uid: userId,
-                id: userId,
-                ...userData,
-                displayName: userData.displayName || userData.name || userName || "User",
-                email: userData.email || "",
-                photoURL: userData.photoURL || ""
-              });
-            } else {
-              setCurrentUser({
-                uid: userId,
-                id: userId,
-                displayName: userName || "User",
-                email: "",
-                photoURL: ""
-              });
+        console.log("🔄 Getting user data from localStorage:", { 
+          token: !!token, 
+          userDataStr: !!userDataStr, 
+          userStr: !!userStr 
+        });
+        
+        if (token) {
+          let userData = null;
+          
+          // Try to parse user data from localStorage
+          if (userDataStr) {
+            try {
+              userData = JSON.parse(userDataStr);
+              console.log("✅ Parsed userData from localStorage:", userData);
+            } catch (e) {
+              console.error("Error parsing userData:", e);
             }
-          } catch (error) {
-            console.log("Using localStorage user data");
+          }
+          
+          // If no userData, try the 'user' key
+          if (!userData && userStr) {
+            try {
+              userData = JSON.parse(userStr);
+              console.log("✅ Parsed user from localStorage:", userData);
+            } catch (e) {
+              console.error("Error parsing user:", e);
+            }
+          }
+          
+          if (userData) {
+            console.log("✅ Setting currentUser from localStorage:", userData);
             setCurrentUser({
-              uid: userId,
-              id: userId,
-              displayName: userName || "User",
-              email: "",
-              photoURL: ""
+              uid: userData.uid || token,
+              id: userData.uid || token,
+              ...userData,
+              displayName: userData.displayName || userData.name || userData.email?.split('@')[0] || "User",
+              email: userData.email || "",
+              photoURL: userData.photoURL || ""
             });
+          } else {
+            console.log("⚠️ No user data in localStorage, trying Firestore...");
+            // Try to fetch from Firestore using token as userId
+            try {
+              const userRef = doc(db, "users", token);
+              const userSnap = await getDoc(userRef);
+              
+              if (userSnap.exists()) {
+                const userData = userSnap.data();
+                console.log("✅ Fetched user from Firestore:", userData);
+                setCurrentUser({
+                  uid: token,
+                  id: token,
+                  ...userData,
+                  displayName: userData.displayName || userData.name || "User",
+                  email: userData.email || "",
+                  photoURL: userData.photoURL || ""
+                });
+              } else {
+                console.log("❌ No user data found anywhere");
+                setCurrentUser(null);
+              }
+            } catch (error) {
+              console.log("❌ Error fetching from Firestore:", error);
+              setCurrentUser(null);
+            }
           }
         } else {
+          console.log("❌ No token in localStorage");
           setCurrentUser(null);
         }
       } catch (error) {
-        console.error("Error getting user data:", error);
+        console.error("❌ Error getting user data:", error);
         setCurrentUser(null);
       }
     };
 
     getUserData();
+    
+    // Listen for storage changes (when login updates localStorage in same tab)
+    const handleStorageChange = (e) => {
+      if (e.key === "token" || e.key === "userData" || e.key === "user" || e.key === "isLoggedIn") {
+        console.log("📢 Storage changed:", e.key, "Refreshing user data...");
+        getUserData();
+      }
+    };
+    
+    window.addEventListener('storage', handleStorageChange);
+    
+    // Also poll for changes (for same-tab updates)
+    const storagePollInterval = setInterval(() => {
+      const token = localStorage.getItem("token");
+      const isLoggedIn = localStorage.getItem("isLoggedIn") === "true";
+      
+      if ((token && !currentUser) || (!token && currentUser)) {
+        console.log("🔄 Polling detected change, refreshing user data");
+        getUserData();
+      }
+    }, 1000);
+    
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      clearInterval(storagePollInterval);
+    };
   }, []);
+
+  // ⭐ Auto-open review modal after login redirect - FIXED VERSION
+  useEffect(() => {
+    console.log("🔍 Checking for review modal auto-open:", {
+      locationState: location.state,
+      currentUser: !!currentUser,
+      showReviewModalFlag: location.state?.showReviewModal
+    });
+    
+    const { state } = location;
+    
+    // Check if we're returning from login with review redirect
+    if (state?.showReviewModal && currentUser) {
+      console.log("✅✅✅ CONDITIONS MET - Opening review modal automatically");
+      console.log("showReviewModal:", state.showReviewModal);
+      console.log("currentUser exists:", !!currentUser);
+      
+      // Use setTimeout to ensure state is fully loaded
+      setTimeout(() => {
+        setShowReviewModal(true);
+      }, 300);
+      
+      // Clear the state after opening modal
+      setTimeout(() => {
+        if (location.state?.showReviewModal) {
+          console.log("🔄 Clearing review redirect state");
+          navigate(`/product/${productId}`, { replace: true });
+        }
+      }, 500);
+    }
+  }, [location.state, currentUser, navigate, productId]);
 
   // ✨ Toast notification system
   const addToast = useCallback((product, variant, quantity) => {
@@ -531,12 +638,45 @@ const ProductDetail = () => {
         if (productData) {
           setProduct(productData);
           
-          // Process images
+          // Process images - Handle both string URLs and object URLs
           const imageUrls = productData.imageUrls || [];
-          const urls = imageUrls.map(img => img?.url).filter(Boolean);
+          const urls = imageUrls.map(img => {
+            if (typeof img === 'string') return img;
+            if (img?.url) return img.url;
+            return null;
+          }).filter(Boolean);
+          
+          // Process video URLs
+          const videoUrls = productData.videoUrls || [];
+          const videoUrlsProcessed = videoUrls.map(video => {
+            if (typeof video === 'string') return video;
+            if (video?.url) return video.url;
+            return null;
+          }).filter(Boolean);
+          
+          console.log('Fetched product media:', {
+            images: urls,
+            videos: videoUrlsProcessed,
+            productName: productData.name
+          });
+          
           setImages(urls);
-          if (urls.length > 0) {
-            setCurrentImg(urls[0]);
+          setVideos(videoUrlsProcessed);
+          
+          // Combine images and videos for display
+          const allMedia = [...urls, ...videoUrlsProcessed];
+          
+          // ALWAYS set currentImg if media exists
+          if (allMedia.length > 0) {
+            setCurrentImg(allMedia[0]);
+            // Check if first media is video
+            if (allMedia[0].match(/\.(mp4|webm|ogg)$/i)) {
+              setCurrentIsVideo(true);
+            }
+          } else {
+            // Use placeholder if no media
+            setCurrentImg("https://placehold.co/600x400?text=No+Image");
+            setImageLoading(false);
           }
           
           // ⭐ FIXED: Process variants and get available colors and sizes
@@ -560,29 +700,14 @@ const ProductDetail = () => {
           
           setAvailableColors(colors);
           setAvailableSizes(sizes);
-          
-          // Set color-image mapping
-          // If product has colorImageMap from database, use it
-          // Otherwise, create a simple mapping based on color names
-          if (productData.colorImageMap) {
-            setColorImageMap(productData.colorImageMap);
-          } else {
-            // Create default mapping: first image for first color, second for second, etc.
-            const defaultMap = {};
-            colors.forEach((color, index) => {
-              if (urls[index]) {
-                defaultMap[color] = index;
-              }
-            });
-            setColorImageMap(defaultMap);
-          }
-          
+         
           // Set default selections
           if (colors.length > 0) {
             setSelectedColor(colors[0]);
             // Set image based on default color
             if (colorImageMap[colors[0]] !== undefined && urls[colorImageMap[colors[0]]]) {
               setCurrentImg(urls[colorImageMap[colors[0]]]);
+              setCurrentIsVideo(false);
             }
           }
           if (sizes.length > 0) {
@@ -623,7 +748,6 @@ const ProductDetail = () => {
         setProduct(null);
       } finally {
         setLoading(false);
-        setTimeout(() => setImageLoading(false), 500);
       }
     };
     
@@ -702,7 +826,28 @@ const ProductDetail = () => {
     // Update image based on selected color
     if (colorImageMap[color] !== undefined && images[colorImageMap[color]]) {
       setCurrentImg(images[colorImageMap[color]]);
+      setCurrentIsVideo(false);
       setImageLoading(true);
+    }
+  };
+
+  // 📱 Responsive image gallery handler
+  const onThumbnailClick = (media, index) => {
+    setCurrentImg(media);
+    setImageLoading(true);
+    
+    // Check if it's a video
+    const isVideo = media.match(/\.(mp4|webm|ogg)$/i);
+    setCurrentIsVideo(isVideo);
+    
+    // Update color selection if image is associated with a color
+    if (!isVideo && colorImageMap) {
+      for (const [color, imgIndex] of Object.entries(colorImageMap)) {
+        if (imgIndex === index) {
+          setSelectedColor(color);
+          break;
+        }
+      }
     }
   };
 
@@ -720,6 +865,62 @@ const ProductDetail = () => {
     const value = parseInt(e.target.value) || 1;
     const max = variant?.stock ?? 99;
     setQuantity(Math.max(1, Math.min(value, max)));
+  };
+
+  // ⭐ Handle review button click - check login status
+  const handleReviewButtonClick = () => {
+    console.log("🎯 Review button clicked", { 
+      currentUser: !!currentUser, 
+      productId, 
+      productName: product?.name 
+    });
+    
+    // Check localStorage directly for immediate login status
+    const token = localStorage.getItem("token");
+    const isLoggedIn = token && localStorage.getItem("isLoggedIn") === "true";
+    
+    console.log("🔐 Direct localStorage check:", { token: !!token, isLoggedIn });
+    
+    if (isLoggedIn) {
+      // User is logged in, show review modal directly
+      console.log("✅ User is logged in, opening review modal");
+      
+      // Make sure currentUser state is up to date
+      if (!currentUser) {
+        console.log("🔄 CurrentUser state not updated yet, forcing refresh...");
+        const userDataStr = localStorage.getItem("userData");
+        if (userDataStr) {
+          try {
+            const userData = JSON.parse(userDataStr);
+            setCurrentUser({
+              uid: userData.uid || token,
+              id: userData.uid || token,
+              ...userData,
+              displayName: userData.displayName || userData.name || "User"
+            });
+          } catch (e) {
+            console.error("Error parsing userData:", e);
+          }
+        }
+      }
+      
+      setShowReviewModal(true);
+    } else {
+      // User is not logged in, redirect to login page with product info
+      console.log("❌ User not logged in, redirecting to login", {
+        productId,
+        productName: product?.name
+      });
+      
+      navigate("/login", {
+        state: {
+          reviewRedirect: true,
+          productId: productId,
+          productName: product?.name || "Product",
+          from: `/product/${productId}`,
+        },
+      });
+    }
   };
 
   // 🛒 Add to cart
@@ -748,7 +949,7 @@ const ProductDetail = () => {
       variantId: variant.variantId ?? variant.variant_id ?? variant.id,
       selectedColor,
       selectedSize,
-      image: currentImg || product.imageUrls?.[0]?.url || "",
+      image: !currentIsVideo ? currentImg : (images[0] || product.imageUrls?.[0]?.url || ""),
       stock: variant.stock ?? 0,
       colors: availableColors || [],
       sizes: availableSizes || [],
@@ -851,7 +1052,7 @@ const ProductDetail = () => {
       variantId: variant.variantId ?? variant.variant_id ?? variant.id,
       selectedColor,
       selectedSize,
-      image: currentImg || product.imageUrls?.[0]?.url || "",
+      image: !currentIsVideo ? currentImg : (images[0] || product.imageUrls?.[0]?.url || ""),
       stock: variant.stock ?? 0,
       brand: product.brand || ""
     };
@@ -959,22 +1160,6 @@ const ProductDetail = () => {
     }
   };
 
-  // 📱 Responsive image gallery handler
-  const onThumbnailClick = (img, index) => {
-    setCurrentImg(img);
-    setImageLoading(true);
-    
-    // Update color selection if image is associated with a color
-    if (colorImageMap) {
-      for (const [color, imgIndex] of Object.entries(colorImageMap)) {
-        if (imgIndex === index) {
-          setSelectedColor(color);
-          break;
-        }
-      }
-    }
-  };
-
   // 📦 Loading state
   if (loading) {
     return (
@@ -1021,6 +1206,9 @@ const ProductDetail = () => {
   const discount = originalPrice > displayPrice 
     ? Math.round(((originalPrice - displayPrice) / originalPrice) * 100)
     : 0;
+
+  // Combine images and videos for thumbnail display
+  const allMedia = [...images, ...videos];
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 py-6 relative">
@@ -1154,39 +1342,51 @@ const ProductDetail = () => {
           onSubmit={submitReview}
           productName={product.name}
           currentUser={currentUser}
+          productId={productId}
+          navigate={navigate}
         />
       )}
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Breadcrumb */}
-        <nav className="text-sm mb-6 text-gray-600 flex items-center space-x-2">
-          <button
-            onClick={() => navigate("/")}
-            className="cursor-pointer hover:text-gray-800 transition-colors"
-          >
-            Home
-          </button>
-          <svg className="w-3 h-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-          </svg>
-          <button
-            onClick={() => navigate(storePath)}
-            className="cursor-pointer hover:text-gray-800 transition-colors"
-          >
-            {storeLabel}
-          </button>
-          <svg className="w-3 h-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-          </svg>
-          <span className="text-gray-800 font-medium truncate max-w-xs">{product.name}</span>
-        </nav>
+       <nav className="text-sm mb-6 text-gray-600 flex items-center space-x-2">
+  {/* Home */}
+  <button
+    onClick={() => navigate("/")}
+    className="hover:text-gray-800"
+  >
+    Home
+  </button>
+
+  {/* productTag */}
+  {productTag && (
+    <>
+      <svg className="w-3 h-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+      </svg>
+
+      <span className="capitalize">
+        {productTag.replace("-", " ")}
+      </span>
+    </>
+  )}
+
+  {/* Product name */}
+  <svg className="w-3 h-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+  </svg>
+
+  <span className="text-gray-800 font-medium truncate max-w-xs">
+    {product.name}
+  </span>
+</nav>
+
 
         <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 p-6 md:p-8">
-            {/* LEFT SIDE — IMAGES */}
+            {/* LEFT SIDE — MEDIA */}
             <div className="space-y-4">
-              <div className={`bg-gradient-to-br from-gray-100 to-gray-200 rounded-xl overflow-hidden min-h-[400px] flex items-center justify-center relative ${imageLoading ? 'animate-pulse' : ''
-                }`}>
+              <div className={`bg-gradient-to-br from-gray-100 to-gray-200 rounded-xl overflow-hidden min-h-[400px] flex items-center justify-center relative ${imageLoading ? 'animate-pulse' : ''}`}>
                 {currentImg ? (
                   <>
                     {imageLoading && (
@@ -1194,16 +1394,76 @@ const ProductDetail = () => {
                         <div className="animate-spin h-16 w-12 rounded-full border-b-2 border-purple-600"></div>
                       </div>
                     )}
+                    
+                    {/* Check if current media is a video */}
+                    {currentIsVideo || currentImg.match(/\.(mp4|webm|ogg)$/i) ? (
+                      <div className="w-full h-full flex items-center justify-center">
+                        <video
+                          src={currentImg}
+                          controls
+                          className="w-full h-auto max-h-[450px] object-contain transition-opacity duration-300"
+                          onLoadedData={() => {
+                            console.log('Video loaded successfully:', currentImg);
+                            setImageLoading(false);
+                          }}
+                          onError={(e) => {
+                            console.error('Error loading video:', currentImg);
+                            setImageLoading(false);
+                          }}
+                          poster={images[0] || "https://placehold.co/600x400?text=Video"}
+                        />
+                        {/* Video badge */}
+                        <div className="absolute top-4 right-4 bg-black bg-opacity-70 text-white px-3 py-1 rounded-full text-sm font-semibold flex items-center gap-2">
+                          <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clipRule="evenodd" />
+                          </svg>
+                          VIDEO
+                        </div>
+                      </div>
+                    ) : (
+                      <img
+                        src={currentImg}
+                        alt={`${product.name} - ${selectedColor}`}
+                        className={`w-full h-auto max-h-[450px] object-contain transition-opacity duration-300 ${imageLoading ? 'opacity-0' : 'opacity-100'}`}
+                        onLoad={() => {
+                          console.log('Main image loaded successfully:', currentImg);
+                          setImageLoading(false);
+                        }}
+                        onError={(e) => {
+                          console.error('Error loading main image:', currentImg);
+                          e.target.onerror = null;
+                          e.target.src = "https://placehold.co/600x400?text=Image+Error";
+                          e.target.className = "w-full h-auto max-h-[450px] object-contain opacity-100";
+                          setImageLoading(false);
+                        }}
+                        loading="lazy"
+                      />
+                    )}
+                  </>
+                ) : images.length > 0 ? (
+                  // Fallback to first image if currentImg is empty
+                  <>
+                    {imageLoading && (
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <div className="animate-spin h-16 w-12 rounded-full border-b-2 border-purple-600"></div>
+                      </div>
+                    )}
                     <img
-                      src={currentImg}
-                      alt={`${product.name} - ${selectedColor}`}
-                      className="w-full h-auto max-h-[450px] object-contain transition-opacity duration-300"
-                      onLoad={() => setImageLoading(false)}
-                      onError={(e) => {
-                        e.target.onerror = null;
-                        e.target.src = "https://placehold.co/600x400?text=No+Image";
+                      src={images[0]}
+                      alt={product.name}
+                      className={`w-full h-auto max-h-[450px] object-contain transition-opacity duration-300 ${imageLoading ? 'opacity-0' : 'opacity-100'}`}
+                      onLoad={() => {
+                        console.log('Fallback image loaded:', images[0]);
                         setImageLoading(false);
                       }}
+                      onError={(e) => {
+                        console.error('Error loading fallback image:', images[0]);
+                        e.target.onerror = null;
+                        e.target.src = "https://placehold.co/600x400?text=No+Image";
+                        e.target.className = "w-full h-auto max-h-[450px] object-contain opacity-100";
+                        setImageLoading(false);
+                      }}
+                      loading="lazy"
                     />
                   </>
                 ) : (
@@ -1216,29 +1476,70 @@ const ProductDetail = () => {
                 )}
               </div>
 
-              {/* Thumbnails */}
-              {images.length > 1 && (
+              {/* Thumbnails - Combined Images and Videos */}
+              {allMedia.length > 1 && (
                 <div className="grid grid-cols-4 gap-3">
-                  {images.map((img, i) => (
-                    <button
-                      key={i}
-                      onClick={() => onThumbnailClick(img, i)}
-                      className={`rounded-xl overflow-hidden border-2 transition-all duration-200 ${currentImg === img
-                        ? "border-purple-500 ring-2 ring-purple-200"
-                        : "border-gray-300 hover:border-gray-400"
+                  {allMedia.map((media, i) => {
+                    const isVideo = media.match(/\.(mp4|webm|ogg)$/i);
+                    
+                    return (
+                      <button
+                        key={i}
+                        onClick={() => onThumbnailClick(media, i)}
+                        className={`rounded-xl overflow-hidden border-2 transition-all duration-200 relative ${
+                          currentImg === media
+                            ? "border-purple-500 ring-2 ring-purple-200"
+                            : "border-gray-300 hover:border-gray-400"
                         }`}
-                    >
-                      <img
-                        src={img}
-                        className="h-30 w-full object-cover"
-                        alt={`Thumbnail ${i + 1}`}
-                        onError={(e) => {
-                          e.target.onerror = null;
-                          e.target.src = "https://placehold.co/150x100?text=Img";
-                        }}
-                      />
-                    </button>
-                  ))}
+                      >
+                        {isVideo ? (
+                          <div className="relative h-30 w-full bg-gray-900 flex items-center justify-center">
+                            <div className="absolute inset-0 flex items-center justify-center">
+                              <svg className="w-8 h-8 text-white opacity-80" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clipRule="evenodd" />
+                              </svg>
+                            </div>
+                            {/* Use first image as video poster if available */}
+                            {images[0] && (
+                              <img
+                                src={images[0]}
+                                className="h-30 w-full object-cover opacity-50"
+                                alt="Video thumbnail"
+                                onError={(e) => {
+                                  e.target.onerror = null;
+                                  e.target.src = "https://placehold.co/150x100?text=Video";
+                                }}
+                              />
+                            )}
+                            {/* Video indicator */}
+                            <div className="absolute bottom-2 right-2 bg-black bg-opacity-60 text-white text-xs px-2 py-1 rounded flex items-center gap-1">
+                              <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clipRule="evenodd" />
+                              </svg>
+                              VIDEO
+                            </div>
+                          </div>
+                        ) : (
+                          <img
+                            src={media}
+                            className="h-30 w-full object-cover"
+                            alt={`Thumbnail ${i + 1}`}
+                            loading="lazy"
+                            onError={(e) => {
+                              console.error('Thumbnail load error:', media);
+                              e.target.onerror = null;
+                              e.target.src = "https://placehold.co/150x100?text=Thumb";
+                              e.target.className = "h-30 w-full object-cover bg-gray-200";
+                            }}
+                          />
+                        )}
+                        {/* Add index number overlay for debugging */}
+                        <div className="absolute bottom-1 right-1 bg-black bg-opacity-50 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                          {i + 1}
+                        </div>
+                      </button>
+                    );
+                  })}
                 </div>
               )}
             </div>
@@ -1273,22 +1574,7 @@ const ProductDetail = () => {
                 >
                   {stats.total} {stats.total === 1 ? 'review' : 'reviews'}
                 </button>
-                {variant?.stock !== undefined && (
-                  <div className={`inline-flex items-center px-3 py-1 rounded-full text-sm ${variant.stock > 10
-                      ? 'bg-green-100 text-green-800'
-                      : variant.stock > 0
-                      ? 'bg-yellow-100 text-yellow-800'
-                      : 'bg-red-100 text-red-800'
-                    }`}>
-                    <div className={`w-2 h-2 rounded-full mr-2 ${variant.stock > 10
-                        ? 'bg-green-500'
-                        : variant.stock > 0
-                        ? 'bg-yellow-500'
-                        : 'bg-red-500'
-                      }`}></div>
-                    {variant.stock > 0 ? `${variant.stock} in stock` : 'Out of stock'}
-                  </div>
-                )}
+                
               </div>
 
               {/* Price */}
@@ -1324,21 +1610,6 @@ const ProductDetail = () => {
                         }`}
                       >
                         <span>{color}</span>
-                        {/* Optional: Show color indicator dot */}
-                        <div 
-                          className="w-3 h-3 rounded-full border border-gray-300"
-                          style={{
-                            backgroundColor: color.toLowerCase().includes('green') ? '#10B981' :
-                                            color.toLowerCase().includes('black') ? '#000000' :
-                                            color.toLowerCase().includes('white') ? '#FFFFFF' :
-                                            color.toLowerCase().includes('blue') ? '#3B82F6' :
-                                            color.toLowerCase().includes('red') ? '#EF4444' :
-                                            color.toLowerCase().includes('yellow') ? '#F59E0B' :
-                                            color.toLowerCase().includes('purple') ? '#8B5CF6' :
-                                            color.toLowerCase().includes('pink') ? '#EC4899' :
-                                            color.toLowerCase().includes('gray') ? '#9CA3AF' : '#6B7280'
-                          }}
-                        ></div>
                       </button>
                     ))}
                   </div>
@@ -1470,7 +1741,7 @@ const ProductDetail = () => {
                 Ratings & Reviews
               </h2>
               <button
-                onClick={() => setShowReviewModal(true)}
+                onClick={handleReviewButtonClick}
                 className="bg-gradient-to-r from-purple-600 to-pink-600 text-white px-6 py-3 rounded-lg hover:from-purple-700 hover:to-pink-700 shadow-md hover:shadow-lg transition-all duration-200 font-semibold"
               >
                 Write a Review

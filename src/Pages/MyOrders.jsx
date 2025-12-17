@@ -5,14 +5,16 @@ import { db } from '../../firebase';
 import emailjs from "@emailjs/browser";  
 
 // ----------------------------------------------------
-//  RETURN ORDER FORM  (COMPLETE WORKING VERSION)
+//  EMAILJS CONFIGURATION
 // ----------------------------------------------------
-
 const EMAILJS_SERVICE_ID = "service_v61ct8q";
 const EMAILJS_TEMPLATE_ID = "template_484qw3o"; 
 const EMAILJS_PUBLIC_KEY = "3oPaXcWIwr2sMfais";
 
-const ReturnOrderForm = ({ order, userId, onClose, onSuccess }) => {
+// ----------------------------------------------------
+//  RETURN ORDER FORM
+// ----------------------------------------------------
+const ReturnOrderForm = ({ order, userId, onClose, onSuccess, displayId }) => {
   const [reason, setReason] = useState("");
   const [description, setDescription] = useState("");
   const [loading, setLoading] = useState(false);
@@ -28,52 +30,41 @@ const ReturnOrderForm = ({ order, userId, onClose, onSuccess }) => {
   ];
 
   // 📧 SEND RETURN EMAIL
-// 📧 SEND RETURN EMAIL (Using unified template)
-const sendReturnEmail = async () => {
-  let itemsList = "";
-  order.items.forEach((item) => {
-    itemsList += `• ${item.name}\n  Qty: ${item.quantity}\n  Price: ₹${item.price}\n\n`;
-  });
+  const sendReturnEmail = async () => {
+    let itemsList = "";
+    order.items.forEach((item) => {
+      itemsList += `• ${item.name}\n  Qty: ${item.quantity}\n  Price: ₹${item.price}\n\n`;
+    });
 
-  const params = {
-    // --- Required for Unified Template ---
-    email_type_cancel: false,   // Not a cancel email
-    email_type_return: true,    // This is a return email
+    const params = {
+      email_type_cancel: false,   
+      email_type_return: true,    
+      email_title: "Return Request Submitted",
+      header_color: "#ff8800",
+      to_name: order.customerInfo?.name || "Customer",
+      to_email: order.customerInfo?.email || "noemail@domain.com",
+      order_id: displayId,
+      total_amount: order.amount?.toFixed(2),
+      reason: reason,
+      description: description || "No additional details provided.",
+      requested_at: new Date().toLocaleString(),
+      items: itemsList,
+    };
 
-    email_title: "Return Request Submitted",
-    header_color: "#ff8800",
+    console.log("📤 Sending Return Email:", params);
 
-    // --- Common Fields ---
-    to_name: order.customerInfo?.name || "Customer",
-    to_email: order.customerInfo?.email || "noemail@domain.com",
-
-    order_id: order.orderId,
-    total_amount: order.amount?.toFixed(2),
-
-    // --- Return Specific ---
-    reason: reason,
-    description: description || "No additional details provided.",
-    requested_at: new Date().toLocaleString(),
-
-    // --- Items ---
-    items: itemsList,
+    try {
+      await emailjs.send(
+        EMAILJS_SERVICE_ID,
+        EMAILJS_TEMPLATE_ID, 
+        params,
+        EMAILJS_PUBLIC_KEY
+      );
+      console.log("✅ Return Email Sent (Unified Template)");
+    } catch (err) {
+      console.error("❌ Email Error:", err);
+    }
   };
-
-  console.log("📤 Sending Return Email:", params);
-
-  try {
-    await emailjs.send(
-      EMAILJS_SERVICE_ID,
-      EMAILJS_TEMPLATE_ID,  // SAME template as cancel
-      params,
-      EMAILJS_PUBLIC_KEY
-    );
-    console.log("✅ Return Email Sent (Unified Template)");
-  } catch (err) {
-    console.error("❌ Email Error:", err);
-  }
-};
-
 
   // 📝 HANDLE SUBMIT
   const handleSubmit = async (e) => {
@@ -92,7 +83,7 @@ const sendReturnEmail = async () => {
       const returnRef = collection(db, "users", userId, "returnRequests");
 
       const returnData = {
-        orderId: order.orderId,
+        orderId: displayId,
         firestoreOrderId: order.id,
         reason,
         description,
@@ -107,7 +98,6 @@ const sendReturnEmail = async () => {
       };
 
       const newDoc = await addDoc(returnRef, returnData);
-
       await updateDoc(newDoc, { returnRequestId: newDoc.id });
 
       // 2️⃣ Update main order status
@@ -138,24 +128,20 @@ const sendReturnEmail = async () => {
     }
   };
 
-  // ----------------------------------------------------
-  //  RETURN FORM UI
-  // ----------------------------------------------------
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center p-4 z-50">
       <div className="bg-white rounded-lg w-full max-w-md shadow-xl">
         <div className="p-6">
-
           {/* HEADER */}
           <div className="flex justify-between items-center mb-5">
             <h2 className="text-xl font-bold">Return Order</h2>
-            <button onClick={onClose} className="text-xl">&times;</button>
+            <button onClick={onClose} className="text-xl hover:text-gray-600 transition-colors">&times;</button>
           </div>
 
           {/* ORDER SUMMARY */}
           <div className="bg-blue-50 p-3 rounded-lg mb-4">
-            <p className="font-semibold">Order ID: {order.orderId}</p>
-            <p className="text-sm text-gray-600">
+            <p className="font-semibold text-purple-700">Order ID: {displayId}</p>
+            <p className="text-sm text-gray-600 mt-1">
               Items: {order.items.map((i) => i.name).join(", ")}
             </p>
           </div>
@@ -163,13 +149,12 @@ const sendReturnEmail = async () => {
           {/* FORM */}
           <form onSubmit={handleSubmit}>
             <div className="space-y-4">
-
               {/* REASON */}
               <div>
                 <label className="block text-sm font-medium mb-2">Select Reason *</label>
-                <div className="space-y-1">
+                <div className="space-y-2">
                   {returnReasons.map((r) => (
-                    <label key={r} className="flex items-center">
+                    <label key={r} className="flex items-center cursor-pointer hover:bg-gray-50 p-1 rounded">
                       <input
                         type="radio"
                         name="reason"
@@ -188,24 +173,22 @@ const sendReturnEmail = async () => {
               <div>
                 <label className="block text-sm font-medium mb-2">Additional Details</label>
                 <textarea
-                  value={description || ""}
+                  value={description}
                   onChange={(e) => setDescription(e.target.value)}
                   placeholder="Describe the issue..."
-                  className="w-full p-2 border rounded"
+                  className="w-full p-2 border rounded focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition"
                   rows={3}
                 />
               </div>
 
               {/* POLICY */}
               <div className="bg-yellow-50 p-3 border border-yellow-200 rounded text-sm">
-                <p className="text-yellow-800">
-                  ⓘ Return Policy:
-                  <ul className="list-disc list-inside mt-1">
-                    <li>Valid within 7 days of delivery</li>
-                    <li>Product must be unused</li>
-                    <li>Refund processed in 5–7 business days</li>
-                  </ul>
-                </p>
+                <p className="text-yellow-800 font-medium">ⓘ Return Policy:</p>
+                <ul className="list-disc list-inside mt-1 space-y-1">
+                  <li>Valid within 7 days of delivery</li>
+                  <li>Product must be unused</li>
+                  <li>Refund processed in 5–7 business days</li>
+                </ul>
               </div>
 
               {/* ERROR */}
@@ -216,33 +199,31 @@ const sendReturnEmail = async () => {
                 <button
                   type="button"
                   onClick={onClose}
-                  className="flex-1 border p-2 rounded"
+                  className="flex-1 border p-2 rounded hover:bg-gray-50 transition-colors"
                   disabled={loading}
                 >
                   Cancel
                 </button>
-
                 <button
                   type="submit"
                   disabled={loading}
-                  className="flex-1 bg-orange-600 text-white p-2 rounded hover:bg-orange-700"
+                  className="flex-1 bg-orange-600 text-white p-2 rounded hover:bg-orange-700 transition-colors disabled:opacity-50"
                 >
                   {loading ? "Submitting..." : "Submit Request"}
                 </button>
               </div>
-
             </div>
           </form>
-
         </div>
       </div>
     </div>
   );
 };
 
-
-// Cancel Order Form Component
-const CancelOrderForm = ({ order, userId, onClose, onSuccess }) => {
+// ----------------------------------------------------
+//  CANCEL ORDER FORM
+// ----------------------------------------------------
+const CancelOrderForm = ({ order, userId, onClose, onSuccess, displayId }) => {
   const [reason, setReason] = useState("");
   const [otherReason, setOtherReason] = useState("");
   const [loading, setLoading] = useState(false);
@@ -257,21 +238,32 @@ const CancelOrderForm = ({ order, userId, onClose, onSuccess }) => {
     "Other",
   ];
 
-  // ✅ Correct EmailJS Config
-  const EMAILJS_SERVICE_ID = "service_v61ct8q";
-  const EMAILJS_CANCEL_TEMPLATE_ID = "template_484qw3o";
-  const EMAILJS_PUBLIC_KEY = "R9vRtLgQ11-S8rVaZ";
+  // 📧 SEND CANCEL EMAIL
+  const sendCancelEmail = async () => {
+    const formattedItems = order.items
+      .map((item) => `• ${item.name} Qty: ${item.quantity} Price: ₹${item.price}`)
+      .join("\n\n");
+    
+    const cancelledAt = new Date();
 
-  const sendCancelEmail = async (params) => {
+    const params = {
+      to_name: order.customerInfo?.name || "Customer",
+      email: order.customerInfo?.email || "noemail@domain.com",
+      order_id: displayId,
+      reason: reason === "Other" ? otherReason : reason,
+      amount: order.amount?.toFixed(2),
+      cancelled_at: cancelledAt.toLocaleString(),
+      items: formattedItems,
+    };
+
     try {
-      const res = await emailjs.send(
+      await emailjs.send(
         EMAILJS_SERVICE_ID,
-        EMAILJS_CANCEL_TEMPLATE_ID,
+        EMAILJS_TEMPLATE_ID,
         params,
         EMAILJS_PUBLIC_KEY
       );
-
-      console.log("📧 Cancel email sent:", res);
+      console.log("✅ Cancel Email Sent");
     } catch (err) {
       console.error("❌ Cancel Email Error:", err);
     }
@@ -286,55 +278,14 @@ const CancelOrderForm = ({ order, userId, onClose, onSuccess }) => {
     }
 
     const finalReason = reason === "Other" ? otherReason : reason;
-
     setLoading(true);
     setError("");
 
     try {
-      console.log("Cancel Order Items:");
-      order.items.forEach((item, index) => {
-        console.group(`Item ${index + 1}`);
-        console.log("Name:", item.name);
-        console.log("Price:", item.price);
-        console.log("Quantity:", item.quantity);
-        console.log("Color:", item.selectedColor || item.colors?.[0] || "-");
-        console.log("Size:", item.selectedSize || "-");
-        console.groupEnd();
-      });
+      // 1️⃣ Send cancellation email
+      await sendCancelEmail();
 
-      // Format items for email
-      const formattedItems = order.items
-        .map((item) => {
-          const color = item.selectedColor || item.colors?.[0] || "-";
-          const size = item.selectedSize || "-";
-
-          return `• ${item.name}
-  Color: ${color}
-  Size: ${size}
-  Qty: ${item.quantity}
-  Price: ₹${item.price}`;
-        })
-        .join("\n\n");
-
-      const cancelledAt = new Date();
-
-      // Email parameters
-      const cancelEmailParams = {
-        to_name: order.customerInfo?.name || "Customer",
-        email: order.customerInfo?.email,
-        order_id: order.orderId,
-        reason: finalReason,
-        amount: order.amount?.toFixed(2),
-        cancelled_at: cancelledAt.toLocaleString(),
-        items: formattedItems,
-      };
-
-      console.log("📤 Sending cancel email with:", cancelEmailParams);
-
-      // Send email
-      await sendCancelEmail(cancelEmailParams);
-
-      // Save cancellation in Firestore
+      // 2️⃣ Save cancellation in Firestore
       const cancellationCollectionRef = collection(
         db,
         "users",
@@ -343,7 +294,7 @@ const CancelOrderForm = ({ order, userId, onClose, onSuccess }) => {
       );
 
       const cancellationData = {
-        orderId: order.orderId,
+        orderId: displayId,
         firestoreOrderId: order.id,
         reason: finalReason,
         requestedAt: Timestamp.now(),
@@ -361,7 +312,7 @@ const CancelOrderForm = ({ order, userId, onClose, onSuccess }) => {
         cancellationData
       );
 
-      // Update main order status
+      // 3️⃣ Update main order status
       const orderRef = doc(db, "users", userId, "orders", order.id);
       await updateDoc(orderRef, {
         status: "cancelled",
@@ -373,19 +324,18 @@ const CancelOrderForm = ({ order, userId, onClose, onSuccess }) => {
         updatedAt: Timestamp.now(),
       });
 
+      // 4️⃣ UI update
       onSuccess();
       onClose();
     } catch (err) {
       console.error("Error cancelling order:", err);
-      setError("Failed to cancel order. Try again.");
+      setError("Failed to cancel order. Please try again.");
     } finally {
       setLoading(false);
     }
   };
 
-
   return (
-    /* Your UI stays the same */
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-xl w-full max-w-md">
         <div className="p-6">
@@ -394,7 +344,7 @@ const CancelOrderForm = ({ order, userId, onClose, onSuccess }) => {
             <h2 className="text-2xl font-bold">Cancel Order</h2>
             <button
               onClick={onClose}
-              className="text-gray-500 hover:text-gray-700 text-2xl"
+              className="text-gray-500 hover:text-gray-700 text-2xl transition-colors"
             >
               &times;
             </button>
@@ -402,8 +352,8 @@ const CancelOrderForm = ({ order, userId, onClose, onSuccess }) => {
 
           {/* ORDER SUMMARY */}
           <div className="mb-4 p-4 bg-blue-50 rounded-lg">
-            <p className="font-semibold">Order ID: {order.orderId}</p>
-            <p className="text-sm text-gray-600">
+            <p className="font-semibold text-purple-700">Order ID: {displayId}</p>
+            <p className="text-sm text-gray-600 mt-1">
               Total Amount: ₹{order.amount?.toFixed(2)}
             </p>
           </div>
@@ -418,7 +368,7 @@ const CancelOrderForm = ({ order, userId, onClose, onSuccess }) => {
                 </label>
                 <div className="space-y-2">
                   {cancelReasons.map((cancelReason) => (
-                    <label key={cancelReason} className="flex items-center">
+                    <label key={cancelReason} className="flex items-center cursor-pointer hover:bg-gray-50 p-1 rounded">
                       <input
                         type="radio"
                         name="reason"
@@ -443,8 +393,9 @@ const CancelOrderForm = ({ order, userId, onClose, onSuccess }) => {
                     type="text"
                     value={otherReason}
                     onChange={(e) => setOtherReason(e.target.value)}
-                    className="w-full px-3 py-2 border rounded-lg"
+                    className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 transition"
                     required
+                    placeholder="Enter your reason..."
                   />
                 </div>
               )}
@@ -461,14 +412,15 @@ const CancelOrderForm = ({ order, userId, onClose, onSuccess }) => {
                 <button
                   type="button"
                   onClick={onClose}
-                  className="flex-1 border py-2 rounded-lg"
+                  className="flex-1 border py-2 rounded-lg hover:bg-gray-50 transition-colors"
+                  disabled={loading}
                 >
                   Go Back
                 </button>
                 <button
                   type="submit"
                   disabled={loading}
-                  className="flex-1 bg-red-600 text-white py-2 rounded-lg"
+                  className="flex-1 bg-red-600 text-white py-2 rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50"
                 >
                   {loading ? "Cancelling..." : "Confirm Cancellation"}
                 </button>
@@ -481,8 +433,9 @@ const CancelOrderForm = ({ order, userId, onClose, onSuccess }) => {
   );
 };
 
-
-// Main MyOrders Component
+// ----------------------------------------------------
+//  MAIN MYORDERS COMPONENT
+// ----------------------------------------------------
 const MyOrders = () => {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -494,6 +447,14 @@ const MyOrders = () => {
   
   const currentUserId = localStorage.getItem('token');
 
+  // Helper function to generate sequential LMART IDs
+  const getDisplayId = (index) => {
+    // Since orders are displayed newest first, we reverse the sequence
+    // Newest order gets highest number
+    const orderNumber = orders.length - index;
+    return `LMART${String(orderNumber).padStart(3, '0')}`;
+  };
+
   const fetchOrders = async () => {
     if (!currentUserId) {
       setLoading(false);
@@ -502,10 +463,7 @@ const MyOrders = () => {
     
     try {
       const ordersSubCollectionRef = collection(db, "users", currentUserId, "orders");
-      const q = query(
-        ordersSubCollectionRef,
-        orderBy("createdAt", "desc")
-      );
+      const q = query(ordersSubCollectionRef, orderBy("createdAt", "desc"));
       
       const querySnapshot = await getDocs(q);
       const fetchedOrders = querySnapshot.docs.map(doc => ({
@@ -519,8 +477,7 @@ const MyOrders = () => {
       // Check for success message from checkout
       const orderSuccessData = sessionStorage.getItem("orderSuccessData");
       if (orderSuccessData) {
-        const orderData = JSON.parse(orderSuccessData);
-        setSuccessMessage(`🎉 Order #${orderData.orderId} placed successfully!`);
+        setSuccessMessage(`🎉 Order placed successfully!`);
         sessionStorage.removeItem("orderSuccessData");
         
         // Auto-remove success message after 5 seconds
@@ -557,28 +514,6 @@ const MyOrders = () => {
     const status = order.status?.toLowerCase();
     const cancellableStatuses = ['confirmed', 'processing', 'pending'];
     return cancellableStatuses.includes(status);
-  };
-
-  const handleReturnClick = (order) => {
-    setSelectedOrder(order);
-    setShowReturnForm(true);
-  };
-
-  const handleCancelClick = (order) => {
-    setSelectedOrder(order);
-    setShowCancelForm(true);
-  };
-
-  const handleReturnSuccess = () => {
-    fetchOrders();
-    setSuccessMessage('Return request submitted successfully! We will contact you within 24 hours.');
-    setTimeout(() => setSuccessMessage(''), 5000);
-  };
-
-  const handleCancelSuccess = () => {
-    fetchOrders();
-    setSuccessMessage('Order cancelled successfully! Refund will be processed within 5-7 business days.');
-    setTimeout(() => setSuccessMessage(''), 5000);
   };
 
   const getStatusBadgeColor = (status) => {
@@ -696,7 +631,8 @@ const MyOrders = () => {
 
         {/* Orders List */}
         <div className="space-y-6">
-          {orders.map((order) => {
+          {orders.map((order, index) => {
+            const displayId = getDisplayId(index);
             const status = order.status?.toLowerCase() || 'confirmed';
             const canReturn = isOrderReturnable(order);
             const canCancel = isOrderCancellable(order);
@@ -710,7 +646,7 @@ const MyOrders = () => {
                 {/* ORDER HEADER */}
                 <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-4 mb-6">
                   <div className="space-y-2">
-                    <p className="text-lg font-semibold">Order ID: {order.orderId || `ORD-${order.id.substring(0, 8)}`}</p>
+                    <p className="text-lg font-semibold text-purple-700">Order ID: {displayId}</p>
                     <div className="flex flex-wrap gap-4">
                       <p className="text-gray-500">
                         Date: {order.createdAt?.toDate 
@@ -744,11 +680,11 @@ const MyOrders = () => {
                   </div>
                 </div>
 
-                {/* ORDER ITEMS DISPLAY WITH SELLER ID */}
+                {/* ORDER ITEMS */}
                 <div className="space-y-4 mb-6">
-                  {order.items?.map((item, index) => (
+                  {order.items?.map((item, idx) => (
                     <div 
-                      key={index} 
+                      key={idx} 
                       className="flex items-center gap-4 border-b pb-4 last:border-0"
                     >
                       <img 
@@ -765,7 +701,6 @@ const MyOrders = () => {
                         <div className="flex flex-wrap gap-2 text-sm text-gray-500">
                           <p>Qty: {item.quantity}</p>
                           <p>Price: ₹{item.price?.toFixed(2)}</p>
-                          {/* DYNAMIC SELLER ID DISPLAY */}
                           {item.sellerId && (
                             <p className="bg-gray-100 px-2 py-0.5 rounded border text-xs">
                               Seller ID: {item.sellerId}
@@ -838,7 +773,10 @@ const MyOrders = () => {
                     
                     {canCancel && (
                       <button 
-                        onClick={() => handleCancelClick(order)}
+                        onClick={() => {
+                          setSelectedOrder(order);
+                          setShowCancelForm(true);
+                        }}
                         className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
                       >
                         Cancel Order
@@ -847,7 +785,10 @@ const MyOrders = () => {
                     
                     {canReturn && (
                       <button 
-                        onClick={() => handleReturnClick(order)}
+                        onClick={() => {
+                          setSelectedOrder(order);
+                          setShowReturnForm(true);
+                        }}
                         className="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors"
                       >
                         Return Order
@@ -874,11 +815,12 @@ const MyOrders = () => {
           <ReturnOrderForm
             order={selectedOrder}
             userId={currentUserId}
+            displayId={getDisplayId(orders.indexOf(selectedOrder))}
             onClose={() => {
               setShowReturnForm(false);
               setSelectedOrder(null);
             }}
-            onSuccess={handleReturnSuccess}
+            onSuccess={fetchOrders}
           />
         )}
 
@@ -886,11 +828,12 @@ const MyOrders = () => {
           <CancelOrderForm
             order={selectedOrder}
             userId={currentUserId}
+            displayId={getDisplayId(orders.indexOf(selectedOrder))}
             onClose={() => {
               setShowCancelForm(false);
               setSelectedOrder(null);
             }}
-            onSuccess={handleCancelSuccess}
+            onSuccess={fetchOrders}
           />
         )}
 

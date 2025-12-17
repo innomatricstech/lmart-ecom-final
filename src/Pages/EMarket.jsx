@@ -166,7 +166,7 @@ const ProductCard = ({
     
     const success = toggleWishlist(product);
     if (success && onToggleWishlist) {
-      const message = inWishlist ? "Removed from Wishlist" : "Added to Wishlist";
+      //  
       onToggleWishlist(message);
     }
   };

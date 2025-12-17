@@ -158,7 +158,7 @@ const FileDownloads = () => {
     return (
       <div className="min-h-screen bg-gray-50 p-6 md:p-10">
         <div className="max-w-5xl mx-auto">
-          <h1 className="text-3xl font-bold mb-6">Your Uploaded Files</h1>
+           
           <div className="bg-white p-20 text-center rounded-xl border-2 border-dashed">
             <p className="text-gray-500 text-lg mb-4">Please login to view your files</p>
             <p className="text-gray-400">You need to be logged in to access your uploaded files</p>
@@ -173,43 +173,11 @@ const FileDownloads = () => {
       <div className="max-w-5xl mx-auto">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-800">Your Uploaded Files</h1>
-          <p className="text-gray-600 mt-2">
-            Welcome back! Here are all the files you've uploaded.
-          </p>
+           
+          
         </div>
 
-        {/* Search Bar */}
-        <div className="mb-8">
-          <div className="relative">
-            <input
-              type="text"
-              placeholder="Search files by name, type, or status..."
-              className="w-full p-4 pl-12 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent shadow-sm"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-            <div className="absolute left-4 top-1/2 transform -translate-y-1/2">
-              <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
-              </svg>
-            </div>
-          </div>
-          <div className="mt-2 flex justify-between text-sm text-gray-500">
-            <span>
-              {filteredFiles.length === 0 ? "No files" : 
-               `Showing ${filteredFiles.length} file${filteredFiles.length !== 1 ? 's' : ''}`}
-            </span>
-            {searchTerm && (
-              <button 
-                onClick={() => setSearchTerm("")}
-                className="text-blue-600 hover:text-blue-800"
-              >
-                Clear search
-              </button>
-            )}
-          </div>
-        </div>
+        
 
         {/* Files Grid or Empty State */}
         {filteredFiles.length === 0 ? (

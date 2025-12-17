@@ -73,10 +73,21 @@ const UserLogin = () => {
       // Store user data in localStorage
       storeUserData(userData, user.uid);
       
-      // ✅ ENHANCED: Check if coming from wishlist button click
+      // ✅ ENHANCED: Check if coming from wishlist OR review button click
       const { state } = location;
       
-      if (state?.wishlistRedirect) {
+      if (state?.reviewRedirect) {
+        console.log("✅ User logged in from review redirect");
+        
+        // Navigate back to product page with flag to open review modal
+        navigate(state?.from || `/product/${state?.productId || ''}`, {
+          state: {
+            showReviewModal: true,
+            productId: state?.productId,
+            productName: state?.productName
+          }
+        });
+      } else if (state?.wishlistRedirect) {
         console.log("✅ User logged in from wishlist redirect");
         
         // If product data was passed, auto-add to wishlist

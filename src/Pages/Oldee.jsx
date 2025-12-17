@@ -27,7 +27,10 @@ const USERS_COLLECTION_MIRROR = "users";
 const COLLECTION = "oldee";
 const ADMIN_COLLECTION = "adminUsers";
 
-// SellProductForm Component (unchanged from your original)
+// Define categories
+const CATEGORIES = ["All Products", "Electronics", "Furniture", "Vehicles", "Books", "Fashion", "Appliances", "Others"];
+
+// SellProductForm Component
 const SellProductForm = ({
   user,
   onCancel,
@@ -48,6 +51,7 @@ const SellProductForm = ({
     contactNumber: editDoc?.contactNumber || editDoc?.seller?.contactNumber || "",
     address: editDoc?.address || editDoc?.seller?.address || "",
     negotiation: editDoc?.negotiation || "flexible",
+    category: editDoc?.category || "Electronics", // NEW: Add category field
   });
 
   const [images, setImages] = useState([]);
@@ -58,6 +62,7 @@ const SellProductForm = ({
   const [uploadProgress, setUploadProgress] = useState(null);
   const [savingCustomer, setSavingCustomer] = useState(false);
   const [customerDoc, setCustomerDoc] = useState(null);
+  const [isFetchingLocation, setIsFetchingLocation] = useState(false);
 
   const sellerId = user?.uid || "TEMP_USER_ID";
 
@@ -135,6 +140,63 @@ const SellProductForm = ({
     }
   };
 
+  const handleGetLiveLocation = () => {
+    if (!navigator.geolocation) {
+      alert("Geolocation is not supported by your browser");
+      return;
+    }
+
+    setIsFetchingLocation(true);
+
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        const { latitude, longitude } = position.coords;
+        try {
+          const response = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${latitude}&lon=${longitude}`
+          );
+          const data = await response.json();
+          
+          if (data && data.display_name) {
+            setFormData(prev => ({ 
+              ...prev, 
+              address: data.display_name 
+            }));
+          } else {
+            setFormData(prev => ({ 
+              ...prev, 
+              address: `${latitude.toFixed(6)}, ${longitude.toFixed(6)}` 
+            }));
+          }
+        } catch (error) {
+          console.error("Error fetching address:", error);
+          setFormData(prev => ({ 
+            ...prev, 
+            address: `${latitude.toFixed(6)}, ${longitude.toFixed(6)}` 
+          }));
+        } finally {
+          setIsFetchingLocation(false);
+        }
+      },
+      (error) => {
+        setIsFetchingLocation(false);
+        switch(error.code) {
+          case error.PERMISSION_DENIED:
+            alert("Location access was denied. Please enable location permissions in your browser.");
+            break;
+          case error.POSITION_UNAVAILABLE:
+            alert("Location information is unavailable.");
+            break;
+          case error.TIMEOUT:
+            alert("Location request timed out.");
+            break;
+          default:
+            alert("Unable to retrieve your location.");
+        }
+      }
+    );
+  };
+
   const saveCustomerDetails = async () => {
     if (!user?.uid) {
       alert("Please log in to save customer details.");
@@ -167,8 +229,8 @@ const SellProductForm = ({
 
     if (step < 3) {
       if (step === 1) {
-        if (!formData.name || !formData.price || !formData.description) {
-          alert("Please fill Product Name, Price and Description.");
+        if (!formData.name || !formData.price || !formData.description || !formData.category) {
+          alert("Please fill Product Name, Price, Category and Description.");
           return;
         }
         const price = Number(formData.price);
@@ -234,6 +296,7 @@ const SellProductForm = ({
           price: Number(formData.price),
           offerPrice: formData.offerPrice === "" ? null : Number(formData.offerPrice),
           description: formData.description,
+          category: formData.category, // NEW: Include category
           contactNumber: formData.contactNumber,
           address: formData.address,
           negotiation: formData.negotiation,
@@ -252,6 +315,7 @@ const SellProductForm = ({
           ...formData,
           price: Number(formData.price),
           offerPrice: formData.offerPrice === "" ? null : Number(formData.offerPrice),
+          category: formData.category, // NEW: Include category
           imageURLs: [],
           isSold: false,
           createdAt: serverTimestamp(),
@@ -382,6 +446,21 @@ const SellProductForm = ({
                     required
                     className="w-full px-4 py-3 text-sm border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   />
+                </div>
+
+                <div>
+                  <label className="block text-left text-sm font-semibold text-gray-800 mb-1">Category *</label>
+                  <select
+                    name="category"
+                    value={formData.category}
+                    onChange={handleChange}
+                    required
+                    className="w-full px-4 py-3 text-sm border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  >
+                    {CATEGORIES.filter(cat => cat !== "All Products").map((category) => (
+                      <option key={category} value={category}>{category}</option>
+                    ))}
+                  </select>
                 </div>
 
                 <div>
@@ -556,12 +635,31 @@ const SellProductForm = ({
                   />
                 </div>
                 <div>
-                  <label className="block text-left text-sm font-semibold text-gray-800 mb-1">Address *</label>
+                  <div className="flex justify-between items-center mb-1">
+                    <label className="block text-left text-sm font-semibold text-gray-800">Address *</label>
+                    <button
+                      type="button"
+                      onClick={handleGetLiveLocation}
+                      disabled={isFetchingLocation}
+                      className="text-xs text-blue-600 font-medium flex items-center gap-1 hover:text-blue-800 disabled:opacity-50"
+                    >
+                      <svg 
+                        className={`w-3.5 h-3.5 ${isFetchingLocation ? 'animate-spin' : ''}`} 
+                        fill="none" 
+                        stroke="currentColor" 
+                        viewBox="0 0 24 24"
+                      >
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                      </svg>
+                      {isFetchingLocation ? "Fetching..." : "Use Live Location"}
+                    </button>
+                  </div>
                   <textarea
                     name="address"
                     value={formData.address}
                     onChange={handleChange}
-                    placeholder="Enter your full address for delivery"
+                    placeholder="Enter your full address for delivery or click 'Use Live Location'"
                     rows="3"
                     required
                     className="w-full px-4 py-3 text-sm border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
@@ -643,20 +741,13 @@ const ProductsViewer = ({ user, isAdmin, onClose, onEdit, isUserViewer = false }
       let qRef;
       
       if (isUserViewer) {
-        // Show only current user's products WITHOUT orderBy to avoid index issues
         qRef = query(
           collection(db, COLLECTION),
           where("sellerId", "==", user.uid)
-          // Removed orderBy to avoid index requirement temporarily
         );
       } else if (isAdmin) {
-        // Admin viewing ALL products
-        qRef = query(
-          collection(db, COLLECTION)
-          // Removed orderBy to avoid index requirement temporarily
-        );
+        qRef = query(collection(db, COLLECTION));
       } else {
-        // Default fallback
         qRef = query(
           collection(db, COLLECTION),
           where("sellerId", "==", user.uid)
@@ -666,18 +757,17 @@ const ProductsViewer = ({ user, isAdmin, onClose, onEdit, isUserViewer = false }
       const snap = await getDocs(qRef);
       let arr = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
       
-      // Sort in JavaScript instead of Firestore to avoid index requirement
       arr.sort((a, b) => {
         const dateA = a.createdAt?.toDate?.() || new Date(0);
         const dateB = b.createdAt?.toDate?.() || new Date(0);
-        return dateB.getTime() - dateA.getTime(); // Descending
+        return dateB.getTime() - dateA.getTime();
       });
       
       setItems(arr);
     } catch (e) {
       console.error("Viewer load error:", e);
       setError(e.message);
-      alert("Error loading products: " + e.message + "\n\nPlease create the required Firestore index or click the link in the error message.");
+      alert("Error loading products: " + e.message);
     } finally {
       setLoading(false);
     }
@@ -726,7 +816,6 @@ const ProductsViewer = ({ user, isAdmin, onClose, onEdit, isUserViewer = false }
             <h3 className="text-2xl font-bold">
               {isUserViewer ? "My Products" : "All Products (Admin View)"}
             </h3>
-          
           </div>
           <div className="flex gap-2">
             <button 
@@ -756,21 +845,9 @@ const ProductsViewer = ({ user, isAdmin, onClose, onEdit, isUserViewer = false }
                 </svg>
               </div>
               <div className="ml-3">
-                <h3 className="text-sm font-medium text-red-800">Firestore Index Error</h3>
+                <h3 className="text-sm font-medium text-red-800">Error Loading Products</h3>
                 <div className="mt-2 text-sm text-red-700">
-                  <p>You need to create a Firestore index for this query.</p>
-                  <p className="mt-1">
-                    Please click this link to create it:{" "}
-                    <a 
-                      href="https://console.firebase.google.com/v1/r/project/emart-ecommerce/firestore/indexes?create_composite=Ck1wcm9qZWNOcy9lbWFydC1lY29tbWVyY2UvZGF0YWJhc2VzLyhkZWZhdWx0KS9jb2xsZWN0aW9uR3JvdXBzL29sZGVIL2luZGV4ZXMvXxABGgwKCHNIbGxIcklkEAEaDQoJY3JIYXRIZEF0EAlaDAoIX19uYW1IX18OAg" 
-                      target="_blank" 
-                      rel="noopener noreferrer"
-                      className="underline font-medium"
-                    >
-                      Create Firestore Index
-                    </a>
-                  </p>
-                  <p className="mt-1 text-xs">After creating the index, wait 1-5 minutes and refresh this page.</p>
+                  <p>{error}</p>
                 </div>
               </div>
             </div>
@@ -833,7 +910,12 @@ const ProductsViewer = ({ user, isAdmin, onClose, onEdit, isUserViewer = false }
                   
                   <div className="mb-3">
                     <h4 className="font-semibold text-gray-900 text-sm mb-1">{p.name}</h4>
-                    <div className="text-sm">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded">
+                        {p.category || "Uncategorized"}
+                      </span>
+                    </div>
+                    <div className="text-sm mt-2">
                       {p.offerPrice != null ? (
                         <div className="flex items-center gap-2">
                           <span className="font-bold text-emerald-700">₹{p.offerPrice}</span>
@@ -873,10 +955,8 @@ const ProductsViewer = ({ user, isAdmin, onClose, onEdit, isUserViewer = false }
                     >
                       Edit
                     </button>
-                     
                   </div>
                   
-                  {/* Admin-only approval toggle */}
                   {isAdmin && !isUserViewer && (
                     <div className="mt-3 pt-3 border-t border-gray-100">
                       <button
@@ -893,10 +973,6 @@ const ProductsViewer = ({ user, isAdmin, onClose, onEdit, isUserViewer = false }
                   )}
                 </div>
               ))}
-            </div>
-            
-            <div className="mt-6 pt-6 border-t border-gray-200 text-center">
-               
             </div>
           </div>
         )}
@@ -917,6 +993,8 @@ const Oldee = () => {
   const [adminUsers, setAdminUsers] = useState([]);
   const [loadingAdmins, setLoadingAdmins] = useState(true);
   const [isUserViewer, setIsUserViewer] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState("All Products");
+  const [searchQuery, setSearchQuery] = useState("");
 
   const fetchAdminUsers = async () => {
     try {
@@ -964,29 +1042,24 @@ const Oldee = () => {
   const loadApproved = async () => {
     setLoadingApproved(true);
     try {
-      // Temporarily remove orderBy to avoid index requirement
       const qRef = query(
         collection(db, COLLECTION),
         where("status", "==", "active")
-        // Removed: orderBy("createdAt", "desc"), limit(30)
       );
       const snap = await getDocs(qRef);
       let items = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
       
-      // Sort in JavaScript instead
       items.sort((a, b) => {
         const dateA = a.createdAt?.toDate?.() || new Date(0);
         const dateB = b.createdAt?.toDate?.() || new Date(0);
-        return dateB.getTime() - dateA.getTime(); // Descending
+        return dateB.getTime() - dateA.getTime();
       });
       
-      // Limit to 30 items
       items = items.slice(0, 30);
       
       setApprovedItems(items);
     } catch (e) {
       console.error("approved load error:", e);
-      // Continue without error - show empty state
       setApprovedItems([]);
     } finally {
       setLoadingApproved(false);
@@ -996,6 +1069,28 @@ const Oldee = () => {
   useEffect(() => {
     loadApproved();
   }, [currentUser]);
+
+  // Filter products based on selected category and search query
+  const filteredProducts = useMemo(() => {
+    let filtered = approvedItems;
+    
+    // Filter by category
+    if (selectedCategory !== "All Products") {
+      filtered = filtered.filter(item => item.category === selectedCategory);
+    }
+    
+    // Filter by search query
+    if (searchQuery.trim() !== "") {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter(item => 
+        item.name?.toLowerCase().includes(query) ||
+        item.description?.toLowerCase().includes(query) ||
+        item.category?.toLowerCase().includes(query)
+      );
+    }
+    
+    return filtered;
+  }, [approvedItems, selectedCategory, searchQuery]);
 
   const openCreate = () => {
     if (!currentUser) {
@@ -1043,6 +1138,11 @@ const Oldee = () => {
     setSelectedProduct(null);
   };
 
+  const clearFilters = () => {
+    setSelectedCategory("All Products");
+    setSearchQuery("");
+  };
+
   if (loadingAuth) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -1074,12 +1174,10 @@ const Oldee = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header with Actions - MODIFIED FOR FULL WIDTH */}
+      {/* Header with Actions */}
       <div className="bg-white border-b shadow-sm">
-        <div className="w-full px-8 py-4"> {/* Changed to w-full and added px-8 for padding */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-end gap-4"> {/* Changed justify-between to justify-end */}
-             
-            
+        <div className="w-full px-8 py-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-end gap-4">
             <div className="flex items-center gap-3">
               {currentUser ? (
                 <>
@@ -1092,9 +1190,7 @@ const Oldee = () => {
                     </div>
                   )}
                   
-                  {/* Horizontal buttons - side by side */}
-                  <div className="flex items-center gap-2  ">
-                    {/* VIEW MY LISTINGS BUTTON */}
+                  <div className="flex items-center gap-2">
                     <button
                       onClick={openUserViewer}
                       className="px-4 py-2 rounded-lg bg-gray-800 hover:bg-black text-white font-medium text-sm transition-colors flex items-center gap-2"
@@ -1105,10 +1201,9 @@ const Oldee = () => {
                       View my listings
                     </button>
                     
-                    {/* UPLOAD BUTTON */}
                     <button
                       onClick={openCreate}
-                      className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-medium text-sm transition-colors flex items-centergap-2"
+                      className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-medium text-sm transition-colors flex items-center gap-2"
                     >
                       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -1130,120 +1225,204 @@ const Oldee = () => {
                   </div>
                 </>
               ) : (
-                <>
-                  {/* For non-logged in users - also horizontal */}
-                  <div className="flex items-center gap-2">
-                    {/* UPLOAD BUTTON */}
-                    <button
-                      onClick={openCreate}
-                      className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-medium text-sm transition-colors flex items-center gap-2"
-                    >
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                      </svg>
-                      Upload
-                    </button>
-                    
-                  
-                     
-                  </div>
-                </>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={openCreate}
+                    className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-medium text-sm transition-colors flex items-center gap-2"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                    </svg>
+                    Upload
+                  </button>
+                </div>
               )}
             </div>
           </div>
         </div>
       </div>
 
-      {/* Main Content - MODIFIED FOR FULL WIDTH */}
-      <div className="w-full px-8 py-8"> {/* Changed from max-w-7xl mx-auto px-4 py-8 ml-5 to w-full px-8 py-8 */}
-         
+      {/* Main Content */}
+      <div className="w-full px-8 py-8">
+        {/* Header with title and product count */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between mb-8">
+          <div>
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">All E-Store Products</h2>
+            <p className="text-gray-600">
+              Showing {filteredProducts.length} product{filteredProducts.length !== 1 ? 's' : ''}
+            </p>
+          </div>
+          
+          {/* Search Bar */}
+          <div className="mt-4 md:mt-0">
+            <div className="relative">
+              <input
+                type="text"
+                placeholder="Search products..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full md:w-64 px-4 py-2 pl-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+              <svg className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+            </div>
+          </div>
+        </div>
+
+        {/* Categories Filter */}
+        <div className="mb-8">
+          <div className="flex flex-wrap gap-2 mb-4">
+            {CATEGORIES.map((category) => (
+              <button
+                key={category}
+                onClick={() => setSelectedCategory(category)}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  selectedCategory === category
+                    ? "bg-blue-600 text-white"
+                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                }`}
+              >
+                {category}
+              </button>
+            ))}
+          </div>
+          
+          {/* Clear filters button */}
+          {(selectedCategory !== "All Products" || searchQuery.trim() !== "") && (
+            <div className="flex items-center gap-2">
+              <button
+                onClick={clearFilters}
+                className="text-sm text-blue-600 hover:text-blue-800 font-medium flex items-center gap-1"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+                Clear all filters
+              </button>
+            </div>
+          )}
+        </div>
 
         {loadingApproved ? (
           <div className="text-center py-20">
             <div className="inline-block animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-blue-500 mb-4"></div>
             <p className="text-gray-600">Loading products…</p>
           </div>
-        ) : approvedItems.length === 0 ? (
+        ) : filteredProducts.length === 0 ? (
           <div className="text-center py-20 bg-white rounded-2xl border border-gray-200 shadow-sm">
             <div className="w-16 h-16 mx-auto mb-4 text-gray-400">
               <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
               </svg>
             </div>
-            <h3 className="text-lg font-semibold text-gray-700 mb-2">No Products Available</h3>
-            <p className="text-gray-500 mb-6">Be the first to list a vintage item!</p>
-            {currentUser && (
+            <h3 className="text-lg font-semibold text-gray-700 mb-2">No Products Found</h3>
+            <p className="text-gray-500 mb-6">
+              {searchQuery.trim() !== "" 
+                ? `No products found for "${searchQuery}"`
+                : selectedCategory !== "All Products"
+                ? `No products found in ${selectedCategory} category`
+                : "Be the first to list a vintage item!"
+              }
+            </p>
+            {(selectedCategory !== "All Products" || searchQuery.trim() !== "") && (
+              <button
+                onClick={clearFilters}
+                className="px-6 py-2 rounded-lg bg-gray-800 hover:bg-black text-white font-medium"
+              >
+                Clear Filters
+              </button>
+            )}
+            {currentUser && approvedItems.length === 0 && (
               <button
                 onClick={openCreate}
-                className="px-6 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-medium"
+                className="ml-4 px-6 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-medium"
               >
                 List Your First Item
               </button>
             )}
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6"> {/* Changed xl:grid-cols-5 to xl:grid-cols-6 */}
-            {approvedItems.map((p) => (
-              <div
-                key={p.id}
-                className="bg-white border border-gray-200 rounded-xl overflow-hidden hover:shadow-lg transition-all duration-300 cursor-pointer group"
-                onClick={() => viewProductDetails(p)}
-              >
-                <div className="relative h-56 overflow-hidden">
-                  {Array.isArray(p.imageURLs) && p.imageURLs[0] && (
-                    <img 
-                      src={p.imageURLs[0]} 
-                      alt={p.name} 
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" 
-                    />
-                  )}
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent"></div>
-                  {p.offerPrice != null && (
-                    <div className="absolute top-3 right-3 bg-red-500 text-white text-xs font-bold px-2 py-1 rounded">
-                      SALE
+          <>
+            {/* Filter info */}
+            {(selectedCategory !== "All Products" || searchQuery.trim() !== "") && (
+              <div className="mb-6 p-4 bg-blue-50 rounded-lg">
+                <p className="text-sm text-blue-800">
+                  Showing {filteredProducts.length} product{filteredProducts.length !== 1 ? 's' : ''}
+                  {selectedCategory !== "All Products" && ` in ${selectedCategory}`}
+                  {searchQuery.trim() !== "" && ` matching "${searchQuery}"`}
+                </p>
+              </div>
+            )}
+            
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6">
+              {filteredProducts.map((p) => (
+                <div
+                  key={p.id}
+                  className="bg-white border border-gray-200 rounded-xl overflow-hidden hover:shadow-lg transition-all duration-300 cursor-pointer group"
+                  onClick={() => viewProductDetails(p)}
+                >
+                  <div className="relative h-56 overflow-hidden">
+                    {Array.isArray(p.imageURLs) && p.imageURLs[0] && (
+                      <img 
+                        src={p.imageURLs[0]} 
+                        alt={p.name} 
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" 
+                      />
+                    )}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent"></div>
+                    <div className="absolute top-3 left-3">
+                      <span className="text-xs bg-white/90 text-gray-800 px-2 py-1 rounded font-medium">
+                        {p.category || "Uncategorized"}
+                      </span>
                     </div>
-                  )}
-                </div>
-                
-                <div className="p-4">
-                  <h3 className="font-semibold text-gray-900 mb-1 truncate">{p.name}</h3>
-                  <div className="mb-2">
-                    {p.offerPrice != null ? (
-                      <div className="flex items-center gap-2">
-                        <span className="font-bold text-lg text-emerald-700">₹{p.offerPrice}</span>
-                        <span className="line-through text-gray-400 text-sm">₹{p.price}</span>
-                        <span className="text-xs bg-emerald-50 text-emerald-600 px-1.5 py-0.5 rounded">
-                          {Math.round(((p.price - p.offerPrice) / p.price) * 100)}% OFF
-                        </span>
+                    {p.offerPrice != null && (
+                      <div className="absolute top-3 right-3 bg-red-500 text-white text-xs font-bold px-2 py-1 rounded">
+                        SALE
                       </div>
-                    ) : (
-                      <span className="font-bold text-lg text-gray-900">₹{p.price}</span>
                     )}
                   </div>
-                  <p className="text-sm text-gray-600 line-clamp-2 mb-3">{p.description}</p>
-                  <div className="flex items-center justify-between">
-                    <span className={`text-xs px-2 py-1 rounded-full ${
-                      p.negotiation === 'fixed' 
-                        ? 'bg-blue-100 text-blue-700'
-                        : p.negotiation === 'flexible'
-                        ? 'bg-orange-100 text-orange-700'
-                        : 'bg-purple-100 text-purple-700'
-                    }`}>
-                      {/* {p.negotiation} */}
-                    </span>
-                    <span className="text-xs text-gray-500">
-                      {/* {p.seller?.displayName || 'Seller'} */}
-                    </span>
+                  
+                  <div className="p-4">
+                    <h3 className="font-semibold text-gray-900 mb-1 truncate">{p.name}</h3>
+                    <div className="mb-2">
+                      {p.offerPrice != null ? (
+                        <div className="flex items-center gap-2">
+                          <span className="font-bold text-lg text-emerald-700">₹{p.offerPrice}</span>
+                          <span className="line-through text-gray-400 text-sm">₹{p.price}</span>
+                          <span className="text-xs bg-emerald-50 text-emerald-600 px-1.5 py-0.5 rounded">
+                            {Math.round(((p.price - p.offerPrice) / p.price) * 100)}% OFF
+                          </span>
+                        </div>
+                      ) : (
+                        <span className="font-bold text-lg text-gray-900">₹{p.price}</span>
+                      )}
+                    </div>
+                    <p className="text-sm text-gray-600 line-clamp-2 mb-3">{p.description}</p>
+                    <div className="flex items-center justify-between text-xs text-gray-500">
+                      <span>
+                        {p.createdAt?.toDate?.() 
+                          ? new Date(p.createdAt.toDate()).toLocaleDateString('en-US', {
+                              month: 'short',
+                              day: 'numeric',
+                              year: 'numeric'
+                            })
+                          : 'Recently'}
+                      </span>
+                      <span>{p.seller?.displayName?.split(' ')[0] || 'Seller'}</span>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          </>
         )}
         
-        {approvedItems.length > 0 && (
+        {filteredProducts.length > 0 && (
           <div className="mt-8 text-center">
-             
+            <p className="text-sm text-gray-500">
+              Showing {filteredProducts.length} of {approvedItems.length} products
+            </p>
           </div>
         )}
       </div>
