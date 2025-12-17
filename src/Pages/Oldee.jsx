@@ -1245,16 +1245,16 @@ const Oldee = () => {
       {/* Main Content */}
       <div className="w-full px-8 py-8">
         {/* Header with title and product count */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between mb-8">
+        {/* <div className="flex flex-col md:flex-row md:items-center justify-between mb-8">
           <div>
             <h2 className="text-2xl font-bold text-gray-900 mb-2">All E-Store Products</h2>
             <p className="text-gray-600">
               Showing {filteredProducts.length} product{filteredProducts.length !== 1 ? 's' : ''}
             </p>
-          </div>
+          </div> */}
           
           {/* Search Bar */}
-          <div className="mt-4 md:mt-0">
+          {/* <div className="mt-4 md:mt-0">
             <div className="relative">
               <input
                 type="text"
@@ -1268,7 +1268,7 @@ const Oldee = () => {
               </svg>
             </div>
           </div>
-        </div>
+        </div> */}
 
         {/* Categories Filter */}
         <div className="mb-8">

@@ -19,6 +19,11 @@ const Cart = () => {
     getCartItemsCount,
   } = useCart();
   
+  // Scroll to top on component mount
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
+
   // Calculate selected total whenever items or selection status changes
   useEffect(() => {
     const selectedItems = getSelectedItems();

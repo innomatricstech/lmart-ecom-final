@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useCart } from "../context/CartContext";
 import { db } from "../../firebase";
 import { collection, getDocs, query, where, orderBy } from "firebase/firestore";
 
 const Home = () => {
-  const { addToCart } = useCart();
+  const navigate = useNavigate();
+  const { addToCart, items } = useCart();
+
   const [allProducts, setAllProducts] = useState([]);
   const [trendingProducts, setTrendingProducts] = useState([]);
   const [displayProducts, setDisplayProducts] = useState([]);
@@ -16,6 +18,7 @@ const Home = () => {
   const [postersLoading, setPostersLoading] = useState(true);
   const [current, setCurrent] = useState(0);
   const [toasts, setToasts] = useState([]);
+  const [addedProducts, setAddedProducts] = useState({});
 
   // Add toast function for cart notifications
   const addToast = (product) => {
@@ -38,15 +41,29 @@ const Home = () => {
     }, 3000);
   };
 
+  // Check if product is in cart
+  const getQuantity = (id) => {
+    const item = items.find(i => i.id === id);
+    return item ? item.quantity : 0;
+  };
+
   // Handle add to cart with toast notification
   const handleAddToCart = (product, e) => {
     e.preventDefault();
     e.stopPropagation();
+
     addToCart({
       ...product,
       image: product.image,
       id: product.id,
     });
+
+    // mark product as added
+    setAddedProducts((prev) => ({
+      ...prev,
+      [product.id]: true,
+    }));
+
     addToast(product);
   };
 
@@ -448,7 +465,7 @@ const Home = () => {
           animation-delay: 0.6s;
         }
 
-        .delay-700
+        .delay-700 {
           animation-delay: 0.7s;
         }
 
@@ -463,107 +480,6 @@ const Home = () => {
           overflow: hidden;
         }
       `}</style>
-
-      {/* Toast Notifications Container */}
-      <div className="fixed top-4 right-4 z-50 space-y-3 max-w-sm">
-        {toasts.map((toast) => (
-          <div
-            key={toast.id}
-            className="bg-white rounded-xl shadow-2xl border border-gray-200 p-4 animate-slide-in-right"
-            style={{
-              animation:
-                "slideInRight 0.3s ease-out, fadeOut 0.3s ease-out 2.7s",
-            }}
-          >
-            <div className="flex items-start space-x-3">
-              <div className="relative">
-                <img
-                  src={toast.productImage}
-                  alt={toast.productName}
-                  className="w-14 h-14 object-cover rounded-lg"
-                  onError={(e) => {
-                    e.target.onerror = null;
-                    e.target.style.display = "none";
-                    e.target.parentElement.innerHTML =
-                      '<div class="w-14 h-14 bg-gray-200 rounded-lg flex items-center justify-center"><svg class="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg></div>';
-                  }}
-                />
-                <div className="absolute -top-2 -right-2 bg-orange-500 text-white w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold">
-                  ✓
-                </div>
-              </div>
-
-              <div className="flex-1">
-                <div className="flex justify-between items-start">
-                  <h4 className="font-bold text-gray-900 text-sm">
-                    Added to cart!
-                  </h4>
-                  <span className="text-xs text-gray-500">
-                    {toast.timestamp}
-                  </span>
-                </div>
-                <p className="text-gray-700 text-sm mt-1 truncate">
-                  {toast.productName}
-                </p>
-                <div className="flex items-center justify-between mt-2">
-                  <span className="font-bold text-orange-600">
-                    ₹{toast.price}
-                  </span>
-                  <Link
-                    to="/cart"
-                    className="text-purple-600 hover:text-purple-800 text-xs font-medium flex items-center"
-                  >
-                    View Cart
-                    <svg
-                      className="w-3 h-3 ml-1"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M9 5l7 7-7 7"
-                      />
-                    </svg>
-                  </Link>
-                </div>
-              </div>
-
-              <button
-                onClick={() =>
-                  setToasts((prev) => prev.filter((t) => t.id !== toast.id))
-                }
-                className="text-gray-400 hover:text-gray-600 transition-colors"
-              >
-                <svg
-                  className="w-4 h-4"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M6 18L18 6M6 6l12 12"
-                  />
-                </svg>
-              </button>
-            </div>
-
-            <div className="mt-3 h-1 bg-gray-200 rounded-full overflow-hidden">
-              <div
-                className="h-full bg-gradient-to-r from-green-400 to-green-500 rounded-full animate-progress"
-                style={{
-                  animation: "progressBar 3s linear forwards",
-                }}
-              ></div>
-            </div>
-          </div>
-        ))}
-      </div>
 
       {/* Error State */}
       {error && (
@@ -810,7 +726,7 @@ const Home = () => {
                       </svg>
                     </div>
                     <h3 className="text-base font-bold text-gray-900 text-center group-hover:text-blue-600 transition-colors">
-                     
+                      E-Store
                     </h3>
                   </div>
                 </div>
@@ -1187,7 +1103,7 @@ const Home = () => {
         </div>
       </div>
 
-      {/* TRENDING PRODUCTS SECTION - 按照第一张图片样式设计 */}
+      {/* TRENDING PRODUCTS SECTION */}
       <div className="py-12 bg-gradient-to-b from-white to-gray-50">
         <div className="container mx-auto px-4">
           <div className="text-center mb-10">
@@ -1203,7 +1119,7 @@ const Home = () => {
             </p>
           </div>
 
-          {/* Trending Products Grid - 按照第一张图片样式 */}
+          {/* Trending Products Grid */}
           {trendingLoading ? (
             <div className="flex justify-center py-12">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
@@ -1224,7 +1140,8 @@ const Home = () => {
                     >
                       {/* Product Image Container */}
                       <Link
-                        to={`/product/${product.id}`}
+                        to={`/product/${product.id}?source=${product.productTag || "e-market"}`}
+                        state={{ product }}
                         className="block relative overflow-hidden"
                       >
                         <div className="relative h-48 md:h-56 bg-gray-100">
@@ -1263,7 +1180,7 @@ const Home = () => {
                             </div>
                           )}
 
-                          {/* Save Badge - 红色标签显示节省金额 */}
+                          {/* Save Badge */}
                           {discountAmount > 0 && (
                             <div className="absolute top-2 left-2 bg-red-600 text-white px-2 py-1 rounded text-xs font-bold">
                               Save ₹{discountAmount}
@@ -1276,10 +1193,9 @@ const Home = () => {
                       <div className="p-3">
                         {/* Product Title */}
                         <Link
-  to={`/product/${product.id}?source=${product.productTag || "e-market"}`}
-  state={{ product }}
->
-
+                          to={`/product/${product.id}?source=${product.productTag || "e-market"}`}
+                          state={{ product }}
+                        >
                           <h3 className="font-semibold text-gray-900 mb-2 text-sm hover:text-blue-600 transition-colors line-clamp-2 h-10">
                             {product.name}
                           </h3>
@@ -1303,7 +1219,7 @@ const Home = () => {
                           </span>
                         </div>
 
-                        {/* Price Section - 按照图片样式 */}
+                        {/* Price Section */}
                         <div className="flex items-center justify-between mb-3">
                           <div className="flex flex-col">
                             {/* Offer Price */}
@@ -1328,25 +1244,30 @@ const Home = () => {
                         </div>
 
                         {/* Add to Cart Button */}
-                        <button
-                          onClick={(e) => handleAddToCart(product, e)}
-                          className="w-full bg-orange-500 hover:bg-orange-600 text-white py-2 rounded-md font-medium transition-all duration-200 flex items-center justify-center space-x-2 group/btn"
-                        >
-                          <svg
-                            className="w-5 h-5"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
+                        {getQuantity(product.id) > 0 ? (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              navigate("/cart");
+                            }}
+                            className="w-full bg-green-600 hover:bg-green-700 text-white py-1.5 sm:py-2 rounded-lg font-medium transition flex items-center justify-center gap-2 text-sm sm:text-base"
                           >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M3 3h2l.4 2M7 13h10l4-8H5.4m0 0L7 13m0 0l-2.5 5M7 13l2.5 5m6-5v6a2 2 0 01-2 2H9a2 2 0 01-2-2v-6m8 0V9a2 2 0 00-2-2H9a2 2 0 00-2 2v4.01"
-                            />
-                          </svg>
-                          <span>Add to Cart</span>
-                        </button>
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+                            </svg>
+                            View Cart
+                          </button>
+                        ) : (
+                          <button
+                            onClick={(e) => handleAddToCart(product, e)}
+                            className="w-full bg-blue-600 hover:bg-blue-700 text-white py-1.5 sm:py-2 rounded-lg font-medium transition flex items-center justify-center gap-2 text-sm sm:text-base"
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                            </svg>
+                            Add to Cart
+                          </button>
+                        )}
                       </div>
                     </div>
                   );
@@ -1379,7 +1300,7 @@ const Home = () => {
         </div>
       </div>
 
-      {/* COMPLETE PRODUCTS SECTION - 按照第一张图片样式设计 */}
+      {/* COMPLETE PRODUCTS SECTION */}
       <div className="py-12 bg-white">
         <div className="container mx-auto px-4">
           <div className="text-center mb-10">
@@ -1395,7 +1316,7 @@ const Home = () => {
             </div>
           </div>
 
-          {/* Products Grid - 按照第一张图片样式 */}
+          {/* Products Grid */}
           <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6">
             {displayProducts.map((product, index) => {
               const discountAmount = product.price - product.offerPrice;
@@ -1412,6 +1333,7 @@ const Home = () => {
                   {/* Product Image Container */}
                   <Link
                     to={`/product/${product.id}`}
+                    state={{ product, source: product.productTag }}
                     className="block relative overflow-hidden"
                   >
                     <div className="relative h-48 md:h-56 bg-gray-100">
@@ -1450,7 +1372,6 @@ const Home = () => {
                         </div>
                       )}
 
-                      {/* Save Badge - 红色标签显示节省金额 */}
                       {discountAmount > 0 && (
                         <div className="absolute top-2 left-2 bg-red-600 text-white px-2 py-1 rounded text-xs font-bold">
                           Save ₹{discountAmount}
@@ -1480,17 +1401,16 @@ const Home = () => {
                   <div className="p-3">
                     {/* Product Title */}
                     <Link
-  to={`/product/${product.id}`}
-  state={{ product, source: product.productTag }}
->
-
-                      <h3 className="font-semibold text-gray-900 mb-2 text-sm hover:text-blue-600 transition-colors line-clamp-2 h-10">
+                      to={`/product/${product.id}`}
+                      state={{ product, source: product.productTag }}
+                    >
+                      <h3 className="font-semibold text-gray-900 text-sm hover:text-blue-600 transition-colors line-clamp-2 h-10">
                         {product.name}
                       </h3>
                     </Link>
 
                     {/* Star Rating */}
-                    <div className="flex items-center mb-3">
+                    <div className="flex items-center -mt-4">
                       <div className="flex items-center">
                         {[...Array(5)].map((_, i) => (
                           <svg
@@ -1507,7 +1427,7 @@ const Home = () => {
                       </span>
                     </div>
 
-                    {/* Price Section - 按照图片样式 */}
+                    {/* Price Section */}
                     <div className="flex items-center justify-between mb-3">
                       <div className="flex flex-col">
                         {/* Offer Price */}
@@ -1532,33 +1452,35 @@ const Home = () => {
                     </div>
 
                     {/* Add to Cart Button */}
-                    <button
-                      onClick={(e) => handleAddToCart(product, e)}
-                      className="w-full bg-orange-500 hover:bg-orange-600 text-white py-2 rounded-md font-medium transition-all duration-200 flex items-center justify-center space-x-2 group/btn"
-                    >
-                      <svg
-                        className="w-5 h-5"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
+                    {getQuantity(product.id) > 0 ? (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          navigate("/cart");
+                        }}
+                        className="w-full bg-green-600 hover:bg-green-700 text-white py-2 rounded-md font-medium transition-all duration-200 flex items-center justify-center space-x-2"
                       >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M3 3h2l.4 2M7 13h10l4-8H5.4m0 0L7 13m0 0l-2.5 5M7 13l2.5 5m6-5v6a2 2 0 01-2 2H9a2 2 0 01-2-2v-6m8 0V9a2 2 0 00-2-2H9a2 2 0 00-2 2v4.01"
-                        />
-                      </svg>
-                      <span>Add to Cart</span>
-                    </button>
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4m0 0L7 13m0 0l-2.5 5M7 13l2.5 5m6-5v6a2 2 0 01-2 2H9a2 2 0 01-2-2v-6m8 0V9a2 2 0 00-2-2H9a2 2 0 00-2 2v4.01" />
+                        </svg>
+                        <span>View Cart</span>
+                      </button>
+                    ) : (
+                      <button
+                        onClick={(e) => handleAddToCart(product, e)}
+                        className="w-full bg-orange-500 hover:bg-orange-600 text-white py-2 rounded-md font-medium transition-all duration-200 flex items-center justify-center space-x-2 group/btn"
+                      >
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4m0 0L7 13m0 0l-2.5 5M7 13l2.5 5m6-5v6a2 2 0 01-2 2H9a2 2 0 01-2-2v-6m8 0V9a2 2 0 00-2-2H9a2 2 0 00-2 2v4.01" />
+                        </svg>
+                        <span>Add to Cart</span>
+                      </button>
+                    )}
                   </div>
                 </div>
               );
             })}
           </div>
-
-          {/* View All Products Button */}
-    
         </div>
       </div>
 

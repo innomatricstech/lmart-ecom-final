@@ -179,7 +179,7 @@ const ProductCard = ({
       ...product, 
       quantity: 1 
     });
-    if (onWishlistToggle) onWishlistToggle("🛒 Added to Cart");
+   
   };
 
   return (

@@ -170,7 +170,7 @@ const ProductCard = ({ product, addToCart, getQuantity, updateQuantity, navigate
       quantity: 1 
     });
     if (onToggleWishlist) {
-      onToggleWishlist("🛒 Added to Cart");
+   
     }
   };
 
