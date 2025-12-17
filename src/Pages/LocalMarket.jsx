@@ -210,7 +210,7 @@ const ProductCard = ({
 
       <div className="p-3 sm:p-4">
         <h3 className="font-medium text-sm sm:text-base line-clamp-2 h-10 sm:h-12">{product.name}</h3>
-        <div className="flex items-center mb-1">
+        <div className="flex items-center -mt-5">
           <span className="text-xs sm:text-sm font-medium text-yellow-500 mr-1">{rating.toFixed(1)}</span>
           <StarRating rating={rating} size="w-3 h-3 sm:w-4 sm:h-4" />
           <span className="text-xs text-gray-500 ml-2">({reviewCount})</span>

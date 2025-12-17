@@ -12,7 +12,7 @@ import {
   serverTimestamp,
   runTransaction,
 } from "firebase/firestore";
-import { getStorage, ref, getDownloadURL } from "firebase/storage";
+import { getStorage } from "firebase/storage";
 import { useCart } from "../context/CartContext";
 
 // ⭐ Star Rating Component
@@ -242,7 +242,7 @@ const WriteReviewModal = ({ onClose, onSubmit, productName, currentUser }) => {
   );
 };
 
-// ⭐ Main Product Detail Component
+// ⭐ Main Product Detail Component - Fixed Size and Color Selection
 const ProductDetail = () => {
   const { productId } = useParams();
   const navigate = useNavigate();
@@ -272,6 +272,43 @@ const ProductDetail = () => {
   const [imageLoading, setImageLoading] = useState(true);
   const [addingToCart, setAddingToCart] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
+  const [availableColors, setAvailableColors] = useState([]);
+  const [availableSizes, setAvailableSizes] = useState([]);
+  const [colorImageMap, setColorImageMap] = useState({}); // Map colors to image indices
+  
+  // ⭐ FIXED: Define storePath and storeLabel using useMemo for Breadcrumb
+  const { storePath, storeLabel } = useMemo(() => {
+    const urlParams = new URLSearchParams(location.search);
+    const source = urlParams.get('source');
+    
+    // Default values
+    const defaultValues = { storePath: '/e-market', storeLabel: 'E-store' };
+    
+    if (!source) {
+      // If no source parameter, check if product has productTag from navigation state
+      if (productState?.productTag) {
+        const tag = productState.productTag.toLowerCase();
+        if (tag.includes('local') || tag.includes('market')) {
+          return { storePath: '/local-market', storeLabel: 'Local Market' };
+        } else if (tag.includes('print')) {
+          return { storePath: '/printing', storeLabel: 'Printing' };
+        }
+      }
+      return defaultValues;
+    }
+    
+    // Map source parameter to correct values
+    switch(source.toLowerCase()) {
+      case 'local-market':
+        return { storePath: '/local-market', storeLabel: 'Local Market' };
+      case 'printing':
+        return { storePath: '/printing', storeLabel: 'Printing' };
+      case 'e-market':
+      case 'e-store':
+      default:
+        return { storePath: '/e-market', storeLabel: 'E-store' };
+    }
+  }, [location.search, productState?.productTag]);
 
   // 🔝 AUTO SCROLL TO TOP
   useEffect(() => {
@@ -502,23 +539,77 @@ const ProductDetail = () => {
             setCurrentImg(urls[0]);
           }
           
-          // Process variants
+          // ⭐ FIXED: Process variants and get available colors and sizes
           const variants = productData.variants || [];
-          const colors = [...new Set(variants.map(v => v.color).filter(Boolean))];
-          const sizes = [...new Set(variants.map(v => v.size).filter(Boolean))];
+          
+          // Get unique colors from variants that have stock > 0
+          const colors = [...new Set(
+            variants
+              .filter(v => v.color && (v.stock === undefined || v.stock > 0))
+              .map(v => v.color)
+              .filter(Boolean)
+          )];
+          
+          // Get unique sizes from variants that have stock > 0
+          const sizes = [...new Set(
+            variants
+              .filter(v => v.size && (v.stock === undefined || v.stock > 0))
+              .map(v => v.size)
+              .filter(Boolean)
+          )];
+          
+          setAvailableColors(colors);
+          setAvailableSizes(sizes);
+          
+          // Set color-image mapping
+          // If product has colorImageMap from database, use it
+          // Otherwise, create a simple mapping based on color names
+          if (productData.colorImageMap) {
+            setColorImageMap(productData.colorImageMap);
+          } else {
+            // Create default mapping: first image for first color, second for second, etc.
+            const defaultMap = {};
+            colors.forEach((color, index) => {
+              if (urls[index]) {
+                defaultMap[color] = index;
+              }
+            });
+            setColorImageMap(defaultMap);
+          }
           
           // Set default selections
           if (colors.length > 0) {
             setSelectedColor(colors[0]);
+            // Set image based on default color
+            if (colorImageMap[colors[0]] !== undefined && urls[colorImageMap[colors[0]]]) {
+              setCurrentImg(urls[colorImageMap[colors[0]]]);
+            }
           }
           if (sizes.length > 0) {
             setSelectedSize(sizes[0]);
           }
           
-          // Find initial variant
-          const initialVariant = variants.find(
-            v => v.color === colors[0] && v.size === sizes[0]
-          ) || variants.find(v => v.color === colors[0]) || variants[0] || null;
+          // ⭐ FIXED: Find initial variant based on selected color and size
+          let initialVariant = null;
+          
+          // First try to find variant with both color and size
+          if (colors.length > 0 && sizes.length > 0) {
+            initialVariant = variants.find(
+              v => v.color === colors[0] && v.size === sizes[0] && (v.stock === undefined || v.stock > 0)
+            );
+          }
+          
+          // If not found, try to find variant with just color
+          if (!initialVariant && colors.length > 0) {
+            initialVariant = variants.find(
+              v => v.color === colors[0] && (v.stock === undefined || v.stock > 0)
+            );
+          }
+          
+          // If still not found, take the first variant with stock
+          if (!initialVariant) {
+            initialVariant = variants.find(v => v.stock === undefined || v.stock > 0) || variants[0] || null;
+          }
           
           setVariant(initialVariant);
         } else {
@@ -543,20 +634,77 @@ const ProductDetail = () => {
   useEffect(() => {
     if (!product || !product.variants) return;
 
-    const selectedVariant = product.variants.find(
-      v => v.color === selectedColor && v.size === selectedSize
-    ) || product.variants.find(v => v.color === selectedColor) || null;
+    const variants = product.variants || [];
+    
+    // ⭐ FIXED: Find variant based on selected color and size
+    let selectedVariant = null;
+    
+    // If both color and size are selected, try to find exact match
+    if (selectedColor && selectedSize) {
+      selectedVariant = variants.find(
+        v => v.color === selectedColor && v.size === selectedSize && (v.stock === undefined || v.stock > 0)
+      );
+    }
+    
+    // If not found or only color is selected, try to find by color
+    if (!selectedVariant && selectedColor) {
+      selectedVariant = variants.find(
+        v => v.color === selectedColor && (v.stock === undefined || v.stock > 0)
+      );
+    }
+    
+    // If still not found, take the first available variant
+    if (!selectedVariant) {
+      selectedVariant = variants.find(v => v.stock === undefined || v.stock > 0) || null;
+    }
 
     setVariant(selectedVariant);
+  }, [selectedColor, selectedSize, product]);
+
+  // ⭐ FIXED: Get available sizes for selected color
+  const getAvailableSizesForColor = useMemo(() => {
+    if (!product || !product.variants || !selectedColor) return [];
     
-    // Update image based on color selection
-    if (product.colorImageMap && product.colorImageMap[selectedColor] !== undefined) {
-      const imageIndex = product.colorImageMap[selectedColor];
-      if (images[imageIndex]) {
-        setCurrentImg(images[imageIndex]);
-      }
+    return [...new Set(
+      product.variants
+        .filter(v => 
+          v.color === selectedColor && 
+          v.size && 
+          (v.stock === undefined || v.stock > 0)
+        )
+        .map(v => v.size)
+        .filter(Boolean)
+    )];
+  }, [product, selectedColor]);
+
+  // ⭐ FIXED: Get available colors for selected size
+  const getAvailableColorsForSize = useMemo(() => {
+    if (!product || !product.variants || !selectedSize) return [];
+    
+    return [...new Set(
+      product.variants
+        .filter(v => 
+          v.size === selectedSize && 
+          v.color && 
+          (v.stock === undefined || v.stock > 0)
+        )
+        .map(v => v.color)
+        .filter(Boolean)
+    )];
+  }, [product, selectedSize]);
+
+  // 🎨 Handle color selection - updates image based on color
+  const handleColorSelect = (color) => {
+    setSelectedColor(color);
+    // Reset size when color changes
+    setSelectedSize("");
+    
+    // Update image based on selected color
+    if (colorImageMap[color] !== undefined && images[colorImageMap[color]]) {
+      setCurrentImg(images[colorImageMap[color]]);
+      setImageLoading(true);
     }
-  }, [selectedColor, selectedSize, product, images]);
+  };
 
   // ➕➖ Quantity handlers
   const increment = () => {
@@ -602,8 +750,8 @@ const ProductDetail = () => {
       selectedSize,
       image: currentImg || product.imageUrls?.[0]?.url || "",
       stock: variant.stock ?? 0,
-      colors: product.colors || [],
-      sizes: product.sizes || [],
+      colors: availableColors || [],
+      sizes: availableSizes || [],
       brand: product.brand || ""
     };
 
@@ -817,8 +965,8 @@ const ProductDetail = () => {
     setImageLoading(true);
     
     // Update color selection if image is associated with a color
-    if (product?.colorImageMap) {
-      for (const [color, imgIndex] of Object.entries(product.colorImageMap)) {
+    if (colorImageMap) {
+      for (const [color, imgIndex] of Object.entries(colorImageMap)) {
         if (imgIndex === index) {
           setSelectedColor(color);
           break;
@@ -921,6 +1069,7 @@ const ProductDetail = () => {
                       alt={toast.productName}
                       className="w-12 h-12 object-cover rounded-xl border-2 border-white shadow-lg relative"
                       onError={(e) => {
+                        e.target.onerror = null;
                         e.target.src = "https://placehold.co/64x64?text=🎁";
                       }}
                     />
@@ -1021,10 +1170,10 @@ const ProductDetail = () => {
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
           </svg>
           <button
-            onClick={() => navigate("/e-market")}
+            onClick={() => navigate(storePath)}
             className="cursor-pointer hover:text-gray-800 transition-colors"
           >
-            E-Market
+            {storeLabel}
           </button>
           <svg className="w-3 h-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
@@ -1042,16 +1191,17 @@ const ProductDetail = () => {
                   <>
                     {imageLoading && (
                       <div className="absolute inset-0 flex items-center justify-center">
-                        <div className="animate-spin h-12 w-12 rounded-full border-b-2 border-purple-600"></div>
+                        <div className="animate-spin h-16 w-12 rounded-full border-b-2 border-purple-600"></div>
                       </div>
                     )}
                     <img
                       src={currentImg}
-                      alt={product.name}
+                      alt={`${product.name} - ${selectedColor}`}
                       className="w-full h-auto max-h-[450px] object-contain transition-opacity duration-300"
                       onLoad={() => setImageLoading(false)}
                       onError={(e) => {
-                        e.target.src = "https://via.placeholder.com/600x400?text=No+Image";
+                        e.target.onerror = null;
+                        e.target.src = "https://placehold.co/600x400?text=No+Image";
                         setImageLoading(false);
                       }}
                     />
@@ -1080,10 +1230,11 @@ const ProductDetail = () => {
                     >
                       <img
                         src={img}
-                        className="h-20 w-full object-cover"
+                        className="h-30 w-full object-cover"
                         alt={`Thumbnail ${i + 1}`}
                         onError={(e) => {
-                          e.target.src = "https://via.placeholder.com/150x100?text=Img";
+                          e.target.onerror = null;
+                          e.target.src = "https://placehold.co/150x100?text=Img";
                         }}
                       />
                     </button>
@@ -1155,53 +1306,87 @@ const ProductDetail = () => {
                 )}
               </div>
 
-              {/* Color */}
-              {product.colors && product.colors.length > 0 && (
+              {/* ⭐ FIXED: Color Selection with Image Change */}
+              {availableColors.length > 0 && (
                 <div className="space-y-3">
-                  <h3 className="font-semibold text-gray-700">Color: <span className="font-normal">{selectedColor}</span></h3>
+                  <h3 className="font-semibold text-gray-700">
+                    Color: <span className="font-normal text-gray-900">{selectedColor}</span>
+                  </h3>
                   <div className="flex gap-2 flex-wrap">
-                    {product.colors.map((c) => (
+                    {availableColors.map((color) => (
                       <button
-                        key={c}
-                        onClick={() => setSelectedColor(c)}
-                        className={`px-4 py-2.5 rounded-lg border transition-all duration-200 font-medium ${selectedColor === c
-                          ? "border-purple-600 bg-gradient-to-r from-purple-50 to-pink-50 text-purple-700 shadow-md"
-                          : "border-gray-300 hover:border-gray-400 hover:bg-gray-50"
-                          }`}
+                        key={color}
+                        onClick={() => handleColorSelect(color)}
+                        className={`px-4 py-2.5 rounded-lg border transition-all duration-200 font-medium flex items-center gap-2 ${
+                          selectedColor === color
+                            ? "border-purple-600 bg-gradient-to-r from-purple-50 to-pink-50 text-purple-700 shadow-md"
+                            : "border-gray-300 hover:border-gray-400 hover:bg-gray-50"
+                        }`}
                       >
-                        {c}
+                        <span>{color}</span>
+                        {/* Optional: Show color indicator dot */}
+                        <div 
+                          className="w-3 h-3 rounded-full border border-gray-300"
+                          style={{
+                            backgroundColor: color.toLowerCase().includes('green') ? '#10B981' :
+                                            color.toLowerCase().includes('black') ? '#000000' :
+                                            color.toLowerCase().includes('white') ? '#FFFFFF' :
+                                            color.toLowerCase().includes('blue') ? '#3B82F6' :
+                                            color.toLowerCase().includes('red') ? '#EF4444' :
+                                            color.toLowerCase().includes('yellow') ? '#F59E0B' :
+                                            color.toLowerCase().includes('purple') ? '#8B5CF6' :
+                                            color.toLowerCase().includes('pink') ? '#EC4899' :
+                                            color.toLowerCase().includes('gray') ? '#9CA3AF' : '#6B7280'
+                          }}
+                        ></div>
                       </button>
                     ))}
                   </div>
+                  {selectedColor && (
+                    <p className="text-sm text-gray-500">
+                      Currently showing: <span className="font-medium">{selectedColor}</span> variant
+                    </p>
+                  )}
                 </div>
               )}
 
-              {/* Size */}
-              {product.sizes && product.sizes.length > 0 && (
+              {/* ⭐ FIXED: Size Selection */}
+              {getAvailableSizesForColor.length > 0 && (
                 <div className="space-y-3">
-                  <h3 className="font-semibold text-gray-700">Size: <span className="font-normal">{selectedSize}</span></h3>
+                  <h3 className="font-semibold text-gray-700">
+                    Size: <span className="font-normal text-gray-900">
+                      {selectedSize || (getAvailableSizesForColor.length > 0 ? "Select size" : "No sizes available")}
+                    </span>
+                  </h3>
                   <div className="flex gap-2 flex-wrap">
-                    {product.variants
-                      .filter((v) => v.color === selectedColor && v.size)
-                      .map((v) => (
+                    {getAvailableSizesForColor.map((size) => {
+                      // Find variant for this color and size to check stock
+                      const sizeVariant = product.variants?.find(
+                        v => v.color === selectedColor && v.size === size
+                      );
+                      const isOutOfStock = sizeVariant?.stock !== undefined && sizeVariant.stock <= 0;
+                      
+                      return (
                         <button
-                          key={`${v.color}-${v.size}`}
-                          onClick={() => setSelectedSize(v.size)}
-                          disabled={v.stock === 0}
-                          className={`px-4 py-2.5 rounded-lg border transition-all duration-200 font-medium relative ${selectedSize === v.size
-                            ? "border-purple-600 bg-gradient-to-r from-purple-50 to-pink-50 text-purple-700 shadow-md"
-                            : v.stock > 0
-                            ? "border-gray-300 hover:border-gray-400 hover:bg-gray-50"
-                            : "border-gray-200 bg-gray-100 text-gray-400 cursor-not-allowed"
-                            }`}
-                          title={v.stock === 0 ? "Out of stock" : ""}
+                          key={`${selectedColor}-${size}`}
+                          onClick={() => setSelectedSize(size)}
+                          disabled={isOutOfStock}
+                          className={`px-4 py-2.5 rounded-lg border transition-all duration-200 font-medium relative ${
+                            selectedSize === size
+                              ? "border-purple-600 bg-gradient-to-r from-purple-50 to-pink-50 text-purple-700 shadow-md"
+                              : isOutOfStock
+                              ? "border-gray-200 bg-gray-100 text-gray-400 cursor-not-allowed"
+                              : "border-gray-300 hover:border-gray-400 hover:bg-gray-50"
+                          }`}
+                          title={isOutOfStock ? "Out of stock" : `Select size ${size}`}
                         >
-                          {v.size}
-                          {v.stock === 0 && (
+                          {size}
+                          {isOutOfStock && (
                             <div className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full"></div>
                           )}
                         </button>
-                      ))}
+                      );
+                    })}
                   </div>
                 </div>
               )}
@@ -1251,22 +1436,24 @@ const ProductDetail = () => {
               <div className="flex gap-4 pt-6">
                 <button
                   onClick={onAddToCart}
-                  disabled={!isInStock || addingToCart}
-                  className={`flex-1 py-4 rounded-xl text-white font-semibold transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-1 active:translate-y-0 ${isInStock && !addingToCart
-                    ? "bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
-                    : "bg-gray-400 cursor-not-allowed"
-                    }`}
+                  disabled={!isInStock || addingToCart || !selectedColor}
+                  className={`flex-1 py-4 rounded-xl text-white font-semibold transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-1 active:translate-y-0 ${
+                    isInStock && !addingToCart && selectedColor
+                      ? "bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
+                      : "bg-gray-400 cursor-not-allowed"
+                  }`}
                 >
                   {addingToCart ? "Adding..." : isInStock ? "Add to Cart" : "Out of Stock"}
                 </button>
 
                 <button
                   onClick={onBuyNow}
-                  disabled={!isInStock}
-                  className={`flex-1 py-4 rounded-xl text-white font-semibold transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-1 active:translate-y-0 ${isInStock
-                    ? "bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700"
-                    : "bg-gray-400 cursor-not-allowed"
-                    }`}
+                  disabled={!isInStock || !selectedColor}
+                  className={`flex-1 py-4 rounded-xl text-white font-semibold transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-1 active:translate-y-0 ${
+                    isInStock && selectedColor
+                      ? "bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700"
+                      : "bg-gray-400 cursor-not-allowed"
+                  }`}
                 >
                   Buy Now
                 </button>
@@ -1386,7 +1573,6 @@ const ProductDetail = () => {
                       <div className="text-center pt-4">
                         <button 
                           onClick={() => {
-                            // You can implement view all reviews functionality here
                             alert(`Viewing all ${reviews.length} reviews`);
                           }}
                           className="text-purple-600 hover:text-purple-800 font-semibold hover:underline transition-colors"

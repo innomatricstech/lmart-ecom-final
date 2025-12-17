@@ -166,7 +166,7 @@ const ProductCard = ({
     
     const success = toggleWishlist(product);
     if (success && onToggleWishlist) {
-       
+      const message = inWishlist ? "Removed from Wishlist" : "Added to Wishlist";
       onToggleWishlist(message);
     }
   };
@@ -209,14 +209,14 @@ const ProductCard = ({
         {discount > 0 && (
           <span className="absolute top-2 left-2 sm:top-3 sm:left-3 bg-red-600 text-white text-xs px-2 py-1 rounded">-{discount}%</span>
         )}
-        {product.isNew && (
-          <span className="absolute bottom-2 left-2 sm:bottom-3 sm:left-3 bg-blue-600 text-white text-xs px-2 py-1 rounded">New</span>
+        {(product.productTag === "E-store" || product.productTag === "E-Store") && (
+          <span className=" "></span>
         )}
       </div>
 
-      <div className="p-3 sm:p-4">
+      <div className="p-3 sm:p-4 ">
         <h3 className="font-medium text-sm sm:text-base line-clamp-2 h-10 sm:h-12">{product.name}</h3>
-        <div className="flex items-center mb-1">
+        <div className="flex items-center -mt-5">
           <span className="text-xs sm:text-sm font-medium text-yellow-500 mr-1">{rating.toFixed(1)}</span>
           <StarRating rating={rating} size="w-3 h-3 sm:w-4 sm:h-4" />
           <span className="text-xs text-gray-500 ml-2">({reviewCount})</span>
@@ -302,7 +302,9 @@ const EMarket = () => {
       setLoading(true);
       try {
         const productsRef = collection(db, "products");
-        const snap = await getDocs(productsRef);
+        // 🔥 UPDATED: Fetch products with productTag "E-store" OR "E-Store"
+        const q = query(productsRef, where("productTag", "in", ["E-store", "E-Store"]));
+        const snap = await getDocs(q);
 
         const list = snap.docs.map(doc => {
           const data = doc.data();
@@ -319,6 +321,9 @@ const EMarket = () => {
             rating: data.rating || 4.3,
           };
         });
+
+        console.log("Fetched E-Store products:", list.length);
+        console.log("Sample product:", list[0]?.name, list[0]?.productTag);
 
         setProducts(list);
         setMainCategories(extractMainCategories(list));
@@ -635,7 +640,7 @@ const EMarket = () => {
             <div className="mb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
                 <h2 className="text-lg sm:text-xl font-semibold">
-                  {searchQuery ? `Results for "${searchQuery}"` : selectedMainCategory === "All Products" ? "All Products" : selectedMainCategory}
+                  {searchQuery ? `Results for "${searchQuery}"` : selectedMainCategory === "All Products" ? "All E-Store Products" : selectedMainCategory}
                   {!searchQuery && selectedSubCategory !== "All" && ` - ${selectedSubCategory}`}
                   {selectedBrand !== "All Brands" && ` - ${selectedBrand}`}
                   {selectedRatings.length > 0 && ` · ${selectedRatings.map(r => `${r}+ stars`).join(', ')}`}
@@ -671,11 +676,11 @@ const EMarket = () => {
               <div className="hidden sm:block text-sm text-gray-600 bg-gray-100 px-3 py-1 mr-5 rounded-full">{filtered.length} products</div>
             </div>
 
-            {loading && <div className="text-center py-10 text-gray-500">Loading products…</div>}
+            {loading && <div className="text-center py-10 text-gray-500">Loading E-Store products…</div>}
 
             {!loading && filtered.length === 0 && (
               <div className="bg-white border rounded-lg shadow-sm text-center py-10 text-gray-500">
-                {searchQuery ? `No products found matching "${searchQuery}"` : "No products found"}
+                {searchQuery ? `No E-Store products found matching "${searchQuery}"` : "No E-Store products found"}
                 <p className="text-gray-400 text-sm mt-2">Try adjusting your filters.</p>
               </div>
             )}

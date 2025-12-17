@@ -217,20 +217,8 @@ const SearchResults = () => {
                     className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
                   />
                   <div className="flex gap-2">
-                    <input
-                      type="number"
-                      value={priceRange.min}
-                      onChange={(e) => setPriceRange({ ...priceRange, min: parseInt(e.target.value) || 0 })}
-                      className="w-full border rounded px-3 py-1 text-sm"
-                      placeholder="Min"
-                    />
-                    <input
-                      type="number"
-                      value={priceRange.max}
-                      onChange={(e) => setPriceRange({ ...priceRange, max: parseInt(e.target.value) || 100000 })}
-                      className="w-full border rounded px-3 py-1 text-sm"
-                      placeholder="Max"
-                    />
+                     
+                    
                   </div>
                 </div>
               </div>
