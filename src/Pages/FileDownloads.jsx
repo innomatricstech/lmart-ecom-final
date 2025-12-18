@@ -45,21 +45,26 @@ const FileDownloads = () => {
     );
 
     const unsubscribe = onSnapshot(
-      q,
-      (snapshot) => {
-        const docs = snapshot.docs.map((d) => ({ 
-          id: d.id, 
-          ...d.data() 
-        }));
-        setFileDocs(docs);
-        setLoading(false);
-      },
-      (err) => {
-        console.error("Firestore Fetch Error:", err);
-        setLoading(false);
-      }
-    );
+  q,
+  (snapshot) => {
+    const docs = snapshot.docs
+      .map((d) => ({
+        id: d.id,
+        ...d.data(),
+      }))
+      // 🔥 IMPORTANT: hide user uploaded files
+      .filter((doc) => doc.userUploadFile !== true);
 
+    setFileDocs(docs);
+    setLoading(false);
+  },
+  (err) => {
+    console.error("Firestore Fetch Error:", err);
+    setLoading(false);
+  }
+);
+
+       
     return () => unsubscribe();
   }, [currentUser, userLoading]);
 
@@ -241,9 +246,7 @@ const FileDownloads = () => {
 
                   {/* Status Badge + Download Button */}
                   <div className="flex justify-between items-center pt-4 border-t border-gray-100">
-                    <span className={`px-3 py-1 text-xs font-medium rounded-full ${getStatusColor(file.status).badge}`}>
-                      {file.status?.replace(/_/g, " ") || "Unknown Status"}
-                    </span>
+                     
 
                     <button
                       onClick={() => handleFetchDownload(file.parentDocId, file.fileId)}

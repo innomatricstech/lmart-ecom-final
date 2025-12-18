@@ -43,7 +43,7 @@ const Home = () => {
 
   // Check if product is in cart
   const getQuantity = (id) => {
-    const item = items.find(i => i.id === id);
+    const item = items.find((i) => i.id === id);
     return item ? item.quantity : 0;
   };
 
@@ -287,7 +287,10 @@ const Home = () => {
                 posterData.date || formatPosterDate(posterData.createdAt),
               title: posterData.title || "New Poster",
               // CHANGED: Use subContents field first, then subtitle as fallback
-              subtitle: posterData.subContents || posterData.subtitle || "Latest addition to our collection",
+              subtitle:
+                posterData.subContents ||
+                posterData.subtitle ||
+                "Latest addition to our collection",
             });
           }
         });
@@ -1140,7 +1143,9 @@ const Home = () => {
                     >
                       {/* Product Image Container */}
                       <Link
-                        to={`/product/${product.id}?source=${product.productTag || "e-market"}`}
+                        to={`/product/${product.id}?source=${
+                          product.productTag || "e-market"
+                        }`}
                         state={{ product }}
                         className="block relative overflow-hidden"
                       >
@@ -1181,29 +1186,32 @@ const Home = () => {
                           )}
 
                           {/* Save Badge */}
-                          {discountAmount > 0 && (
+                          {/* {discountAmount > 0 && (
                             <div className="absolute top-2 left-2 bg-red-600 text-white px-2 py-1 rounded text-xs font-bold">
                               Save ₹{discountAmount}
                             </div>
-                          )}
+                          )} */}
                         </div>
                       </Link>
 
                       {/* Product Info */}
-                      <div className="p-3">
+                      <div className="p-4 ">
                         {/* Product Title */}
                         <Link
-                          to={`/product/${product.id}?source=${product.productTag || "e-market"}`}
+                          to={`/product/${product.id}?source=${
+                            product.productTag || "e-market"
+                          }`}
                           state={{ product }}
                         >
-                          <h3 className="font-semibold text-gray-900 mb-2 text-sm hover:text-blue-600 transition-colors line-clamp-2 h-10">
+                          <h3 className="font-semibold text-gray-900  text-sm hover:text-blue-600 transition-colors line-clamp-2 h-4">
                             {product.name}
                           </h3>
                         </Link>
 
                         {/* Star Rating */}
-                        <div className="flex items-center mb-3">
-                          <div className="flex items-center">
+                        <div className="flex items-center mt-3">
+                          {/* ⭐ Stars */}
+                          <div className="flex items-center -mt-1">
                             {[...Array(5)].map((_, i) => (
                               <svg
                                 key={i}
@@ -1214,14 +1222,16 @@ const Home = () => {
                               </svg>
                             ))}
                           </div>
-                          <span className="text-xs text-gray-500 ml-2">
+
+                          {/* ⭐ Rating number */}
+                          <span className="text-xs text-gray-500 ml-2 mt-[1px]">
                             4.3
                           </span>
                         </div>
 
                         {/* Price Section */}
-                        <div className="flex items-center justify-between mb-3">
-                          <div className="flex flex-col">
+                        <div className="flex items-center justify-between  mb-3">
+                          <div className="flex flex-col ">
                             {/* Offer Price */}
                             <span className="text-xl md:text-2xl font-bold text-gray-900">
                               ₹{product.offerPrice}
@@ -1252,8 +1262,18 @@ const Home = () => {
                             }}
                             className="w-full bg-green-600 hover:bg-green-700 text-white py-1.5 sm:py-2 rounded-lg font-medium transition flex items-center justify-center gap-2 text-sm sm:text-base"
                           >
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+                            <svg
+                              className="w-4 h-4"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"
+                              />
                             </svg>
                             View Cart
                           </button>
@@ -1262,8 +1282,18 @@ const Home = () => {
                             onClick={(e) => handleAddToCart(product, e)}
                             className="w-full bg-blue-600 hover:bg-blue-700 text-white py-1.5 sm:py-2 rounded-lg font-medium transition flex items-center justify-center gap-2 text-sm sm:text-base"
                           >
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                            <svg
+                              className="w-4 h-4"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+                              />
                             </svg>
                             Add to Cart
                           </button>
@@ -1379,21 +1409,6 @@ const Home = () => {
                       )}
 
                       {/* Heart Icon */}
-                      <div className="absolute top-2 right-2 w-8 h-8 bg-white rounded-full flex items-center justify-center shadow-md cursor-pointer hover:bg-gray-100 transition-colors">
-                        <svg
-                          className="w-4 h-4 text-gray-400 hover:text-red-500 transition-colors"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
-                          />
-                        </svg>
-                      </div>
                     </div>
                   </Link>
 
@@ -1429,24 +1444,24 @@ const Home = () => {
 
                     {/* Price Section */}
                     <div className="flex items-center justify-between mb-3">
-                      <div className="flex flex-col">
+                      <div className="flex items-center gap-3">
                         {/* Offer Price */}
-                        <span className="text-xl md:text-2xl font-bold text-gray-900">
+                        <span className="text-xl md:text-2xl font-bold text-red-600">
                           ₹{product.offerPrice}
                         </span>
 
-                        {/* Original Price and Discount */}
+                        {/* Original Price */}
                         {product.offerPrice < product.price && (
-                          <div className="flex items-center mt-1">
-                            <span className="text-sm text-gray-500 line-through">
-                              ₹{product.price}
-                            </span>
-                            {discountPercentage > 0 && (
-                              <span className="text-xs font-medium text-green-600 bg-green-50 px-1 rounded ml-2">
-                                {discountPercentage}% off
-                              </span>
-                            )}
-                          </div>
+                          <span className="text-sm md:text-base text-gray-400 line-through">
+                            ₹{product.price}
+                          </span>
+                        )}
+
+                        {/* Discount Badge */}
+                        {discountPercentage > 0 && (
+                          <span className="text-xs font-semibold text-white bg-red-500 px-2 py-0.5 rounded">
+                            -{discountPercentage}%
+                          </span>
                         )}
                       </div>
                     </div>
@@ -1460,8 +1475,18 @@ const Home = () => {
                         }}
                         className="w-full bg-green-600 hover:bg-green-700 text-white py-2 rounded-md font-medium transition-all duration-200 flex items-center justify-center space-x-2"
                       >
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4m0 0L7 13m0 0l-2.5 5M7 13l2.5 5m6-5v6a2 2 0 01-2 2H9a2 2 0 01-2-2v-6m8 0V9a2 2 0 00-2-2H9a2 2 0 00-2 2v4.01" />
+                        <svg
+                          className="w-5 h-5"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M3 3h2l.4 2M7 13h10l4-8H5.4m0 0L7 13m0 0l-2.5 5M7 13l2.5 5m6-5v6a2 2 0 01-2 2H9a2 2 0 01-2-2v-6m8 0V9a2 2 0 00-2-2H9a2 2 0 00-2 2v4.01"
+                          />
                         </svg>
                         <span>View Cart</span>
                       </button>
@@ -1470,8 +1495,18 @@ const Home = () => {
                         onClick={(e) => handleAddToCart(product, e)}
                         className="w-full bg-orange-500 hover:bg-orange-600 text-white py-2 rounded-md font-medium transition-all duration-200 flex items-center justify-center space-x-2 group/btn"
                       >
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4m0 0L7 13m0 0l-2.5 5M7 13l2.5 5m6-5v6a2 2 0 01-2 2H9a2 2 0 01-2-2v-6m8 0V9a2 2 0 00-2-2H9a2 2 0 00-2 2v4.01" />
+                        <svg
+                          className="w-5 h-5"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M3 3h2l.4 2M7 13h10l4-8H5.4m0 0L7 13m0 0l-2.5 5M7 13l2.5 5m6-5v6a2 2 0 01-2 2H9a2 2 0 01-2-2v-6m8 0V9a2 2 0 00-2-2H9a2 2 0 00-2 2v4.01"
+                          />
                         </svg>
                         <span>Add to Cart</span>
                       </button>

@@ -26,11 +26,8 @@ const CUSTOMER_COLLECTION = "customers";
 const USERS_COLLECTION_MIRROR = "users";
 const COLLECTION = "oldee";
 const ADMIN_COLLECTION = "adminUsers";
+const CATEGORIES_COLLECTION = "oldee_categories";
 
-// Define categories
-const CATEGORIES = ["All Products", "Electronics", "Furniture", "Vehicles", "Books", "Fashion", "Appliances", "Others"];
-
-// SellProductForm Component
 const SellProductForm = ({
   user,
   onCancel,
@@ -39,6 +36,7 @@ const SellProductForm = ({
   editDoc = null,
 }) => {
   const isEdit = !!editDoc;
+  const [categories, setCategories] = useState([]);
 
   const [formData, setFormData] = useState({
     name: editDoc?.name || "",
@@ -51,7 +49,8 @@ const SellProductForm = ({
     contactNumber: editDoc?.contactNumber || editDoc?.seller?.contactNumber || "",
     address: editDoc?.address || editDoc?.seller?.address || "",
     negotiation: editDoc?.negotiation || "flexible",
-    category: editDoc?.category || "Electronics", // NEW: Add category field
+    category: editDoc?.category || "",
+    featured: editDoc?.featured || false,
   });
 
   const [images, setImages] = useState([]);
@@ -65,6 +64,54 @@ const SellProductForm = ({
   const [isFetchingLocation, setIsFetchingLocation] = useState(false);
 
   const sellerId = user?.uid || "TEMP_USER_ID";
+
+  // Fetch categories from Firebase - Simple fetch without orderBy
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        // Get all documents from the categories collection
+        const categoriesCollection = collection(db, CATEGORIES_COLLECTION);
+        const categoriesSnapshot = await getDocs(categoriesCollection);
+        
+        // Start with empty array
+        const categoryNames = [];
+        
+        // Extract only the "name" field from each document
+        categoriesSnapshot.forEach((doc) => {
+          const data = doc.data();
+          if (data.name && typeof data.name === 'string') {
+            categoryNames.push(data.name);
+          }
+        });
+        
+        // Remove duplicates and sort alphabetically
+        const uniqueSortedNames = [...new Set(categoryNames)].sort();
+        setCategories(uniqueSortedNames);
+        
+        // Set default category if not set
+        if (!formData.category && uniqueSortedNames.length > 0) {
+          setFormData(prev => ({
+            ...prev,
+            category: uniqueSortedNames[0]
+          }));
+        }
+      } catch (error) {
+        console.error("Error fetching categories:", error);
+        // Fallback
+        setCategories([
+          "Electronics",
+          "Furniture",
+          "Vehicles",
+          "Books",
+          "Fashion",
+          "Appliances",
+          "Others"
+        ]);
+      }
+    };
+    
+    fetchCategories();
+  }, []);
 
   useEffect(() => {
     const prefill = async () => {
@@ -227,31 +274,34 @@ const SellProductForm = ({
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (step < 3) {
-      if (step === 1) {
-        if (!formData.name || !formData.price || !formData.description || !formData.category) {
-          alert("Please fill Product Name, Price, Category and Description.");
-          return;
-        }
-        const price = Number(formData.price);
-        const offerPrice = formData.offerPrice !== "" ? Number(formData.offerPrice) : null;
-        if (offerPrice !== null && offerPrice > price) {
-          alert("Offer Price should be less than or equal to Price.");
-          return;
-        }
-      }
-      if (step === 2 && existingImages.length + images.length === 0) {
-        alert("Please keep or upload at least one image in Step 2.");
+    if (step < 2) {
+      // Page 1 validations
+      if (!formData.name || !formData.price || !formData.description || !formData.category) {
+        alert("Please fill Product Name, Price, Category and Description.");
         return;
       }
+      const price = Number(formData.price);
+      const offerPrice = formData.offerPrice !== "" ? Number(formData.offerPrice) : null;
+      if (offerPrice !== null && offerPrice > price) {
+        alert("Offer Price should be less than or equal to Price.");
+        return;
+      }
+      
       setStep((s) => s + 1);
       return;
     }
 
+    // Page 2 validations
+    if (existingImages.length + images.length === 0) {
+      alert("Please keep or upload at least one image.");
+      return;
+    }
+    
     if (!formData.contactNumber || !formData.address) {
       alert("Please fill in Contact Number and Address.");
       return;
     }
+    
     if (!user?.uid) {
       alert("Authentication error: Please log in to submit your listing.");
       return;
@@ -296,7 +346,8 @@ const SellProductForm = ({
           price: Number(formData.price),
           offerPrice: formData.offerPrice === "" ? null : Number(formData.offerPrice),
           description: formData.description,
-          category: formData.category, // NEW: Include category
+          category: formData.category,
+          featured: formData.featured,
           contactNumber: formData.contactNumber,
           address: formData.address,
           negotiation: formData.negotiation,
@@ -315,7 +366,8 @@ const SellProductForm = ({
           ...formData,
           price: Number(formData.price),
           offerPrice: formData.offerPrice === "" ? null : Number(formData.offerPrice),
-          category: formData.category, // NEW: Include category
+          category: formData.category,
+          featured: formData.featured,
           imageURLs: [],
           isSold: false,
           createdAt: serverTimestamp(),
@@ -345,9 +397,8 @@ const SellProductForm = ({
   };
 
   const steps = [
-    { number: 1, title: isEdit ? "Edit: Basic" : "Basic Info" },
-    { number: 2, title: "Details" },
-    { number: 3, title: "Contact & Final" },
+    { number: 1, title: isEdit ? "Edit: Basic" : "Product Info" },
+    { number: 2, title: "Address & Images" },
   ];
 
   if (!user) {
@@ -382,23 +433,21 @@ const SellProductForm = ({
             {isEdit ? "Edit Listing" : "List Your Vintage Item"}
           </h2>
           <button
-            type="button"
-            onClick={() => setIsSummaryPanelOpen((p) => !p)}
-            className={`relative w-10 h-10 rounded-full shadow-md transition-all duration-300 ${isSummaryPanelOpen ? "bg-red-500 hover:bg-red-600" : "bg-blue-500 hover:bg-blue-600"
-              } text-white flex items-center justify-center -mt-2`}
-            title={isSummaryPanelOpen ? "Close Summary" : "View Listing Summary"}
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              {isSummaryPanelOpen ? (
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              ) : (
-                <>
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                </>
-              )}
-            </svg>
-          </button>
+  type="button"
+  onClick={onCancel}   // ✅ CLOSE UPLOAD PAGE
+  className="relative w-10 h-10 rounded-full shadow-md transition-all duration-300 bg-red-500 hover:bg-red-600 text-white flex items-center justify-center -mt-2"
+  title="Close Upload"
+>
+  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth={2}
+      d="M6 18L18 6M6 6l12 12"
+    />
+  </svg>
+</button>
+
         </div>
 
         {isEdit && (
@@ -416,7 +465,7 @@ const SellProductForm = ({
             <motion.div
               className="h-full bg-blue-500"
               initial={{ width: "0%" }}
-              animate={{ width: `${((step - 1) / 2) * 100}%` }}
+              animate={{ width: `${((step - 1) / 1) * 100}%` }}
               transition={{ duration: 0.5 }}
             />
           </div>
@@ -434,77 +483,88 @@ const SellProductForm = ({
         <form onSubmit={handleSubmit}>
           <AnimatePresence mode="wait">
             {step === 1 && (
-              <motion.div key="step1" initial={{ x: 50, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: -50, opacity: 0 }} className="space-y-4">
-                <div>
-                  <label className="block text-left text-sm font-semibold text-gray-800 mb-1">Product Name *</label>
-                  <input
-                    name="name"
-                    type="text"
-                    value={formData.name}
-                    onChange={handleChange}
-                    placeholder="Vintage 90s Band T-shirt"
-                    required
-                    className="w-full px-4 py-3 text-sm border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
-                </div>
+              <motion.div key="step1" initial={{ x: 50, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: -50, opacity: 0 }} className="space-y-6">
+                {/* Featured Product Question */}
+                
 
-                <div>
-                  <label className="block text-left text-sm font-semibold text-gray-800 mb-1">Category *</label>
-                  <select
-                    name="category"
-                    value={formData.category}
-                    onChange={handleChange}
-                    required
-                    className="w-full px-4 py-3 text-sm border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  >
-                    {CATEGORIES.filter(cat => cat !== "All Products").map((category) => (
-                      <option key={category} value={category}>{category}</option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-left text-sm font-semibold text-gray-800 mb-1">Price (₹) *</label>
-                  <div className="relative">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">₹</span>
+                {/* Product Name and Category on same line */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-left text-sm font-semibold text-gray-800 mb-1">Product Name *</label>
                     <input
-                      name="price"
-                      type="number"
-                      value={formData.price}
+                      name="name"
+                      type="text"
+                      value={formData.name}
                       onChange={handleChange}
-                      placeholder="1999"
-                      min="0"
-                      step="1"
+                      placeholder="Vintage 90s Band T-shirt"
                       required
-                      className="w-full pl-8 pr-4 py-3 text-sm border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className="w-full px-4 py-3 text-sm border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     />
                   </div>
-                </div>
 
-                <div>
-                  <label className="block text-left text-sm font-semibold text-gray-800 mb-1">
-                    Offer Price (₹)
-                  </label>
-                  <div className="relative">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">₹</span>
-                    <input
-                      name="offerPrice"
-                      type="number"
-                      value={formData.offerPrice}
+                  <div>
+                    <label className="block text-left text-sm font-semibold text-gray-800 mb-1">Category *</label>
+                    <select
+                      name="category"
+                      value={formData.category}
                       onChange={handleChange}
-                      placeholder={formData.price ? String(formData.price) : "e.g. 1799"}
-                      min="0"
-                      step="1"
-                      className="w-full pl-8 pr-4 py-3 text-sm border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    />
+                      required
+                      className="w-full px-4 py-3 text-sm border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    >
+                      <option value="">Select a category</option>
+                      {categories.map((category) => (
+                        <option key={category} value={category}>{category}</option>
+                      ))}
+                    </select>
                   </div>
-                  {hasDiscount && (
-                    <p className="mt-1 text-xs text-emerald-600">
-                      Discount: ₹{priceNum - offerPriceNum} ({discountPct}%)
-                    </p>
-                  )}
                 </div>
 
+                {/* Price and Offer Price on same line */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-left text-sm font-semibold text-gray-800 mb-1">Price (₹) *</label>
+                    <div className="relative">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">₹</span>
+                      <input
+                        name="price"
+                        type="number"
+                        value={formData.price}
+                        onChange={handleChange}
+                        placeholder="1999"
+                        min="0"
+                        step="1"
+                        required
+                        className="w-full pl-8 pr-4 py-3 text-sm border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-left text-sm font-semibold text-gray-800 mb-1">
+                      Offer Price (₹)
+                    </label>
+                    <div className="relative">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">₹</span>
+                      <input
+                        name="offerPrice"
+                        type="number"
+                        value={formData.offerPrice}
+                        onChange={handleChange}
+                        placeholder={formData.price ? String(formData.price) : "e.g. 1799"}
+                        min="0"
+                        step="1"
+                        className="w-full pl-8 pr-4 py-3 text-sm border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      />
+                    </div>
+                    {hasDiscount && (
+                      <p className="mt-1 text-xs text-emerald-600">
+                        Discount: ₹{priceNum - offerPriceNum} ({discountPct}%)
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Description */}
                 <div>
                   <label className="block text-left text-sm font-semibold text-gray-800 mb-1">Description *</label>
                   <textarea
@@ -512,16 +572,88 @@ const SellProductForm = ({
                     value={formData.description}
                     onChange={handleChange}
                     placeholder="Condition, history, size, material, etc."
-                    rows="3"
+                    rows="4"
                     required
                     className="w-full px-4 py-3 text-sm border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
                   />
+                </div>
+                <div className="flex gap-4">
+  {/* Featured Product */}
+  <div className="w-1/2 p-6   rounded-xl border   flex flex-col justify-between">
+    <p className="text-sm font-semibold text-gray-800 mb-3">
+      Featured Product?
+    </p>
+
+    <div className="flex gap-2 mt-auto">
+      <button
+        type="button"
+        onClick={() => setFormData({ ...formData, featured: true })}
+        className={`flex-1 py-3 rounded-lg font-bold transition-all ${
+          formData.featured
+            ? "bg-blue-600 text-white shadow-md"
+            : "bg-white border border-gray-300 text-gray-600"
+        }`}
+      >
+        Yes
+      </button>
+
+      <button
+        type="button"
+        onClick={() => setFormData({ ...formData, featured: false })}
+        className={`flex-1 py-3 rounded-lg font-bold transition-all ${
+          !formData.featured
+            ? "bg-gray-800 text-white shadow-md"
+            : "bg-white border border-gray-300 text-gray-600"
+        }`}
+      >
+        No
+      </button>
+    </div>
+  </div>
+
+  {/* Contact Number */}
+  <div className="w-1/2 p-6   rounded-xl border  flex flex-col justify-between">
+    <label className="text-sm font-semibold text-gray-800 mb-3">
+      Contact Number *
+    </label>
+
+    <input
+      name="contactNumber"
+      type="tel"
+      value={formData.contactNumber}
+      onChange={handleChange}
+      placeholder="+91 9876543210"
+      required
+      pattern="^[0-9+ -]*$"
+      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+    />
+  </div>
+</div>
+
+
+                {/* Price Negotiation */}
+                <div>
+                  <label className="block text-left text-sm font-semibold text-gray-800 mb-1">Price Negotiation</label>
+                  <div className="flex space-x-2">
+                    {["fixed", "flexible", "negotiable"].map((option) => (
+                      <button
+                        key={option}
+                        type="button"
+                        onClick={() => setFormData((p) => ({ ...p, negotiation: option }))}
+                        className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-colors duration-200 ${formData.negotiation === option ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                          }`}
+                      >
+                        {option.charAt(0).toUpperCase() + option.slice(1)}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </motion.div>
             )}
 
             {step === 2 && (
-              <motion.div key="step2" initial={{ x: 50, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: -50, opacity: 0 }} className="space-y-4">
+              <motion.div key="step2" initial={{ x: 50, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: -50, opacity: 0 }} className="space-y-6">
+                {/* Images Section */}
                 <div>
                   <label className="block text-left text-sm font-semibold text-gray-800 mb-1">
                     Images (Max {MAX_FILES})
@@ -598,73 +730,45 @@ const SellProductForm = ({
                       </label>
                     </div>
                   )}
-
-                  <div className="mt-4">
-                    <label className="block text-left text-sm font-semibold text-gray-800 mb-1">Price Negotiation</label>
-                    <div className="flex space-x-2">
-                      {["fixed", "flexible", "negotiable"].map((option) => (
-                        <button
-                          key={option}
-                          type="button"
-                          onClick={() => setFormData((p) => ({ ...p, negotiation: option }))}
-                          className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-colors duration-200 ${formData.negotiation === option ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                            }`}
-                        >
-                          {option.charAt(0).toUpperCase() + option.slice(1)}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
                 </div>
-              </motion.div>
-            )}
 
-            {step === 3 && (
-              <motion.div key="step3" initial={{ x: 50, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: -50, opacity: 0 }} className="space-y-4">
-                <div>
-                  <label className="block text-left text-sm font-semibold text-gray-800 mb-1">Contact Number *</label>
-                  <input
-                    name="contactNumber"
-                    type="tel"
-                    value={formData.contactNumber}
-                    onChange={handleChange}
-                    placeholder="+91 9876543210"
-                    required
-                    pattern="^[0-9+ -]*$"
-                    className="w-full px-4 py-3 text-sm border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
-                </div>
-                <div>
-                  <div className="flex justify-between items-center mb-1">
-                    <label className="block text-left text-sm font-semibold text-gray-800">Address *</label>
-                    <button
-                      type="button"
-                      onClick={handleGetLiveLocation}
-                      disabled={isFetchingLocation}
-                      className="text-xs text-blue-600 font-medium flex items-center gap-1 hover:text-blue-800 disabled:opacity-50"
-                    >
-                      <svg 
-                        className={`w-3.5 h-3.5 ${isFetchingLocation ? 'animate-spin' : ''}`} 
-                        fill="none" 
-                        stroke="currentColor" 
-                        viewBox="0 0 24 24"
+                {/* Contact Information */}
+                <div className="space-y-4">
+                  
+                  
+                  <div>
+                    <div className="flex justify-between items-center mb-1">
+                      <label className="block text-left text-sm font-semibold text-gray-800">Address *</label>
+                      <button
+                        type="button"
+                        onClick={handleGetLiveLocation}
+                        disabled={isFetchingLocation}
+                        className="text-xs text-blue-600 font-medium flex items-center gap-1 hover:text-blue-800 disabled:opacity-50"
                       >
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                      </svg>
-                      {isFetchingLocation ? "Fetching..." : "Use Live Location"}
-                    </button>
+                        <svg 
+                          className={`w-3.5 h-3.5 ${isFetchingLocation ? 'animate-spin' : ''}`} 
+                          fill="none" 
+                          stroke="currentColor" 
+                          viewBox="0 0 24 24"
+                        >
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                        </svg>
+                        {isFetchingLocation ? "Fetching..." : "Use Live Location"}
+                      </button>
+                    </div>
+                    <textarea
+                      name="address"
+                      value={formData.address}
+                      onChange={handleChange}
+                      placeholder="Enter your full address for delivery or click 'Use Live Location'"
+                      rows="3"
+                      required
+                      className="w-full px-4 py-3 text-sm border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                    />
                   </div>
-                  <textarea
-                    name="address"
-                    value={formData.address}
-                    onChange={handleChange}
-                    placeholder="Enter your full address for delivery or click 'Use Live Location'"
-                    rows="3"
-                    required
-                    className="w-full px-4 py-3 text-sm border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
-                  />
                 </div>
+
                 {isSubmitting && uploadProgress !== null && (
                   <div className="mt-4">
                     <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
@@ -714,21 +818,51 @@ const SellProductForm = ({
                   </svg>
                   {isEdit ? "Updating..." : "Listing..."}
                 </>
-              ) : step === 3 ? (isEdit ? "Update Listing" : "Submit Listing") : "Next Step"}
+              ) : step === 2 ? (isEdit ? "Update Listing" : "Submit Listing") : "Next Step"}
             </button>
           </div>
 
-          <p className="text-center text-xs text-gray-500 mt-4">Step {step} of 3</p>
+          <p className="text-center text-xs text-gray-500 mt-4">Step {step} of 2</p>
         </form>
       </div>
     </div>
   );
 };
 
+// ... rest of the file remains the same (ProductsViewer and Oldee components)
+
 const ProductsViewer = ({ user, isAdmin, onClose, onEdit, isUserViewer = false }) => {
   const [loading, setLoading] = useState(true);
   const [items, setItems] = useState([]);
   const [error, setError] = useState(null);
+  const [categories, setCategories] = useState([]);
+
+  // Fetch categories from Firebase for ProductsViewer
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const categoriesCollection = collection(db, CATEGORIES_COLLECTION);
+        const categoriesSnapshot = await getDocs(categoriesCollection);
+        
+        const categoryNames = [];
+        
+        categoriesSnapshot.forEach((doc) => {
+          const data = doc.data();
+          if (data.name && typeof data.name === 'string') {
+            categoryNames.push(data.name);
+          }
+        });
+        
+        const uniqueSortedNames = [...new Set(categoryNames)].sort();
+        setCategories(uniqueSortedNames);
+      } catch (error) {
+        console.error("Error fetching categories:", error);
+        setCategories(["Electronics", "Furniture", "Vehicles", "Books", "Fashion", "Appliances", "Others"]);
+      }
+    };
+    
+    fetchCategories();
+  }, []);
 
   const load = async () => {
     setLoading(true);
@@ -896,7 +1030,7 @@ const ProductsViewer = ({ user, isAdmin, onClose, onEdit, isUserViewer = false }
                         alt={p.name} 
                         className="w-full h-full object-cover" 
                       />
-                      <div className="absolute top-2 left-2">
+                      <div className="absolute top-2 left-2 flex flex-col gap-1">
                         <span className={`px-2 py-1 rounded-full text-xs font-medium ${
                           p.approved 
                             ? "bg-emerald-100 text-emerald-700" 
@@ -904,6 +1038,11 @@ const ProductsViewer = ({ user, isAdmin, onClose, onEdit, isUserViewer = false }
                         }`}>
                           {p.approved ? "Approved" : "Pending"}
                         </span>
+                        {p.featured && (
+                          <span className="px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-700">
+                            Featured
+                          </span>
+                        )}
                       </div>
                     </div>
                   )}
@@ -993,6 +1132,7 @@ const Oldee = () => {
   const [adminUsers, setAdminUsers] = useState([]);
   const [loadingAdmins, setLoadingAdmins] = useState(true);
   const [isUserViewer, setIsUserViewer] = useState(false);
+  const [categories, setCategories] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState("All Products");
   const [searchQuery, setSearchQuery] = useState("");
 
@@ -1018,6 +1158,49 @@ const Oldee = () => {
     }
   };
 
+  // Fetch categories from Firebase - Simple fetch without orderBy
+  const fetchCategories = async () => {
+    try {
+      // Get all documents from the categories collection
+      const categoriesCollection = collection(db, CATEGORIES_COLLECTION);
+      const categoriesSnapshot = await getDocs(categoriesCollection);
+      
+      // Start with "All Products"
+      const fetchedCategories = ["All Products"];
+      
+      // Array to store all category names
+      const categoryNames = [];
+      
+      // Extract only the "name" field from each document
+      categoriesSnapshot.forEach((doc) => {
+        const data = doc.data();
+        if (data.name && typeof data.name === 'string') {
+          categoryNames.push(data.name);
+        }
+      });
+      
+      // Remove duplicates and sort alphabetically
+      const uniqueSortedNames = [...new Set(categoryNames)].sort();
+      
+      // Add to fetched categories (excluding "All Products" which is already added)
+      setCategories(["All Products", ...uniqueSortedNames]);
+      
+    } catch (error) {
+      console.error("Error fetching categories:", error);
+      // Fallback categories
+      setCategories([
+        "All Products",
+        "Electronics",
+        "Furniture",
+        "Vehicles",
+        "Books",
+        "Fashion",
+        "Appliances",
+        "Others"
+      ]);
+    }
+  };
+
   const isAdmin = useMemo(() => {
     if (!currentUser?.uid || loadingAdmins) return false;
     
@@ -1037,6 +1220,7 @@ const Oldee = () => {
 
   useEffect(() => {
     fetchAdminUsers();
+    fetchCategories();
   }, []);
 
   const loadApproved = async () => {
@@ -1049,7 +1233,11 @@ const Oldee = () => {
       const snap = await getDocs(qRef);
       let items = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
       
+      // Sort by featured first, then by date
       items.sort((a, b) => {
+        if (a.featured && !b.featured) return -1;
+        if (!a.featured && b.featured) return 1;
+        
         const dateA = a.createdAt?.toDate?.() || new Date(0);
         const dateB = b.createdAt?.toDate?.() || new Date(0);
         return dateB.getTime() - dateA.getTime();
@@ -1174,58 +1362,62 @@ const Oldee = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header with Actions */}
+      {/* Categories Section at the top like navbar */}
       <div className="bg-white border-b shadow-sm">
         <div className="w-full px-8 py-4">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-end gap-4">
-            <div className="flex items-center gap-3">
-              {currentUser ? (
-                <>
-                  {isAdmin && (
-                    <div className="px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-sm font-medium flex items-center">
-                      <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
-                      </svg>
-                      Admin
-                    </div>
-                  )}
-                  
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={openUserViewer}
-                      className="px-4 py-2 rounded-lg bg-gray-800 hover:bg-black text-white font-medium text-sm transition-colors flex items-center gap-2"
-                    >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                      </svg>
-                      View my listings
-                    </button>
-                    
-                    <button
-                      onClick={openCreate}
-                      className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-medium text-sm transition-colors flex items-center gap-2"
-                    >
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                      </svg>
-                      Upload
-                    </button>
-                    
-                    {isAdmin && (
-                      <button
-                        onClick={openAdminViewer}
-                        className="px-4 py-2 rounded-lg bg-purple-600 hover:bg-purple-700 text-white font-medium text-sm transition-colors flex items-center gap-2"
-                      >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-                        </svg>
-                        All Products
-                      </button>
-                    )}
+          {/* Categories Filter */}
+          <div className="mb-4">
+            <div className="flex flex-wrap gap-2">
+              {categories.map((category) => (
+                <button
+                  key={category}
+                  onClick={() => setSelectedCategory(category)}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    selectedCategory === category
+                      ? "bg-blue-600 text-white"
+                      : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                  }`}
+                >
+                  {category}
+                </button>
+              ))}
+            </div>
+          </div>
+          
+          
+           
+        </div>
+      </div>
+
+      {/* Main Content with Header Actions */}
+      <div className="w-full px-8 py-8">
+        {/* Header with Actions - Now below categories */}
+        <div className="mb-8 flex items-center justify-between">
+          <h1 className=" "> </h1>
+          
+          <div className="flex items-center gap-3">
+            {currentUser ? (
+              <>
+                {isAdmin && (
+                  <div className="px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-sm font-medium flex items-center">
+                    <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
+                    </svg>
+                    Admin
                   </div>
-                </>
-              ) : (
+                )}
+                
                 <div className="flex items-center gap-2">
+                  <button
+                    onClick={openUserViewer}
+                    className="px-4 py-2 rounded-lg bg-gray-800 hover:bg-black text-white font-medium text-sm transition-colors flex items-center gap-2"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                    </svg>
+                    My Listings
+                  </button>
+                  
                   <button
                     onClick={openCreate}
                     className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-medium text-sm transition-colors flex items-center gap-2"
@@ -1235,74 +1427,38 @@ const Oldee = () => {
                     </svg>
                     Upload
                   </button>
+                  
+                  {isAdmin && (
+                    <button
+                      onClick={openAdminViewer}
+                      className="px-4 py-2 rounded-lg bg-purple-600 hover:bg-purple-700 text-white font-medium text-sm transition-colors flex items-center gap-2"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                      </svg>
+                      All Products
+                    </button>
+                  )}
                 </div>
-              )}
-            </div>
+              </>
+            ) : (
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={openCreate}
+                  className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-medium text-sm transition-colors flex items-center gap-2"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                  </svg>
+                  Upload
+                </button>
+              </div>
+            )}
           </div>
         </div>
-      </div>
 
-      {/* Main Content */}
-      <div className="w-full px-8 py-8">
-        {/* Header with title and product count */}
-        {/* <div className="flex flex-col md:flex-row md:items-center justify-between mb-8">
-          <div>
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">All E-Store Products</h2>
-            <p className="text-gray-600">
-              Showing {filteredProducts.length} product{filteredProducts.length !== 1 ? 's' : ''}
-            </p>
-          </div> */}
-          
-          {/* Search Bar */}
-          {/* <div className="mt-4 md:mt-0">
-            <div className="relative">
-              <input
-                type="text"
-                placeholder="Search products..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full md:w-64 px-4 py-2 pl-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              />
-              <svg className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-              </svg>
-            </div>
-          </div>
-        </div> */}
-
-        {/* Categories Filter */}
-        <div className="mb-8">
-          <div className="flex flex-wrap gap-2 mb-4">
-            {CATEGORIES.map((category) => (
-              <button
-                key={category}
-                onClick={() => setSelectedCategory(category)}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                  selectedCategory === category
-                    ? "bg-blue-600 text-white"
-                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                }`}
-              >
-                {category}
-              </button>
-            ))}
-          </div>
-          
-          {/* Clear filters button */}
-          {(selectedCategory !== "All Products" || searchQuery.trim() !== "") && (
-            <div className="flex items-center gap-2">
-              <button
-                onClick={clearFilters}
-                className="text-sm text-blue-600 hover:text-blue-800 font-medium flex items-center gap-1"
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-                Clear all filters
-              </button>
-            </div>
-          )}
-        </div>
+        {/* Search bar (only shown when no filters are active) */}
+       
 
         {loadingApproved ? (
           <div className="text-center py-20">
@@ -1345,15 +1501,7 @@ const Oldee = () => {
         ) : (
           <>
             {/* Filter info */}
-            {(selectedCategory !== "All Products" || searchQuery.trim() !== "") && (
-              <div className="mb-6 p-4 bg-blue-50 rounded-lg">
-                <p className="text-sm text-blue-800">
-                  Showing {filteredProducts.length} product{filteredProducts.length !== 1 ? 's' : ''}
-                  {selectedCategory !== "All Products" && ` in ${selectedCategory}`}
-                  {searchQuery.trim() !== "" && ` matching "${searchQuery}"`}
-                </p>
-              </div>
-            )}
+            
             
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6">
               {filteredProducts.map((p) => (
@@ -1367,20 +1515,21 @@ const Oldee = () => {
                       <img 
                         src={p.imageURLs[0]} 
                         alt={p.name} 
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" 
+                        className="w-md h-full object-contain group-hover:scale-105 transition-transform duration-300"
+
                       />
                     )}
                     <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent"></div>
-                    <div className="absolute top-3 left-3">
-                      <span className="text-xs bg-white/90 text-gray-800 px-2 py-1 rounded font-medium">
-                        {p.category || "Uncategorized"}
-                      </span>
+                    <div className="absolute top-3 left-3 flex flex-col gap-1">
+                       
+                      {/* Featured Badge - No SALE badge */}
+                      {p.featured && (
+                        <span className="text-xs bg-blue-600 text-white px-2 py-1 rounded font-bold">
+                          FEATURED
+                        </span>
+                      )}
                     </div>
-                    {p.offerPrice != null && (
-                      <div className="absolute top-3 right-3 bg-red-500 text-white text-xs font-bold px-2 py-1 rounded">
-                        SALE
-                      </div>
-                    )}
+                    {/* REMOVED SALE BADGE */}
                   </div>
                   
                   <div className="p-4">
@@ -1418,13 +1567,7 @@ const Oldee = () => {
           </>
         )}
         
-        {filteredProducts.length > 0 && (
-          <div className="mt-8 text-center">
-            <p className="text-sm text-gray-500">
-              Showing {filteredProducts.length} of {approvedItems.length} products
-            </p>
-          </div>
-        )}
+         
       </div>
 
       {/* Upload Form Modal */}

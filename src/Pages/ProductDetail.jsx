@@ -328,9 +328,10 @@ const { storePath, storeLabel } = useMemo(() => {
       currentIsVideo,
       productId,
       product: product?.name,
-      imageLoading
+      imageLoading,
+      colorImageMap // Add this to debug
     });
-  }, [images, videos, currentImg, currentIsVideo, productId, product, imageLoading]);
+  }, [images, videos, currentImg, currentIsVideo, productId, product, imageLoading, colorImageMap]);
 
   // 🔄 GET CURRENT LOGGED IN USER - IMPROVED VERSION
   useEffect(() => {
@@ -663,22 +664,6 @@ const { storePath, storeLabel } = useMemo(() => {
           setImages(urls);
           setVideos(videoUrlsProcessed);
           
-          // Combine images and videos for display
-          const allMedia = [...urls, ...videoUrlsProcessed];
-          
-          // ALWAYS set currentImg if media exists
-          if (allMedia.length > 0) {
-            setCurrentImg(allMedia[0]);
-            // Check if first media is video
-            if (allMedia[0].match(/\.(mp4|webm|ogg)$/i)) {
-              setCurrentIsVideo(true);
-            }
-          } else {
-            // Use placeholder if no media
-            setCurrentImg("https://placehold.co/600x400?text=No+Image");
-            setImageLoading(false);
-          }
-          
           // ⭐ FIXED: Process variants and get available colors and sizes
           const variants = productData.variants || [];
           
@@ -700,15 +685,52 @@ const { storePath, storeLabel } = useMemo(() => {
           
           setAvailableColors(colors);
           setAvailableSizes(sizes);
+          
+          // ⭐ FIXED: Create color-image mapping from product data
+          // Check if product has colorImageMap from database
+          if (productData.colorImageMap) {
+            console.log('Using colorImageMap from database:', productData.colorImageMap);
+            setColorImageMap(productData.colorImageMap);
+          } else {
+            // Create default mapping: first image for first color, second for second, etc.
+            const defaultMap = {};
+            colors.forEach((color, index) => {
+              if (urls[index]) {
+                defaultMap[color] = index;
+              } else if (urls.length > 0) {
+                // If more colors than images, cycle through images
+                defaultMap[color] = index % urls.length;
+              }
+            });
+            console.log('Created default colorImageMap:', defaultMap);
+            setColorImageMap(defaultMap);
+          }
          
+          // Combine images and videos for display
+          const allMedia = [...urls, ...videoUrlsProcessed];
+          
+          // ALWAYS set currentImg if media exists
+          if (allMedia.length > 0) {
+            // ⭐ FIXED: Set initial image based on first color if available
+            if (colors.length > 0 && colorImageMap[colors[0]] !== undefined && urls[colorImageMap[colors[0]]]) {
+              setCurrentImg(urls[colorImageMap[colors[0]]]);
+              setCurrentIsVideo(false);
+            } else {
+              setCurrentImg(allMedia[0]);
+              // Check if first media is video
+              if (allMedia[0].match(/\.(mp4|webm|ogg)$/i)) {
+                setCurrentIsVideo(true);
+              }
+            }
+          } else {
+            // Use placeholder if no media
+            setCurrentImg("https://placehold.co/600x400?text=No+Image");
+            setImageLoading(false);
+          }
+          
           // Set default selections
           if (colors.length > 0) {
             setSelectedColor(colors[0]);
-            // Set image based on default color
-            if (colorImageMap[colors[0]] !== undefined && urls[colorImageMap[colors[0]]]) {
-              setCurrentImg(urls[colorImageMap[colors[0]]]);
-              setCurrentIsVideo(false);
-            }
           }
           if (sizes.length > 0) {
             setSelectedSize(sizes[0]);
@@ -819,15 +841,25 @@ const { storePath, storeLabel } = useMemo(() => {
 
   // 🎨 Handle color selection - updates image based on color
   const handleColorSelect = (color) => {
+    console.log('Color selected:', color, 'colorImageMap:', colorImageMap);
     setSelectedColor(color);
     // Reset size when color changes
     setSelectedSize("");
     
     // Update image based on selected color
     if (colorImageMap[color] !== undefined && images[colorImageMap[color]]) {
+      console.log('Setting image for color', color, 'image index:', colorImageMap[color], 'image URL:', images[colorImageMap[color]]);
       setCurrentImg(images[colorImageMap[color]]);
       setCurrentIsVideo(false);
       setImageLoading(true);
+    } else {
+      console.log('No image mapping found for color:', color);
+      // Fallback to first image if no mapping found
+      if (images.length > 0) {
+        setCurrentImg(images[0]);
+        setCurrentIsVideo(false);
+        setImageLoading(true);
+      }
     }
   };
 
@@ -1534,9 +1566,7 @@ const { storePath, storeLabel } = useMemo(() => {
                           />
                         )}
                         {/* Add index number overlay for debugging */}
-                        <div className="absolute bottom-1 right-1 bg-black bg-opacity-50 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-                          {i + 1}
-                        </div>
+                         
                       </button>
                     );
                   })}
@@ -1545,7 +1575,7 @@ const { storePath, storeLabel } = useMemo(() => {
             </div>
 
             {/* RIGHT SIDE — DETAILS */}
-            <div className="space-y-6">
+            <div className="space-y-1">
               <div>
                 {product.brand && (
                   <p className="text-purple-600 font-semibold uppercase tracking-wider text-sm mb-2">
@@ -1558,11 +1588,11 @@ const { storePath, storeLabel } = useMemo(() => {
               </div>
 
               {/* ⭐ Rating */}
-              <div className="flex items-center space-x-4">
+              <div className="flex items-center space-x-4 ">
                 {stats.avg > 0 && (
-                  <div className="flex items-center bg-gradient-to-r from-yellow-400 to-orange-500 text-white px-3 py-1.5 rounded-full">
+                  <div className="flex items-center     px-3 py-1.5 rounded-full">
                     <span className="font-bold text-lg">{stats.avg.toFixed(1)}</span>
-                    <StarRating rating={stats.avg} size="w-5 h-5" color="text-white" />
+                    <StarRating rating={stats.avg} size="w-5 h-5" color="text-yellow-500" />
                   </div>
                 )}
                 <button
@@ -1585,15 +1615,13 @@ const { storePath, storeLabel } = useMemo(() => {
                 {originalPrice > displayPrice && (
                   <div className="space-y-1">
                     <p className="line-through text-gray-500 text-lg">₹{originalPrice.toLocaleString()}</p>
-                    <span className="bg-gradient-to-r from-red-500 to-pink-600 text-white px-3 py-1 rounded-full text-sm font-bold shadow-md">
-                      {discount}% OFF
-                    </span>
+                     
                   </div>
                 )}
               </div>
 
               {/* ⭐ FIXED: Color Selection with Image Change */}
-              {availableColors.length > 0 && (
+               {availableColors.length > 0 && (
                 <div className="space-y-3">
                   <h3 className="font-semibold text-gray-700">
                     Color: <span className="font-normal text-gray-900">{selectedColor}</span>
@@ -1601,14 +1629,15 @@ const { storePath, storeLabel } = useMemo(() => {
                   <div className="flex gap-2 flex-wrap">
                     {availableColors.map((color) => (
                       <button
-                        key={color}
-                        onClick={() => handleColorSelect(color)}
-                        className={`px-4 py-2.5 rounded-lg border transition-all duration-200 font-medium flex items-center gap-2 ${
-                          selectedColor === color
-                            ? "border-purple-600 bg-gradient-to-r from-purple-50 to-pink-50 text-purple-700 shadow-md"
-                            : "border-gray-300 hover:border-gray-400 hover:bg-gray-50"
-                        }`}
-                      >
+  key={color}
+  onClick={() => handleColorSelect(color)}
+  className={`px-3 py-1.5 text-sm rounded-md border transition-all duration-200 font-medium flex items-center gap-1.5 ${
+    selectedColor === color
+      ? "border-purple-600 bg-gradient-to-r from-purple-50 to-pink-50 text-purple-700 shadow-md"
+      : "border-gray-300 hover:border-gray-400 hover:bg-gray-50"
+  }`}
+>
+
                         <span>{color}</span>
                       </button>
                     ))}
@@ -1642,13 +1671,14 @@ const { storePath, storeLabel } = useMemo(() => {
                           key={`${selectedColor}-${size}`}
                           onClick={() => setSelectedSize(size)}
                           disabled={isOutOfStock}
-                          className={`px-4 py-2.5 rounded-lg border transition-all duration-200 font-medium relative ${
-                            selectedSize === size
-                              ? "border-purple-600 bg-gradient-to-r from-purple-50 to-pink-50 text-purple-700 shadow-md"
-                              : isOutOfStock
-                              ? "border-gray-200 bg-gray-100 text-gray-400 cursor-not-allowed"
-                              : "border-gray-300 hover:border-gray-400 hover:bg-gray-50"
-                          }`}
+                          className={`px-3 py-1.5 text-sm rounded-md border transition-all duration-200 font-medium relative ${
+  selectedSize === size
+    ? "border-purple-600 bg-gradient-to-r from-purple-50 to-pink-50 text-purple-700 shadow-md"
+    : isOutOfStock
+    ? "border-gray-200 bg-gray-100 text-gray-400 cursor-not-allowed"
+    : "border-gray-300 hover:border-gray-400 hover:bg-gray-50"
+}`}
+
                           title={isOutOfStock ? "Out of stock" : `Select size ${size}`}
                         >
                           {size}

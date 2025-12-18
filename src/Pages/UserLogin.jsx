@@ -1,9 +1,9 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { auth, db } from "../../firebase.js";
 import { signInWithEmailAndPassword } from "firebase/auth";
 import { doc, getDoc, setDoc } from "firebase/firestore";
-import { useWishlist } from "../context/WishlistContext"; // ✅ IMPORT WISHLIST CONTEXT
+import { useWishlist } from "../context/WishlistContext";
 
 // User storage utility
 const storeUserData = (userData, uid) => {
@@ -16,9 +16,12 @@ const storeUserData = (userData, uid) => {
 const UserLogin = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  
-  // ✅ GET WISHLIST CONTEXT FOR AUTO-ADD
   const { toggleWishlist } = useWishlist();
+
+  // ✅ Scroll to top when login page loads
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }, []);
 
   const [formData, setFormData] = useState({
     email: "",
@@ -42,7 +45,6 @@ const UserLogin = () => {
     setError("");
 
     try {
-      // Sign in with Firebase Auth
       const userCredential = await signInWithEmailAndPassword(
         auth,
         formData.email,
@@ -51,7 +53,6 @@ const UserLogin = () => {
 
       const user = userCredential.user;
 
-      // Get user data from Firestore
       const userRef = doc(db, "users", user.uid);
       const userDoc = await getDoc(userRef);
 
@@ -59,91 +60,60 @@ const UserLogin = () => {
       if (userDoc.exists()) {
         userData = userDoc.data();
       } else {
-        // Create new user document if it doesn't exist
         userData = {
-          name: user.displayName || formData.email.split('@')[0],
+          name: user.displayName || formData.email.split("@")[0],
           email: user.email,
           uid: user.uid,
           createdAt: new Date(),
-          wishlist: []
+          wishlist: [],
         };
         await setDoc(userRef, userData);
       }
-      
-      // Store user data in localStorage
+
       storeUserData(userData, user.uid);
-      
-      // ✅ ENHANCED: Check if coming from wishlist OR review button click
+
       const { state } = location;
-      
+
       if (state?.reviewRedirect) {
-        console.log("✅ User logged in from review redirect");
-        
-        // Navigate back to product page with flag to open review modal
-        navigate(state?.from || `/product/${state?.productId || ''}`, {
+        navigate(state.from || `/product/${state.productId}`, {
           state: {
             showReviewModal: true,
-            productId: state?.productId,
-            productName: state?.productName
-          }
+            productId: state.productId,
+            productName: state.productName,
+          },
         });
       } else if (state?.wishlistRedirect) {
-        console.log("✅ User logged in from wishlist redirect");
-        
-        // If product data was passed, auto-add to wishlist
         if (state?.product) {
-          console.log("🎯 Auto-adding product to wishlist:", state.product.name);
-          
-          // Use a small timeout to ensure wishlist context is ready
           setTimeout(() => {
-            const success = toggleWishlist(state.product);
-            console.log("Auto-add to wishlist result:", success);
-            
-            if (success) {
-              // Show success message
-              alert(`❤️ "${state.product.name}" added to your wishlist!`);
-            }
+            toggleWishlist(state.product);
+            alert(`❤️ "${state.product.name}" added to your wishlist!`);
           }, 500);
-          
-          // Navigate back to the product page or wishlist
-          navigate(state.from || '/', {
-            state: {
-              showWishlistMessage: true,
-              productName: state.product.name
-            }
+
+          navigate(state.from || "/", {
+            state: { productName: state.product.name },
           });
         } else {
-          // Just redirect to wishlist page
           navigate("/wishlist");
         }
       } else {
-        // Normal redirect to previous page or home
-        const from = state?.from || '/';
-        navigate(from);
+        navigate(state?.from || "/");
       }
-
     } catch (err) {
-      console.error("Login Error:", err);
-      
-      // Enhanced error handling
       switch (err.code) {
         case "auth/user-not-found":
           setError("No account found with this email.");
           break;
         case "auth/wrong-password":
-          setError("Incorrect password. Please try again.");
+          setError("Incorrect password.");
           break;
         case "auth/invalid-email":
-          setError("Invalid email address format.");
+          setError("Invalid email address.");
           break;
         case "auth/too-many-requests":
-          setError("Too many failed attempts. Please try again later.");
-          break;
-        case "auth/network-request-failed":
-          setError("Network error. Please check your internet connection.");
+          setError("Too many attempts. Try again later.");
           break;
         default:
-          setError("Login failed. Please check your credentials and try again.");
+          setError("Login failed. Please try again.");
       }
     } finally {
       setIsLoading(false);
@@ -152,7 +122,7 @@ const UserLogin = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-500 via-blue-600 to-indigo-700 flex items-center justify-center px-4">
-      <div className="max-w-md w-full space-y-8">
+      <div className="max-w-md w-full">
         <div className="bg-white p-8 rounded-2xl shadow-2xl">
           <div className="text-center">
             <h2 className="text-3xl font-bold text-gray-900">Welcome Back</h2>
@@ -176,8 +146,7 @@ const UserLogin = () => {
                 required
                 value={formData.email}
                 onChange={handleChange}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200"
-                placeholder="Enter your email"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg"
               />
             </div>
 
@@ -192,13 +161,12 @@ const UserLogin = () => {
                   required
                   value={formData.password}
                   onChange={handleChange}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 pr-12"
-                  placeholder="Enter your password"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg pr-12"
                 />
                 <button
                   type="button"
                   onClick={togglePasswordVisibility}
-                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-xl leading-5 text-gray-600"
+                  className="absolute inset-y-0 right-0 pr-3"
                 >
                   {showPassword ? "👁️" : "🔒"}
                 </button>
@@ -208,46 +176,33 @@ const UserLogin = () => {
             <button
               type="submit"
               disabled={isLoading}
-              className={`w-full py-3 px-4 rounded-lg text-white font-semibold transition-all duration-200 ${
-                isLoading 
-                  ? "bg-gray-400 cursor-not-allowed" 
-                  : "bg-purple-600 hover:bg-purple-700 focus:ring-2 focus:ring-purple-500 focus:ring-offset-2"
-              }`}
+              className="w-full py-3 rounded-lg bg-purple-600 text-white font-semibold"
             >
-              {isLoading ? (
-                <div className="flex items-center justify-center">
-                  <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                  </svg>
-                  Signing in...
-                </div>
-              ) : (
-                "Sign In"
-              )}
+              {isLoading ? "Signing in..." : "Sign In"}
             </button>
 
-            <div className="text-center">
+            <div className="text-center text-sm">
               <button
                 type="button"
-                className="text-sm text-purple-600 hover:text-purple-500 font-medium"
                 onClick={() => navigate("/forgot-password")}
+                className="text-purple-600"
               >
-                Forgot your password?
+                Forgot password?
               </button>
             </div>
 
-            <div className="text-center text-sm mt-4 pt-4 border-t border-gray-200">
-              <p className="text-gray-600">
-                Don't have an account?{" "}
-                <button
-                  type="button"
-                  className="text-purple-600 hover:text-purple-500 font-semibold ml-1"
-                  onClick={() => navigate("/register")}
-                >
-                  Sign up here
-                </button>
-              </p>
+            <div className="text-center text-sm border-t pt-4">
+              Don’t have an account?
+              <button
+                type="button"
+                className="text-purple-600 font-semibold ml-1"
+                onClick={() => {
+                  window.scrollTo({ top: 0, behavior: "smooth" });
+                  navigate("/register");
+                }}
+              >
+                Sign up here
+              </button>
             </div>
           </form>
         </div>

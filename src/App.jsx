@@ -44,6 +44,7 @@ import MyOrders from './Pages/MyOrders';
 import ReturnOrderForm from './Pages/ReturnOrderForm'; 
 import Oldee from './Pages/Oldee';
 import WishlistPage from './Pages/WishlistPage';
+import MyUploads from './components/MyUploads';
 
 const App = () => {
   const [showLoginModal, setShowLoginModal] = useState(false);
@@ -92,6 +93,7 @@ const App = () => {
                         <Route path="/login" element={<UserLogin />} />
                         <Route path="/register" element={<UserRegister />} />
                         <Route path="/forgot-password" element={<ForgotPassword />} />
+                        <Route path="/my-uploads" element={<MyUploads />} />
 
                         <Route path="/cart" element={<Cart />} />
                         <Route path="/checkout" element={<Checkout />} />

@@ -138,11 +138,7 @@ const NewsToday = () => {
                   className="w-full h-full object-cover hover:scale-105 transition-transform duration-500"
                 />
                 {/* Category Badge on Image */}
-                <div className="absolute top-3 left-3">
-                  <span className="inline-block bg-white/90 backdrop-blur-sm text-purple-700 px-3 py-1 rounded-full text-sm font-semibold">
-                    {article.category}
-                  </span>
-                </div>
+                 
               </div>
               
               {/* Content Container */}
@@ -249,15 +245,7 @@ const NewsToday = () => {
                   <p>
                     {selectedArticle.content || selectedArticle.excerpt}
                   </p>
-                  <p>
-                    This is the full article content. In a real application, you would have 
-                    the complete article text stored in your database. The excerpt shown 
-                    above is just a preview of the full content.
-                  </p>
-                  <p>
-                    The "READ MORE →" button opens this detailed view where users can read 
-                    the entire article without leaving the page.
-                  </p>
+                   
                 </div>
               </div>
 

@@ -19,6 +19,7 @@ import {
   getDownloadURL,
   deleteObject 
 } from "firebase/storage";
+import { getAuth } from "firebase/auth";
 
 const Navbar = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -34,6 +35,7 @@ const Navbar = () => {
   const location = useLocation();
   const dropdownRef = useRef(null);
   const searchRef = useRef(null);
+   const auth = getAuth();
   
   const {
     getCartItemsCount,
@@ -283,202 +285,230 @@ const Navbar = () => {
   // --- END WISHLIST HANDLER ---
 
   // --- FILE UPLOAD HANDLER ---
-  const handleFileUpload = async (e) => {
-    const files = Array.from(e.target.files);
-    if (files.length === 0) return;
+  // --- FILE UPLOAD HANDLER ---
+// --- FILE UPLOAD HANDLER ---
+const handleFileUpload = async (e) => {
+  const files = Array.from(e.target.files);
+  if (files.length === 0) return;
 
-    if (!user) {
-      alert("Please log in to upload files.");
-      return;
-    }
+  // FIRST: Check if user is logged in via Firebase Auth
+  const auth = getAuth();
+  const firebaseUser = auth.currentUser;
+  
+  if (!firebaseUser) {
+    alert("Please log in to upload files.");
+    return;
+  }
 
-    // Get user details
-    const userId = user.uid || user.id || user._id || user.customerId;
-    const userName = user.name || "Unknown User";
-    const userEmail = user.email || "unknown@example.com";
-    const userPhone = user.contactNo || user.phone || "Not provided";
-    const customerId = user.customerId || userId;
+  // SECOND: Get user details from Firebase Auth (NOT localStorage)
+  const userId = firebaseUser.uid; // This is the Firebase UID
+  const userName = firebaseUser.displayName || "Unknown User";
+  const userEmail = firebaseUser.email || "unknown@example.com";
+  const userPhone = firebaseUser.phoneNumber || "Not provided";
+  const customerId = userId; // Use Firebase UID as customerId
 
-    if (!userId) {
-      console.log("User object for debugging:", user);
-      alert("User ID not found. Please log in again.");
-      return;
-    }
+  console.log("✅ Firebase Auth User Info:", {
+    userId,
+    userName,
+    userEmail,
+    userPhone,
+    customerId
+  });
 
-    console.log("Uploading files for customer:", userName, "ID:", customerId);
-    
-    // Start uploading
-    setIsUploading(true);
-    setUploadProgress({});
-
+  // THIRD: Also check localStorage as backup
+  const localStorageUser = localStorage.getItem("user");
+  if (localStorageUser) {
     try {
-      // 1. Create a new document in uploadfile collection first
-      const uploadfileCollection = collection(db, "uploadfile");
-      const newUploadRef = doc(uploadfileCollection); // Auto-generate ID
-      const uploadId = newUploadRef.id;
+      const parsedUser = JSON.parse(localStorageUser);
+      console.log("📝 LocalStorage User:", parsedUser);
+    } catch (error) {
+      console.log("❌ Error parsing localStorage user:", error);
+    }
+  }
+
+  console.log("📤 Uploading files for:", userName, "Email:", userEmail, "ID:", customerId);
+  
+  // Start uploading
+  setIsUploading(true);
+  setUploadProgress({});
+
+  try {
+    // 1. Create a new document in uploadfile collection
+    const uploadfileCollection = collection(db, "uploadfile");
+    const newUploadRef = doc(uploadfileCollection);
+    const uploadId = newUploadRef.id;
+    
+    console.log("📝 Created upload document with ID:", uploadId);
+    
+    // 2. Initialize upload data with Firebase Auth user info
+  const uploadData = {
+  // Customer Information
+  customerId: customerId,
+  customerName: userName,
+  customerEmail: userEmail,
+  customerPhone: userPhone,
+  customerUserId: userId,
+
+  // 🔥 ADD THIS LINE
+  userUploadFile: true,   // 👈 this is the key you want
+
+  // Upload Information
+  uploadId: uploadId,
+  uploadDate: new Date().toISOString(),
+  uploadTimestamp: Date.now(),
+
+  files: [],
+  totalFiles: files.length,
+  fileTypes: [...new Set(files.map(f => f.type))],
+  totalSize: files.reduce((sum, file) => sum + file.size, 0),
+
+  status: "uploading",
+  createdAt: new Date().toISOString(),
+  createdBy: userId,
+};
+
+
+    console.log("📊 Upload data to save:", uploadData);
+
+    // 3. Save initial document to Firestore
+    await setDoc(newUploadRef, uploadData);
+    console.log("✅ Initial upload document saved to Firestore");
+
+    // 4. Upload each file to Firebase Storage
+    const uploadedFilesData = [];
+    
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      const timestamp = Date.now();
+      const safeFileName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
+      const uniqueFileName = `${timestamp}_${Math.random().toString(36).substr(2, 9)}_${safeFileName}`;
+      const storagePath = `uploadfile/${uploadId}/${uniqueFileName}`;
       
-      // 2. Initialize upload data
-      const uploadData = {
-        // Customer Information
-        customerId: customerId,
-        customerName: userName,
-        customerEmail: userEmail,
-        customerPhone: userPhone,
-        customerUserId: userId,
-        
-        // Upload Information
-        uploadId: uploadId,
-        uploadDate: new Date(),
-        uploadTimestamp: Date.now(),
-        
-        // Files Data - will be updated after upload
-        files: [],
-        totalFiles: files.length,
-        fileTypes: [...new Set(files.map(f => f.type))], // Unique file types
-        totalSize: files.reduce((sum, file) => sum + file.size, 0),
-        
-        // Status
+      console.log(`📄 Uploading file ${i+1}/${files.length}:`, file.name);
+      
+      // Create storage reference
+      const storageRef = ref(storage, storagePath);
+      
+      // Create file data object
+      const fileData = {
+        fileId: `file_${timestamp}_${i}`,
+        originalName: file.name,
+        fileName: uniqueFileName,
+        fileType: file.type,
+        fileSize: file.size,
+        storagePath: storagePath,
         status: "uploading",
-        isProcessed: false,
-        processedBy: null,
-        processedAt: null,
-        
-        // Timestamps
-        createdAt: new Date(),
-        createdBy: userId,
-        updatedAt: new Date()
+        uploadedAt: new Date().toISOString(),
+        lastUpdated: new Date().toISOString()
       };
 
-      // 3. Save initial document to Firestore
-      await setDoc(newUploadRef, uploadData);
-      console.log("✅ Created upload document with ID:", uploadId);
-
-      // 4. Upload each file to Firebase Storage
-      const uploadedFilesData = [];
-      
-      for (let i = 0; i < files.length; i++) {
-        const file = files[i];
-        const timestamp = Date.now();
-        const uniqueFileName = `${timestamp}_${Math.random().toString(36).substr(2, 9)}_${file.name}`;
-        const storagePath = `uploadfile/${uploadId}/${uniqueFileName}`;
-        
-        // Create a reference to the file in Firebase Storage
-        const storageRef = ref(storage, storagePath);
-        
-        // Create upload task
+      // Upload file to Firebase Storage
+      await new Promise((resolve, reject) => {
         const uploadTask = uploadBytesResumable(storageRef, file);
         
-        // Create file data
-        const fileData = {
-          fileId: `file_${timestamp}_${i}_${Math.random().toString(36).substr(2, 5)}`,
-          originalName: file.name,
-          fileName: uniqueFileName,
-          fileType: file.type,
-          fileSize: file.size,
-          storagePath: storagePath,
-          status: "uploading",
-          uploadedAt: new Date(),
-          lastUpdated: new Date()
-        };
-
-        // Upload file to Firebase Storage
-        await new Promise((resolve, reject) => {
-          uploadTask.on(
-            'state_changed',
-            (snapshot) => {
-              // Update progress
-              const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-              setUploadProgress(prev => ({
-                ...prev,
-                [file.name]: progress
-              }));
-              console.log(`Uploading ${file.name}: ${progress}%`);
-            },
-            (error) => {
-              console.error(`Error uploading ${file.name}:`, error);
+        uploadTask.on(
+          'state_changed',
+          (snapshot) => {
+            const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+            setUploadProgress(prev => ({
+              ...prev,
+              [file.name]: progress
+            }));
+            console.log(`📤 Uploading ${file.name}: ${progress.toFixed(2)}%`);
+          },
+          (error) => {
+            console.error(`❌ Error uploading ${file.name}:`, error);
+            fileData.status = "failed";
+            fileData.error = error.message;
+            reject(error);
+          },
+          async () => {
+            try {
+              // Get download URL
+              const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
+              fileData.downloadURL = downloadURL;
+              fileData.status = "uploaded";
+              fileData.lastUpdated = new Date().toISOString();
+              console.log(`✅ File uploaded: ${file.name}`);
+              
+              uploadedFilesData.push(fileData);
+              resolve();
+            } catch (urlError) {
+              console.error(`❌ Error getting download URL:`, urlError);
               fileData.status = "failed";
-              fileData.error = error.message;
-              reject(error);
-            },
-            async () => {
-              // Upload completed successfully, get download URL
-              try {
-                const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
-                fileData.downloadURL = downloadURL;
-                fileData.status = "uploaded";
-                fileData.lastUpdated = new Date();
-                console.log(`✅ File uploaded: ${file.name}`, downloadURL);
-                
-                // Add to uploaded files array
-                uploadedFilesData.push(fileData);
-                resolve();
-              } catch (urlError) {
-                console.error(`Error getting download URL for ${file.name}:`, urlError);
-                fileData.status = "failed";
-                fileData.error = "Failed to get download URL";
-                reject(urlError);
-              }
+              fileData.error = "Failed to get download URL";
+              reject(urlError);
             }
-          );
+          }
+        );
+      });
+    }
+
+    console.log("✅ All files uploaded to storage:", uploadedFilesData.length);
+
+    // 5. Update Firestore document with uploaded files data
+    await updateDoc(newUploadRef, {
+      files: uploadedFilesData,
+      status: "uploaded",
+      updatedAt: new Date().toISOString(),
+      serverUploaded: true,
+      serverUploadedAt: new Date().toISOString()
+    });
+
+    console.log("✅ Firestore document updated with file data");
+    
+    // SUCCESS MESSAGE
+ 
+    
+    // Reset states
+    setUploadProgress({});
+    setIsUploading(false);
+
+    // 6. Also update user's upload history
+    try {
+      const userUploadRef = doc(db, "users", userId, "orders", "uploadfiles");
+      const userUploadDoc = await getDoc(userUploadRef);
+      
+      if (userUploadDoc.exists()) {
+        const existingData = userUploadDoc.data();
+        const existingFiles = existingData.files || [];
+        const allFiles = [...existingFiles, ...uploadedFilesData];
+        
+        await updateDoc(userUploadRef, {
+          files: allFiles,
+          totalFiles: allFiles.length,
+          lastUpdated: new Date().toISOString(),
+          userEmail: userEmail,
+          userName: userName
+        });
+      } else {
+        await setDoc(userUploadRef, {
+          files: uploadedFilesData,
+          totalFiles: uploadedFilesData.length,
+          createdAt: new Date().toISOString(),
+          userId: userId,
+          userName: userName,
+          userEmail: userEmail,
+          userPhone: userPhone
         });
       }
-
-      // 5. Update Firestore document with uploaded files data
-      await updateDoc(newUploadRef, {
-        files: uploadedFilesData,
-        status: "uploaded",
-        updatedAt: new Date(),
-        serverUploaded: true,
-        serverUploadedAt: new Date()
-      });
-
-      console.log("✅ All files uploaded successfully!");
-      alert(`✅ Successfully uploaded ${files.length} file(s)! Upload ID: ${uploadId}`);
-      
-      // Reset states
-      setUploadProgress({});
-      setIsUploading(false);
-
-      // 6. Also update user's orders/uploadfiles for backward compatibility
-      try {
-        const userUploadRef = doc(db, "users", userId, "orders", "uploadfiles");
-        const userUploadDoc = await getDoc(userUploadRef);
-        
-        if (userUploadDoc.exists()) {
-          const existingData = userUploadDoc.data();
-          const existingFiles = existingData.files || [];
-          const allFiles = [...existingFiles, ...uploadedFilesData];
-          
-          await updateDoc(userUploadRef, {
-            files: allFiles,
-            totalFiles: allFiles.length,
-            lastUpdated: new Date()
-          });
-        } else {
-          await setDoc(userUploadRef, {
-            files: uploadedFilesData,
-            totalFiles: uploadedFilesData.length,
-            createdAt: new Date(),
-            userId: userId,
-            userName: userName,
-            userEmail: userEmail
-          });
-        }
-        console.log("✅ Also updated user's orders/uploadfiles");
-      } catch (userUpdateError) {
-        console.log("User update skipped:", userUpdateError);
-      }
-
-    } catch (error) {
-      console.error("Error in file upload process:", error);
-      alert(`❌ Error uploading files: ${error.message}`);
-      setIsUploading(false);
-      setUploadProgress({});
+      console.log("✅ User's upload history updated");
+    } catch (userUpdateError) {
+      console.log("⚠️ User update skipped:", userUpdateError.message);
     }
-    
-    // Reset file input
-    e.target.value = "";
-  };
+
+  } catch (error) {
+    console.error("❌ Error in file upload process:", error);
+    alert(`❌ Error uploading files: ${error.message}`);
+    setIsUploading(false);
+    setUploadProgress({});
+  }
+  
+  // Reset file input
+  e.target.value = "";
+};
+// --- END FILE UPLOAD HANDLER ---
+// --- END FILE UPLOAD HANDLER ---
   // --- END FILE UPLOAD HANDLER ---
 
   // --- FILE VIEWING FUNCTIONS ---
@@ -498,37 +528,50 @@ const Navbar = () => {
   };
 
   // Progress bar component for uploads
-  const UploadProgress = () => {
-    if (!isUploading) return null;
-    
-    const totalFiles = Object.keys(uploadProgress).length;
-    const completedFiles = Object.values(uploadProgress).filter(p => p === 100).length;
-    const overallProgress = totalFiles > 0 
-      ? (Object.values(uploadProgress).reduce((a, b) => a + b, 0) / totalFiles) 
-      : 0;
-    
-    return (
-      <div className="fixed top-20 right-4 bg-white p-4 rounded-lg shadow-lg z-50 max-w-sm">
-        <h3 className="font-semibold text-gray-800 mb-2">Uploading Files...</h3>
-        <div className="mb-2">
-          <div className="flex justify-between text-sm mb-1">
-            <span>Overall Progress</span>
-            <span>{Math.round(overallProgress)}%</span>
-          </div>
-          <div className="w-full bg-gray-200 rounded-full h-2">
-            <div 
-              className="bg-green-600 h-2 rounded-full transition-all duration-300"
-              style={{ width: `${overallProgress}%` }}
-            ></div>
-          </div>
+  // Progress bar component for uploads
+const UploadProgress = () => {
+  if (!isUploading) return null;
+  
+  const totalFiles = Object.keys(uploadProgress).length;
+  const completedFiles = Object.values(uploadProgress).filter(p => p === 100).length;
+  const overallProgress = totalFiles > 0 
+    ? (Object.values(uploadProgress).reduce((a, b) => a + b, 0) / totalFiles) 
+    : 0;
+  
+  return (
+    <div className="fixed top-20 right-4 bg-white p-4 rounded-lg shadow-lg z-50 max-w-sm border border-gray-300">
+      <div className="flex justify-between items-center mb-2">
+        <h3 className="font-semibold text-gray-800">Uploading Files...</h3>
+        <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
+          {completedFiles}/{totalFiles}
+        </span>
+      </div>
+      
+      <div className="mb-2">
+        <div className="flex justify-between text-sm mb-1">
+          <span>Overall Progress</span>
+          <span className="font-medium">{Math.round(overallProgress)}%</span>
         </div>
-        
-        <div className="max-h-48 overflow-y-auto">
+        <div className="w-full bg-gray-200 rounded-full h-2">
+          <div 
+            className="bg-green-600 h-2 rounded-full transition-all duration-300"
+            style={{ width: `${overallProgress}%` }}
+          ></div>
+        </div>
+      </div>
+      
+      {totalFiles > 0 && (
+        <div className="max-h-48 overflow-y-auto border-t pt-2 mt-2">
+          <p className="text-xs text-gray-500 mb-2 font-medium">File Details:</p>
           {Object.entries(uploadProgress).map(([fileName, progress]) => (
             <div key={fileName} className="mb-2">
               <div className="flex justify-between text-xs mb-1">
-                <span className="truncate max-w-[200px]">{fileName}</span>
-                <span>{Math.round(progress)}%</span>
+                <span className="truncate max-w-[180px]" title={fileName}>
+                  {fileName}
+                </span>
+                <span className={`font-medium ${progress === 100 ? 'text-green-600' : 'text-blue-600'}`}>
+                  {Math.round(progress)}%
+                </span>
               </div>
               <div className="w-full bg-gray-100 rounded-full h-1.5">
                 <div 
@@ -541,14 +584,18 @@ const Navbar = () => {
             </div>
           ))}
         </div>
-        
-        <div className="text-xs text-gray-500 mt-2">
-          {completedFiles} of {totalFiles} files completed
-        </div>
+      )}
+      
+      <div className="text-xs text-gray-500 mt-2 pt-2 border-t">
+        {completedFiles === totalFiles && totalFiles > 0 ? (
+          <span className="text-green-600 font-medium">✓ Upload completed!</span>
+        ) : (
+          `Uploading... ${completedFiles} of ${totalFiles} files completed`
+        )}
       </div>
-    );
-  };
-
+    </div>
+  );
+};
   return (
     <div className="bg-white sticky top-0 z-40 shadow-md">
       {/* Upload Progress Overlay */}
