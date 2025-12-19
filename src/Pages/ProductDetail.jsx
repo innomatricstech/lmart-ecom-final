@@ -15,6 +15,7 @@ import {
 import { getStorage, ref, getDownloadURL } from "firebase/storage";
 import { useCart } from "../context/CartContext";
 
+
 // ⭐ Star Rating Component
 const StarRating = ({ rating = 0, size = "w-4 h-4", color = "text-yellow-500", showText = false }) => {
   const fullStars = Math.floor(rating);
@@ -252,6 +253,21 @@ const WriteReviewModal = ({ onClose, onSubmit, productName, currentUser, product
   );
 };
 
+// Helper function to check if URL is a video
+const isVideoUrl = (url) => {
+  if (!url) return false;
+  
+  // Check by file extension
+  const videoExtensions = ['.mp4', '.webm', '.ogg', '.mov', '.avi', '.wmv', '.flv', '.mkv'];
+  const urlLower = url.toLowerCase();
+  
+  // Check if URL contains video patterns
+  return videoExtensions.some(ext => urlLower.includes(ext)) ||
+         urlLower.includes('video') ||
+         (urlLower.includes('firebasestorage') && 
+          (urlLower.includes('.mp4') || urlLower.includes('.webm') || urlLower.includes('.ogg')));
+};
+
 // ⭐ Main Product Detail Component - Fixed Size and Color Selection
 const ProductDetail = () => {
   const { productId } = useParams();
@@ -286,7 +302,7 @@ const ProductDetail = () => {
   const [currentUser, setCurrentUser] = useState(null);
   const [availableColors, setAvailableColors] = useState([]);
   const [availableSizes, setAvailableSizes] = useState([]);
-  const [colorImageMap, setColorImageMap] = useState({}); // Map colors to image indices
+  const [colorImageMap, setColorImageMap] = useState({}); 
   
   // ⭐ FIXED: Define storePath and storeLabel using useMemo for Breadcrumb
 
@@ -639,7 +655,7 @@ const { storePath, storeLabel } = useMemo(() => {
         if (productData) {
           setProduct(productData);
           
-          // Process images - Handle both string URLs and object URLs
+          // Process images
           const imageUrls = productData.imageUrls || [];
           const urls = imageUrls.map(img => {
             if (typeof img === 'string') return img;
@@ -647,24 +663,55 @@ const { storePath, storeLabel } = useMemo(() => {
             return null;
           }).filter(Boolean);
           
-          // Process video URLs
-          const videoUrls = productData.videoUrls || [];
-          const videoUrlsProcessed = videoUrls.map(video => {
-            if (typeof video === 'string') return video;
-            if (video?.url) return video.url;
-            return null;
-          }).filter(Boolean);
+          setImages(urls);
+          
+          // ⭐ Fetch video URLs
+          let videoUrls = [];
+          
+          // Check if product has video URLs stored in Firestore
+          if (productData.videoUrls && Array.isArray(productData.videoUrls)) {
+            videoUrls = productData.videoUrls.map(video => {
+              if (typeof video === 'string') return video;
+              if (video?.url) return video.url;
+              return null;
+            }).filter(Boolean);
+          }
+          
+          // ⭐ If video URLs are stored as storage paths, fetch them from Firebase Storage
+          if (productData.videoStoragePaths && Array.isArray(productData.videoStoragePaths)) {
+            const videoPromises = productData.videoStoragePaths.map(async (storagePath) => {
+              try {
+                if (!storagePath) return null;
+                
+                // Create storage reference
+                const videoRef = ref(storage, storagePath);
+                
+                // Get download URL
+                const downloadURL = await getDownloadURL(videoRef);
+                return downloadURL;
+              } catch (error) {
+                console.error(`Error fetching video from path ${storagePath}:`, error);
+                return null;
+              }
+            });
+            
+            const fetchedVideoUrls = await Promise.all(videoPromises);
+            videoUrls = [...videoUrls, ...fetchedVideoUrls.filter(Boolean)];
+          }
+          
+          // ⭐ Check for single videoUrl field
+          if (productData.videoUrl && !videoUrls.includes(productData.videoUrl)) {
+            videoUrls.push(productData.videoUrl);
+          }
+          
+          setVideos(videoUrls);
           
           console.log('Fetched product media:', {
             images: urls,
-            videos: videoUrlsProcessed,
+            videos: videoUrls,
             productName: productData.name
           });
           
-          setImages(urls);
-          setVideos(videoUrlsProcessed);
-          
-          // ⭐ FIXED: Process variants and get available colors and sizes
           const variants = productData.variants || [];
           
           // Get unique colors from variants that have stock > 0
@@ -707,7 +754,7 @@ const { storePath, storeLabel } = useMemo(() => {
           }
          
           // Combine images and videos for display
-          const allMedia = [...urls, ...videoUrlsProcessed];
+          const allMedia = [...urls, ...videoUrls];
           
           // ALWAYS set currentImg if media exists
           if (allMedia.length > 0) {
@@ -718,7 +765,8 @@ const { storePath, storeLabel } = useMemo(() => {
             } else {
               setCurrentImg(allMedia[0]);
               // Check if first media is video
-              if (allMedia[0].match(/\.(mp4|webm|ogg)$/i)) {
+              const isVideo = isVideoUrl(allMedia[0]);
+              if (isVideo) {
                 setCurrentIsVideo(true);
               }
             }
@@ -869,7 +917,7 @@ const { storePath, storeLabel } = useMemo(() => {
     setImageLoading(true);
     
     // Check if it's a video
-    const isVideo = media.match(/\.(mp4|webm|ogg)$/i);
+    const isVideo = isVideoUrl(media);
     setCurrentIsVideo(isVideo);
     
     // Update color selection if image is associated with a color
@@ -1428,12 +1476,13 @@ const { storePath, storeLabel } = useMemo(() => {
                     )}
                     
                     {/* Check if current media is a video */}
-                    {currentIsVideo || currentImg.match(/\.(mp4|webm|ogg)$/i) ? (
+                    {currentIsVideo || isVideoUrl(currentImg) ? (
                       <div className="w-full h-full flex items-center justify-center">
                         <video
                           src={currentImg}
                           controls
-                          className="w-full h-auto max-h-[450px] object-contain transition-opacity duration-300"
+                          controlsList="nodownload"
+                          className="w-full h-auto max-h-[450px] object-contain transition-opacity duration-300 rounded-xl"
                           onLoadedData={() => {
                             console.log('Video loaded successfully:', currentImg);
                             setImageLoading(false);
@@ -1441,11 +1490,20 @@ const { storePath, storeLabel } = useMemo(() => {
                           onError={(e) => {
                             console.error('Error loading video:', currentImg);
                             setImageLoading(false);
+                            // Fallback to image
+                            if (images.length > 0) {
+                              setCurrentImg(images[0]);
+                              setCurrentIsVideo(false);
+                            }
                           }}
-                          poster={images[0] || "https://placehold.co/600x400?text=Video"}
-                        />
-                        {/* Video badge */}
-                        <div className="absolute top-4 right-4 bg-black bg-opacity-70 text-white px-3 py-1 rounded-full text-sm font-semibold flex items-center gap-2">
+                          poster={images[0] || "https://placehold.co/600x400?text=Video+Loading"}
+                          playsInline
+                        >
+                          Your browser does not support the video tag.
+                        </video>
+                        
+                        {/* Video Badge */}
+                        <div className="absolute top-4 right-4 bg-black/70 text-white px-3 py-1.5 rounded-full text-sm font-semibold flex items-center gap-2 backdrop-blur-sm">
                           <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                             <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clipRule="evenodd" />
                           </svg>
@@ -1456,7 +1514,9 @@ const { storePath, storeLabel } = useMemo(() => {
                       <img
                         src={currentImg}
                         alt={`${product.name} - ${selectedColor}`}
-                        className={`w-full h-auto max-h-[450px] object-contain transition-opacity duration-300 ${imageLoading ? 'opacity-0' : 'opacity-100'}`}
+                        className={`w-full h-auto max-h-[450px] object-contain transition-opacity duration-300 rounded-xl ${
+                          imageLoading ? 'opacity-0' : 'opacity-100'
+                        }`}
                         onLoad={() => {
                           console.log('Main image loaded successfully:', currentImg);
                           setImageLoading(false);
@@ -1465,7 +1525,7 @@ const { storePath, storeLabel } = useMemo(() => {
                           console.error('Error loading main image:', currentImg);
                           e.target.onerror = null;
                           e.target.src = "https://placehold.co/600x400?text=Image+Error";
-                          e.target.className = "w-full h-auto max-h-[450px] object-contain opacity-100";
+                          e.target.className = "w-full h-auto max-h-[450px] object-contain opacity-100 rounded-xl";
                           setImageLoading(false);
                         }}
                         loading="lazy"
@@ -1512,61 +1572,71 @@ const { storePath, storeLabel } = useMemo(() => {
               {allMedia.length > 1 && (
                 <div className="grid grid-cols-4 gap-3">
                   {allMedia.map((media, i) => {
-                    const isVideo = media.match(/\.(mp4|webm|ogg)$/i);
+                    const isVideo = isVideoUrl(media);
                     
                     return (
                       <button
                         key={i}
                         onClick={() => onThumbnailClick(media, i)}
-                        className={`rounded-xl overflow-hidden border-2 transition-all duration-200 relative ${
+                        className={`rounded-xl overflow-hidden border-2 transition-all duration-200 relative group ${
                           currentImg === media
                             ? "border-purple-500 ring-2 ring-purple-200"
                             : "border-gray-300 hover:border-gray-400"
                         }`}
                       >
                         {isVideo ? (
-                          <div className="relative h-30 w-full bg-gray-900 flex items-center justify-center">
-                            <div className="absolute inset-0 flex items-center justify-center">
-                              <svg className="w-8 h-8 text-white opacity-80" fill="currentColor" viewBox="0 0 20 20">
-                                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clipRule="evenodd" />
-                              </svg>
-                            </div>
-                            {/* Use first image as video poster if available */}
+                          <div className="relative h-30 w-full bg-gradient-to-br from-gray-800 to-gray-900 flex items-center justify-center">
+                            {/* Video Thumbnail Image (use first product image as poster) */}
                             {images[0] && (
                               <img
                                 src={images[0]}
-                                className="h-30 w-full object-cover opacity-50"
+                                className="h-30 w-full object-cover opacity-60 group-hover:opacity-70 transition-opacity"
                                 alt="Video thumbnail"
                                 onError={(e) => {
                                   e.target.onerror = null;
-                                  e.target.src = "https://placehold.co/150x100?text=Video";
+                                  e.target.style.display = 'none';
                                 }}
                               />
                             )}
-                            {/* Video indicator */}
-                            <div className="absolute bottom-2 right-2 bg-black bg-opacity-60 text-white text-xs px-2 py-1 rounded flex items-center gap-1">
+                            
+                            {/* Play Icon */}
+                            <div className="absolute inset-0 flex items-center justify-center">
+                              <div className="w-10 h-10 bg-purple-600 rounded-full flex items-center justify-center transform group-hover:scale-110 transition-transform">
+                                <svg className="w-5 h-5 text-white ml-1" fill="currentColor" viewBox="0 0 20 20">
+                                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clipRule="evenodd" />
+                                </svg>
+                              </div>
+                            </div>
+                            
+                            {/* Video Badge */}
+                            <div className="absolute bottom-2 right-2 bg-black/70 text-white text-xs px-2 py-1 rounded flex items-center gap-1 backdrop-blur-sm">
                               <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
                                 <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clipRule="evenodd" />
                               </svg>
                               VIDEO
                             </div>
+                            
+                            {/* Index Overlay (for debugging) */}
+                            
                           </div>
                         ) : (
-                          <img
-                            src={media}
-                            className="h-30 w-full object-cover"
-                            alt={`Thumbnail ${i + 1}`}
-                            loading="lazy"
-                            onError={(e) => {
-                              console.error('Thumbnail load error:', media);
-                              e.target.onerror = null;
-                              e.target.src = "https://placehold.co/150x100?text=Thumb";
-                              e.target.className = "h-30 w-full object-cover bg-gray-200";
-                            }}
-                          />
+                          <div className="relative">
+                            <img
+                              src={media}
+                              className="h-30 w-full object-cover group-hover:opacity-90 transition-opacity"
+                              alt={`Thumbnail ${i + 1}`}
+                              loading="lazy"
+                              onError={(e) => {
+                                console.error('Thumbnail load error:', media);
+                                e.target.onerror = null;
+                                e.target.src = "https://placehold.co/150x100?text=Image";
+                                e.target.className = "h-30 w-full object-cover bg-gray-200";
+                              }}
+                            />
+                            {/* Index Overlay (for debugging) */}
+                             
+                          </div>
                         )}
-                        {/* Add index number overlay for debugging */}
-                         
                       </button>
                     );
                   })}
@@ -1590,7 +1660,7 @@ const { storePath, storeLabel } = useMemo(() => {
               {/* ⭐ Rating */}
               <div className="flex items-center space-x-4 ">
                 {stats.avg > 0 && (
-                  <div className="flex items-center     px-3 py-1.5 rounded-full">
+                  <div className="flex items-center px-0.5 py-1.5 rounded-full">
                     <span className="font-bold text-lg">{stats.avg.toFixed(1)}</span>
                     <StarRating rating={stats.avg} size="w-5 h-5" color="text-yellow-500" />
                   </div>
@@ -1642,11 +1712,7 @@ const { storePath, storeLabel } = useMemo(() => {
                       </button>
                     ))}
                   </div>
-                  {selectedColor && (
-                    <p className="text-sm text-gray-500">
-                      Currently showing: <span className="font-medium">{selectedColor}</span> variant
-                    </p>
-                  )}
+                  
                 </div>
               )}
 
@@ -1989,4 +2055,4 @@ const { storePath, storeLabel } = useMemo(() => {
   );
 };
 
-export default ProductDetail;
+export default ProductDetail

@@ -43,6 +43,7 @@ const Cart = () => {
     if (selected.length === 0) {
       return;
     }
+    window.scrollTo({ top: 0, behavior: "smooth" });
 
     sessionStorage.setItem("selectedCartItems", JSON.stringify(selected));
     navigate("/checkout");

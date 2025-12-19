@@ -3,9 +3,6 @@ import { db } from "../../firebase";
 import { 
   collection, 
   onSnapshot, 
-  doc, 
-  getDoc,
-  getDocs,
   query, 
   where,
   orderBy 
@@ -50,7 +47,6 @@ const MyUploads = () => {
     });
 
     // Query to find user's uploaded files
-    // We'll try multiple queries to find all possible matches
     const queries = [
       query(collection(db, "uploadfile"), 
             where("customerId", "==", currentUser.uid),
@@ -69,16 +65,21 @@ const MyUploads = () => {
         q,
         (snapshot) => {
           const docs = snapshot.docs
-  .map(doc => ({
-    id: doc.id,
-    ...doc.data(),
-  }))
-  // 🔥 ONLY USER UPLOAD FILES
-  .filter(doc => doc.userUploadFile === true);
- 
+            .map(doc => ({
+              id: doc.id,
+              ...doc.data(),
+            }))
+            // Filter to show only user-uploaded files (non-admin files)
+            .map(doc => ({
+              ...doc,
+              files: (doc.files || []).filter(file => 
+                !file.adminUploaded && file.downloadURL // User uploads only
+              )
+            }))
+            // Remove documents that have no user-uploaded files
+            .filter(doc => doc.files.length > 0);
           
-          
-          console.log(`Query ${index} found ${docs.length} documents`);
+          console.log(`Query ${index} found ${docs.length} user-uploaded documents`);
           
           // Add to all results and remove duplicates
           allResults = [...allResults, ...docs];
@@ -117,18 +118,24 @@ const MyUploads = () => {
           
           console.log(`Total documents in uploadfile: ${allDocs.length}`);
           
-          // Filter for current user
-          const userDocs = allDocs.filter(doc => 
-  doc.userUploadFile === true && (     // 👈 MUST
-    doc.customerId === currentUser.uid || 
-    doc.customerEmail === currentUser.email ||
-    doc.customerUserId === currentUser.uid ||
-    doc.createdBy === currentUser.uid
-  )
-);
-
+          // Filter for current user and only user-uploaded files
+          const userDocs = allDocs
+            .map(doc => ({
+              ...doc,
+              files: (doc.files || []).filter(file => 
+                !file.adminUploaded && file.downloadURL // User uploads only
+              )
+            }))
+            .filter(doc => 
+              doc.files.length > 0 && (
+                doc.customerId === currentUser.uid || 
+                doc.customerEmail === currentUser.email ||
+                doc.customerUserId === currentUser.uid ||
+                doc.createdBy === currentUser.uid
+              )
+            );
           
-          console.log(`Found ${userDocs.length} user documents after filtering`);
+          console.log(`Found ${userDocs.length} user-uploaded documents after filtering`);
           setFileDocs(userDocs);
           setLoading(false);
         },
@@ -147,7 +154,7 @@ const MyUploads = () => {
     };
   }, [currentUser, userLoading]);
 
-  // Calculate total files and total size
+  // Calculate total files and total size (only user-uploaded)
   const totalFiles = fileDocs.reduce((sum, doc) => sum + (doc.files?.length || 0), 0);
   const totalSize = fileDocs.reduce((sum, doc) => sum + (doc.totalSize || 0), 0);
 
@@ -155,15 +162,18 @@ const MyUploads = () => {
   const allFiles = fileDocs.flatMap((doc) =>
     (doc.files || []).map((file) => ({
       ...file,
+      // Use correct download URL for user uploads
+      downloadURL: file.downloadURL,
       parentDocId: doc.id,
       uploadId: doc.uploadId || doc.id,
-      uploadDate: doc.createdAt || doc.uploadDate || doc.updatedAt || "Unknown date",
+      uploadDate: file.uploadedAt || doc.createdAt || "Unknown date",
       customerName: doc.customerName || "You",
-      customerEmail: doc.customerEmail || currentUser?.email || "Unknown"
+      customerEmail: doc.customerEmail || currentUser?.email || "Unknown",
+      fileSource: "user"
     }))
   );
 
-  console.log("Total files to display:", allFiles.length);
+  console.log("Total user-uploaded files to display:", allFiles.length);
 
   // Search filter
   const filteredFiles = allFiles.filter((file) => {
@@ -189,7 +199,7 @@ const MyUploads = () => {
     try {
       // Create download link
       const link = document.createElement("a");
-      link.href = downloadURL;
+      link.href = downloadURL; // FIXED: Was downloadURLs
       link.download = originalName || "download";
       link.target = "_blank";
       link.rel = "noopener noreferrer";
@@ -318,6 +328,12 @@ const MyUploads = () => {
       <div className="max-w-7xl mx-auto">
         
         {/* HEADER */}
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-gray-900">My Uploads</h1>
+          <p className="text-gray-600 mt-2">Files uploaded by you</p>
+        </div>
+        
+        {/* SEARCH BAR */}
          
         {/* STATS */}
         {fileDocs.length > 0 && (
@@ -327,7 +343,7 @@ const MyUploads = () => {
               <div className="text-2xl font-bold text-blue-600">{fileDocs.length}</div>
             </div>
             <div className="bg-white p-4 rounded-lg border shadow-sm">
-              <div className="text-sm text-gray-500">Total Files</div>
+              <div className="text-sm text-gray-500">Your Uploaded Files</div>
               <div className="text-2xl font-bold text-green-600">{totalFiles}</div>
             </div>
             <div className="bg-white p-4 rounded-lg border shadow-sm">
@@ -337,9 +353,6 @@ const MyUploads = () => {
           </div>
         )}
 
-        {/* SEARCH BAR */}
-         
- 
         {/* ALL FILES GRID */}
         {filteredFiles.length === 0 ? (
           <div className="bg-white p-16 text-center rounded-xl border-2 border-dashed border-gray-300">
@@ -354,12 +367,12 @@ const MyUploads = () => {
             <p className="text-gray-500">
               {searchTerm 
                 ? "Try a different search term" 
-                : "Upload some files from the navbar to see them here"}
+                : "Upload some files to see them here"}
             </p>
           </div>
         ) : (
           <div>
-            <h2 className="text-xl font-semibold text-gray-800 mb-4">All Files ({filteredFiles.length})</h2>
+            <h2 className="text-xl font-semibold text-gray-800 mb-4">Your Uploaded Files ({filteredFiles.length})</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {filteredFiles.map((file, index) => (
                 <div
@@ -400,6 +413,12 @@ const MyUploads = () => {
                         <span className="text-gray-500">Size:</span>
                         <span className="font-medium text-gray-800">
                           {file.fileSize ? formatFileSize(file.fileSize) : "Unknown"}
+                        </span>
+                      </div>
+                      <div className="flex justify-between text-sm mb-2">
+                        <span className="text-gray-500">Source:</span>
+                        <span className="font-medium text-blue-600">
+                            You Uploaded
                         </span>
                       </div>
                     </div>

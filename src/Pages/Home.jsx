@@ -1,12 +1,125 @@
+// src/pages/Home.jsx
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useCart } from "../context/CartContext";
 import { db } from "../../firebase";
 import { collection, getDocs, query, where, orderBy } from "firebase/firestore";
 
+// ----------- Helper functions -----------
+const PLACEHOLDER_IMAGE = "https://placehold.co/400x300?text=No+Image";
+
+const pickVariant = (product) => {
+  if (!Array.isArray(product.variants)) return null;
+  return product.variants.find(v => Number(v.price) > 0) || product.variants[0] || null;
+};
+
+const getPriceData = (product) => {
+  const variant = pickVariant(product);
+  const price = variant ? Number(variant.price || 0) : Number(product.price || 0);
+  const offer = variant?.offerPrice ? Number(variant.offerPrice) : 0;
+
+  const finalPrice = offer && offer < price ? offer : price;
+  const original = offer && offer < price ? price : 0;
+  const discount = original > 0 ? Math.round(((original - finalPrice) / original) * 100) : 0;
+
+  return { finalPrice, original, discount, variant };
+};
+
+// ----------- Product Card Component -----------
+const ProductCardHome = ({ product }) => {
+  const navigate = useNavigate();
+  
+  const imageUrl = product.image || PLACEHOLDER_IMAGE;
+  const { finalPrice, original, discount } = getPriceData(product);
+  const rating = product.rating || 4.3;
+  const reviewCount = Math.floor(Math.random() * 100);
+
+  const handleViewProduct = (e) => {
+    e.stopPropagation();
+    navigate(`/product/${product.id}`, { state: { product } });
+  };
+
+  return (
+    <div
+      className="bg-white rounded-lg shadow-sm hover:shadow-md transition border cursor-pointer"
+      onClick={() => navigate(`/product/${product.id}`, { state: { product } })}
+    >
+      <div className="relative h-40 sm:h-48">
+        <img
+          src={imageUrl}
+          alt={product.name}
+          className="w-full h-full object-fill"
+          onError={(e) => {
+            console.error("Image failed to load:", imageUrl);
+            e.target.src = PLACEHOLDER_IMAGE;
+          }}
+        />
+        {discount > 0 && (
+          <>
+            <span className="absolute top-2 left-2 sm:top-3 sm:left-3 bg-red-600 text-white text-xs px-2 py-1 rounded">
+              -{discount}%
+            </span>
+            <div className="absolute top-2 right-2 bg-green-600 text-white text-xs px-2 py-1 rounded font-bold">
+              Save ₹{original - finalPrice}
+            </div>
+          </>
+        )}
+      </div>
+
+      <div className="p-3 sm:p-4">
+        <h3 className="font-medium text-sm sm:text-base line-clamp-2 h-10 sm:h-12">
+          {product.name}
+        </h3>
+        
+        <div className="flex items-center -mt-5">
+          <span className="text-xs sm:text-sm font-medium text-yellow-500 mr-1">
+            {rating.toFixed(1)}
+          </span>
+          <div className="flex items-center">
+            {Array(5).fill(0).map((_, i) => (
+              <svg
+                key={i}
+                className="w-3 h-3 sm:w-4 sm:h-4 text-yellow-400 fill-current"
+                viewBox="0 0 20 20"
+              >
+                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+              </svg>
+            ))}
+          </div>
+          <span className="text-xs text-gray-500 ml-2">({reviewCount})</span>
+        </div>
+
+        <div className="flex items-center space-x-2 mb-3">
+          {original > finalPrice ? (
+            <>
+              <span className="text-red-600 font-semibold text-base sm:text-lg">
+                ₹ {finalPrice}
+              </span>
+              <span className="line-through text-gray-500 text-sm sm:text-base">
+                ₹ {original}
+              </span>
+            </>
+          ) : (
+            <span className="text-gray-900 font-bold text-base sm:text-lg">
+              ₹ {finalPrice}
+            </span>
+          )}
+        </div>
+
+        <button
+          onClick={handleViewProduct}
+          className="w-full bg-blue-600 hover:bg-blue-700 text-white py-1.5 sm:py-2 rounded-lg font-medium transition flex items-center justify-center gap-2 text-sm sm:text-base"
+        >
+          View
+        </button>
+      </div>
+    </div>
+  );
+};
+
 const Home = () => {
   const navigate = useNavigate();
-  const { addToCart, items } = useCart();
+  const { items } = useCart();
 
   const [allProducts, setAllProducts] = useState([]);
   const [trendingProducts, setTrendingProducts] = useState([]);
@@ -17,86 +130,13 @@ const Home = () => {
   const [trendingLoading, setTrendingLoading] = useState(true);
   const [postersLoading, setPostersLoading] = useState(true);
   const [current, setCurrent] = useState(0);
-  const [toasts, setToasts] = useState([]);
-  const [addedProducts, setAddedProducts] = useState({});
 
-  // Add toast function for cart notifications
-  const addToast = (product) => {
-    const newToast = {
-      id: Date.now(),
-      productName: product.name,
-      productImage: product.image,
-      price: product.offerPrice,
-      timestamp: new Date().toLocaleTimeString([], {
-        hour: "2-digit",
-        minute: "2-digit",
-      }),
-    };
-
-    setToasts((prev) => [newToast, ...prev]);
-
-    // Auto remove toast after 3 seconds
-    setTimeout(() => {
-      setToasts((prev) => prev.filter((toast) => toast.id !== newToast.id));
-    }, 3000);
-  };
-
-  // Check if product is in cart
-  const getQuantity = (id) => {
-    const item = items.find((i) => i.id === id);
-    return item ? item.quantity : 0;
-  };
-
-  // Handle add to cart with toast notification
-  const handleAddToCart = (product, e) => {
-    e.preventDefault();
-    e.stopPropagation();
-
-    addToCart({
-      ...product,
-      image: product.image,
-      id: product.id,
-    });
-
-    // mark product as added
-    setAddedProducts((prev) => ({
-      ...prev,
-      [product.id]: true,
-    }));
-
-    addToast(product);
-  };
-
-  // Helper function to format poster date
-  const formatPosterDate = (timestamp) => {
-    if (!timestamp) return "No date";
-
-    try {
-      if (timestamp.toDate) {
-        const date = timestamp.toDate();
-        return date.toLocaleDateString("en-US", {
-          year: "numeric",
-          month: "short",
-          day: "numeric",
-          hour: "2-digit",
-          minute: "2-digit",
-        });
-      }
-      return timestamp;
-    } catch (error) {
-      console.error("Error formatting date:", error);
-      return "Invalid date";
-    }
-  };
-
-  // Fetch trending products from Firebase (where trending is true)
+  // Fetch trending products from Firebase
   useEffect(() => {
     const fetchTrendingProducts = async () => {
       try {
         setTrendingLoading(true);
         const productsCollectionRef = collection(db, "products");
-
-        // Create query for trending products
         const trendingQuery = query(
           productsCollectionRef,
           where("trending", "==", true)
@@ -108,7 +148,6 @@ const Home = () => {
         querySnapshot.forEach((doc) => {
           const productData = doc.data();
           if (productData && productData.name) {
-            // Handle pricing
             let price = 0;
             let offerPrice = 0;
 
@@ -125,20 +164,21 @@ const Home = () => {
               offerPrice = Number(productData.offerPrice) || price;
             }
 
-            // Get main image
             let imageUrl = "";
-            if (
+            if (productData.mainImageUrl && productData.mainImageUrl.trim() !== "") {
+              imageUrl = productData.mainImageUrl;
+            } else if (
               productData.imageUrls &&
               Array.isArray(productData.imageUrls) &&
               productData.imageUrls.length > 0
             ) {
-              const mainImage =
-                productData.imageUrls.find((img) => img.isMain) ||
-                productData.imageUrls[0];
-              imageUrl = mainImage.url || "";
-            } else if (productData.mainImageUrl) {
-              imageUrl = productData.mainImageUrl;
-            } else if (productData.image) {
+              const mainImage = productData.imageUrls.find(img => img.isMain === true);
+              if (mainImage && mainImage.url) {
+                imageUrl = mainImage.url;
+              } else if (productData.imageUrls[0].url) {
+                imageUrl = productData.imageUrls[0].url;
+              }
+            } else if (productData.image && productData.image.trim() !== "") {
               imageUrl = productData.image;
             }
 
@@ -157,14 +197,10 @@ const Home = () => {
           }
         });
 
-        console.log(
-          "Fetched trending products from Firebase:",
-          fetchedTrendingProducts.length
-        );
+        console.log("Fetched trending products:", fetchedTrendingProducts.length);
         setTrendingProducts(fetchedTrendingProducts);
       } catch (err) {
         console.error("Error fetching trending products:", err);
-        // Don't set error for trending products - just show empty state
       } finally {
         setTrendingLoading(false);
       }
@@ -185,10 +221,9 @@ const Home = () => {
         querySnapshot.forEach((doc) => {
           const productData = doc.data();
           if (productData && productData.name) {
-            // Handle pricing
             let price = 0;
             let offerPrice = 0;
-
+            
             if (
               productData.variants &&
               Array.isArray(productData.variants) &&
@@ -202,20 +237,21 @@ const Home = () => {
               offerPrice = Number(productData.offerPrice) || price;
             }
 
-            // Get main image
             let imageUrl = "";
-            if (
+            if (productData.mainImageUrl && productData.mainImageUrl.trim() !== "") {
+              imageUrl = productData.mainImageUrl;
+            } else if (
               productData.imageUrls &&
               Array.isArray(productData.imageUrls) &&
               productData.imageUrls.length > 0
             ) {
-              const mainImage =
-                productData.imageUrls.find((img) => img.isMain) ||
-                productData.imageUrls[0];
-              imageUrl = mainImage.url || "";
-            } else if (productData.mainImageUrl) {
-              imageUrl = productData.mainImageUrl;
-            } else if (productData.image) {
+              const mainImage = productData.imageUrls.find(img => img.isMain === true);
+              if (mainImage && mainImage.url) {
+                imageUrl = mainImage.url;
+              } else if (productData.imageUrls[0].url) {
+                imageUrl = productData.imageUrls[0].url;
+              }
+            } else if (productData.image && productData.image.trim() !== "") {
               imageUrl = productData.image;
             }
 
@@ -226,14 +262,17 @@ const Home = () => {
               offerPrice: offerPrice,
               originalPrice: price > offerPrice ? price : null,
               image: imageUrl,
+              category: productData.category || {},
+              subCategory: productData.subCategory || {},
+              brand: productData.brand || "",
+              productTag: productData.productTag || "",
+              variants: productData.variants || [],
+              imageUrls: productData.imageUrls || [],
             });
           }
         });
 
-        console.log(
-          "Fetched all products from Firebase:",
-          fetchedProducts.length
-        );
+        console.log("Fetched all products from Firebase:", fetchedProducts.length);
         setAllProducts(fetchedProducts);
       } catch (err) {
         console.error("Error fetching all products:", err);
@@ -246,14 +285,10 @@ const Home = () => {
     fetchAllProducts();
   }, []);
 
-  // Select random products for display (2 rows max)
+  // Select random products for display
   const selectRandomProducts = (products) => {
     if (products.length === 0) return [];
-
-    // Shuffle array to get random order
     const shuffled = [...products].sort(() => Math.random() - 0.5);
-
-    // Limit to maximum 10 products (2 rows of 5)
     const maxProducts = Math.min(shuffled.length, 10);
     return shuffled.slice(0, maxProducts);
   };
@@ -283,10 +318,7 @@ const Home = () => {
               ...posterData,
               id: doc.id,
               posterId: posterData.posterId || doc.id,
-              formattedDate:
-                posterData.date || formatPosterDate(posterData.createdAt),
               title: posterData.title || "New Poster",
-              // CHANGED: Use subContents field first, then subtitle as fallback
               subtitle:
                 posterData.subContents ||
                 posterData.subtitle ||
@@ -318,7 +350,6 @@ const Home = () => {
     return () => clearInterval(interval);
   }, [posters.length]);
 
-  // Loading state
   if (loading) {
     return (
       <div className="min-h-screen bg-white flex items-center justify-center">
@@ -332,7 +363,6 @@ const Home = () => {
 
   return (
     <div className="min-h-screen bg-white relative overflow-hidden">
-      {/* Add Custom CSS Animations */}
       <style jsx="true">{`
         @keyframes float {
           0%,
@@ -364,45 +394,6 @@ const Home = () => {
           }
         }
 
-        @keyframes slideInRight {
-          from {
-            transform: translateX(100%);
-            opacity: 0;
-          }
-          to {
-            transform: translateX(0);
-            opacity: 1;
-          }
-        }
-
-        @keyframes fadeOut {
-          from {
-            opacity: 1;
-          }
-          to {
-            opacity: 0;
-          }
-        }
-
-        @keyframes progressBar {
-          from {
-            width: 100%;
-          }
-          to {
-            width: 0%;
-          }
-        }
-
-        @keyframes pulse {
-          0%,
-          100% {
-            transform: scale(1);
-          }
-          50% {
-            transform: scale(1.1);
-          }
-        }
-
         @keyframes scrollHorizontal {
           0% {
             transform: translateX(0);
@@ -424,18 +415,6 @@ const Home = () => {
           animation: slideUp 0.8s ease-out;
         }
 
-        .animate-slide-in-right {
-          animation: slideInRight 0.3s ease-out;
-        }
-
-        .animate-progress {
-          animation: progressBar 3s linear forwards;
-        }
-
-        .animate-pulse {
-          animation: pulse 2s infinite;
-        }
-
         .animate-scroll-horizontal {
           animation: scrollHorizontal 30s linear infinite;
         }
@@ -444,44 +423,14 @@ const Home = () => {
           animation-play-state: paused;
         }
 
-        .delay-100 {
-          animation-delay: 0.1s;
-        }
-
-        .delay-200 {
-          animation-delay: 0.2s;
-        }
-
-        .delay-300 {
-          animation-delay: 0.3s;
-        }
-
-        .delay-400 {
-          animation-delay: 0.4s;
-        }
-
-        .delay-500 {
-          animation-delay: 0.5s;
-        }
-
-        .delay-600 {
-          animation-delay: 0.6s;
-        }
-
-        .delay-700 {
-          animation-delay: 0.7s;
-        }
-
-        .delay-800 {
-          animation-delay: 0.8s;
-        }
-
-        .line-clamp-2 {
-          display: -webkit-box;
-          -webkit-line-clamp: 2;
-          -webkit-box-orient: vertical;
-          overflow: hidden;
-        }
+        .delay-100 { animation-delay: 0.1s; }
+        .delay-200 { animation-delay: 0.2s; }
+        .delay-300 { animation-delay: 0.3s; }
+        .delay-400 { animation-delay: 0.4s; }
+        .delay-500 { animation-delay: 0.5s; }
+        .delay-600 { animation-delay: 0.6s; }
+        .delay-700 { animation-delay: 0.7s; }
+        .delay-800 { animation-delay: 0.8s; }
       `}</style>
 
       {/* Error State */}
@@ -514,7 +463,7 @@ const Home = () => {
         </div>
       )}
 
-      {/* Hero Section with Dynamic Posters */}
+      {/* Hero Section */}
       <div className="relative w-full h-screen overflow-hidden">
         {postersLoading ? (
           <div className="absolute inset-0 bg-gray-200 animate-pulse flex items-center justify-center">
@@ -534,8 +483,7 @@ const Home = () => {
               <img
                 src={poster.imageUrl}
                 alt={poster.title}
-                className="w-full h-full object-cover"
-                style={{ width: "100%", height: "100%" }}
+                className="w-full h-full object-fill"
               />
             </div>
           ))
@@ -556,9 +504,7 @@ const Home = () => {
                 />
               </svg>
               <h1 className="text-3xl font-bold mb-2">No Posters Available</h1>
-              <p className="text-lg opacity-90">
-                Check back later for new posters
-              </p>
+              <p className="text-lg opacity-90">Check back later for new posters</p>
             </div>
           </div>
         )}
@@ -589,7 +535,7 @@ const Home = () => {
             )}
           </div>
 
-          {/* Product Boxes Overlay with Auto Scroll */}
+          {/* Product Boxes Overlay */}
           <div className="container-responsive">
             <div className="relative overflow-hidden mask-gradient">
               <div
@@ -598,19 +544,18 @@ const Home = () => {
                 }`}
                 style={{ width: displayProducts.length > 6 ? "200%" : "100%" }}
               >
-                {/* First set of products */}
                 {displayProducts.length > 0 ? (
                   displayProducts.map((product, index) => (
-                    <Link
-                      to={`/product/${product.id}`}
+                    <div
                       key={`first-${product.id}`}
                       className="bg-white bg-opacity-90 rounded-lg shadow-lg overflow-hidden border-2 border-yellow-400 hover:shadow-xl transition-all transform hover:scale-105 flex-shrink-0 w-28 sm:w-32 md:w-36 lg:w-40 xl:w-44 cursor-pointer"
+                      onClick={() => navigate(`/product/${product.id}`, { state: { product } })}
                     >
                       {product.image ? (
                         <img
                           src={product.image}
                           alt={product.name}
-                          className="w-full h-14 sm:h-16 md:h-20 lg:h-24 xl:h-28 object-cover"
+                          className="w-full h-14 sm:h-16 md:h-20 lg:h-24 xl:h-28 object-fit"
                           onError={(e) => {
                             e.target.onerror = null;
                             e.target.style.display = "none";
@@ -656,13 +601,11 @@ const Home = () => {
                           )}
                         </div>
                       </div>
-                    </Link>
+                    </div>
                   ))
                 ) : (
                   <div className="flex items-center justify-center w-full py-8">
-                    <p className="text-gray-500 text-center">
-                      No products available
-                    </p>
+                    <p className="text-gray-500 text-center">No products available</p>
                   </div>
                 )}
               </div>
@@ -670,7 +613,7 @@ const Home = () => {
           </div>
         </div>
 
-        {/* Dots Indicator - only show if we have posters */}
+        {/* Dots Indicator */}
         {posters.length > 0 && (
           <div className="absolute bottom-3 sm:bottom-4 md:bottom-6 lg:bottom-8 left-1/2 transform -translate-x-1/2 flex space-x-2">
             {posters.map((_, index) => (
@@ -686,7 +629,7 @@ const Home = () => {
         )}
       </div>
 
-      {/* MAIN NAVIGATION CATEGORIES SECTION - ANIMATED BOX STYLE */}
+      {/* MAIN NAVIGATION CATEGORIES SECTION */}
       <div className="py-12 bg-white">
         <div className="container mx-auto px-4">
           <div className="text-center mb-10 animate-fade-in">
@@ -701,7 +644,7 @@ const Home = () => {
             </p>
           </div>
 
-          {/* 5 Main Category Boxes - Animated */}
+          {/* 5 Main Category Boxes */}
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 md:gap-6 mb-12">
             {/* E-Store Box */}
             <Link
@@ -988,121 +931,6 @@ const Home = () => {
               <div className="absolute -inset-0.5 bg-gradient-to-r from-green-400 to-teal-400 rounded-xl opacity-0 group-hover:opacity-20 blur transition duration-500 group-hover:duration-200"></div>
             </Link>
           </div>
-
-          {/* Feature Highlights - Animated */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mt-12">
-            <div className="bg-gradient-to-br from-blue-50 via-white to-blue-50 p-6 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-500 transform hover:scale-[1.02] border border-blue-100 animate-slide-up delay-500">
-              <div className="flex items-start space-x-4">
-                <div className="w-12 h-12 bg-gradient-to-br from-blue-100 to-blue-200 rounded-xl flex items-center justify-center animate-pulse">
-                  <svg
-                    className="w-6 h-6 text-blue-600"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-                    />
-                  </svg>
-                </div>
-                <div>
-                  <h3 className="font-bold text-lg text-blue-700 mb-2">
-                    Wide Selection
-                  </h3>
-                  <p className="text-gray-600 text-sm">
-                    Thousands of products across all categories
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-gradient-to-br from-green-50 via-white to-green-50 p-6 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-500 transform hover:scale-[1.02] border border-green-100 animate-slide-up delay-600">
-              <div className="flex items-start space-x-4">
-                <div className="w-12 h-12 bg-gradient-to-br from-green-100 to-green-200 rounded-xl flex items-center justify-center animate-pulse">
-                  <svg
-                    className="w-6 h-6 text-green-600"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M5 13l4 4L19 7"
-                    />
-                  </svg>
-                </div>
-                <div>
-                  <h3 className="font-bold text-lg text-green-700 mb-2">
-                    Quality Assured
-                  </h3>
-                  <p className="text-gray-600 text-sm">
-                    Premium quality products and services
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-gradient-to-br from-purple-50 via-white to-purple-50 p-6 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-500 transform hover:scale-[1.02] border border-purple-100 animate-slide-up delay-700">
-              <div className="flex items-start space-x-4">
-                <div className="w-12 h-12 bg-gradient-to-br from-purple-100 to-purple-200 rounded-xl flex items-center justify-center animate-pulse">
-                  <svg
-                    className="w-6 h-6 text-purple-600"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M13 10V3L4 14h7v7l9-11h-7z"
-                    />
-                  </svg>
-                </div>
-                <div>
-                  <h3 className="font-bold text-lg text-purple-700 mb-2">
-                    Fast Delivery
-                  </h3>
-                  <p className="text-gray-600 text-sm">
-                    Quick and reliable delivery service
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-gradient-to-br from-orange-50 via-white to-orange-50 p-6 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-500 transform hover:scale-[1.02] border border-orange-100 animate-slide-up delay-800">
-              <div className="flex items-start space-x-4">
-                <div className="w-12 h-12 bg-gradient-to-br from-orange-100 to-orange-200 rounded-xl flex items-center justify-center animate-pulse">
-                  <svg
-                    className="w-6 h-6 text-orange-600"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"
-                    />
-                  </svg>
-                </div>
-                <div>
-                  <h3 className="font-bold text-lg text-orange-700 mb-2">
-                    Easy Returns
-                  </h3>
-                  <p className="text-gray-600 text-sm">
-                    Hassle-free return policy
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
         </div>
       </div>
 
@@ -1128,182 +956,11 @@ const Home = () => {
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
             </div>
           ) : trendingProducts.length > 0 ? (
-            <>
-              <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6">
-                {trendingProducts.map((product) => {
-                  const discountAmount = product.price - product.offerPrice;
-                  const discountPercentage = Math.round(
-                    (discountAmount / product.price) * 100
-                  );
-
-                  return (
-                    <div
-                      key={product.id}
-                      className="bg-white rounded-lg shadow-md hover:shadow-lg transition-all duration-300 transform hover:scale-[1.02] group relative animate-fade-in border border-gray-100"
-                    >
-                      {/* Product Image Container */}
-                      <Link
-                        to={`/product/${product.id}?source=${
-                          product.productTag || "e-market"
-                        }`}
-                        state={{ product }}
-                        className="block relative overflow-hidden"
-                      >
-                        <div className="relative h-48 md:h-56 bg-gray-100">
-                          {product.image ? (
-                            <img
-                              src={product.image}
-                              alt={product.name}
-                              className="w-full h-full object-contain p-2 group-hover:scale-105 transition-transform duration-300"
-                              onError={(e) => {
-                                e.target.onerror = null;
-                                e.target.style.display = "none";
-                                e.target.parentElement.innerHTML = `
-                                  <div class="w-full h-full bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center">
-                                    <svg class="w-12 h-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                                    </svg>
-                                  </div>
-                                `;
-                              }}
-                            />
-                          ) : (
-                            <div className="w-full h-full bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center">
-                              <svg
-                                className="w-12 h-12 text-gray-400"
-                                fill="none"
-                                stroke="currentColor"
-                                viewBox="0 0 24 24"
-                              >
-                                <path
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  strokeWidth={2}
-                                  d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
-                                />
-                              </svg>
-                            </div>
-                          )}
-
-                          {/* Save Badge */}
-                          {/* {discountAmount > 0 && (
-                            <div className="absolute top-2 left-2 bg-red-600 text-white px-2 py-1 rounded text-xs font-bold">
-                              Save ₹{discountAmount}
-                            </div>
-                          )} */}
-                        </div>
-                      </Link>
-
-                      {/* Product Info */}
-                      <div className="p-4 ">
-                        {/* Product Title */}
-                        <Link
-                          to={`/product/${product.id}?source=${
-                            product.productTag || "e-market"
-                          }`}
-                          state={{ product }}
-                        >
-                          <h3 className="font-semibold text-gray-900  text-sm hover:text-blue-600 transition-colors line-clamp-2 h-4">
-                            {product.name}
-                          </h3>
-                        </Link>
-
-                        {/* Star Rating */}
-                        <div className="flex items-center mt-3">
-                          {/* ⭐ Stars */}
-                          <div className="flex items-center -mt-1">
-                            {[...Array(5)].map((_, i) => (
-                              <svg
-                                key={i}
-                                className="w-4 h-4 text-yellow-400 fill-current"
-                                viewBox="0 0 20 20"
-                              >
-                                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                              </svg>
-                            ))}
-                          </div>
-
-                          {/* ⭐ Rating number */}
-                          <span className="text-xs text-gray-500 ml-2 mt-[1px]">
-                            4.3
-                          </span>
-                        </div>
-
-                        {/* Price Section */}
-                        <div className="flex items-center justify-between  mb-3">
-                          <div className="flex flex-col ">
-                            {/* Offer Price */}
-                            <span className="text-xl md:text-2xl font-bold text-gray-900">
-                              ₹{product.offerPrice}
-                            </span>
-
-                            {/* Original Price and Discount */}
-                            {product.offerPrice < product.price && (
-                              <div className="flex items-center mt-1">
-                                <span className="text-sm text-gray-500 line-through">
-                                  ₹{product.price}
-                                </span>
-                                {discountPercentage > 0 && (
-                                  <span className="text-xs font-medium text-green-600 bg-green-50 px-1 rounded ml-2">
-                                    {discountPercentage}% off
-                                  </span>
-                                )}
-                              </div>
-                            )}
-                          </div>
-                        </div>
-
-                        {/* Add to Cart Button */}
-                        {getQuantity(product.id) > 0 ? (
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              navigate("/cart");
-                            }}
-                            className="w-full bg-green-600 hover:bg-green-700 text-white py-1.5 sm:py-2 rounded-lg font-medium transition flex items-center justify-center gap-2 text-sm sm:text-base"
-                          >
-                            <svg
-                              className="w-4 h-4"
-                              fill="none"
-                              stroke="currentColor"
-                              viewBox="0 0 24 24"
-                            >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"
-                              />
-                            </svg>
-                            View Cart
-                          </button>
-                        ) : (
-                          <button
-                            onClick={(e) => handleAddToCart(product, e)}
-                            className="w-full bg-blue-600 hover:bg-blue-700 text-white py-1.5 sm:py-2 rounded-lg font-medium transition flex items-center justify-center gap-2 text-sm sm:text-base"
-                          >
-                            <svg
-                              className="w-4 h-4"
-                              fill="none"
-                              stroke="currentColor"
-                              viewBox="0 0 24 24"
-                            >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M12 6v6m0 0v6m0-6h6m-6 0H6"
-                              />
-                            </svg>
-                            Add to Cart
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </>
+            <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6">
+              {trendingProducts.map((product) => (
+                <ProductCardHome key={product.id} product={product} />
+              ))}
+            </div>
           ) : (
             <div className="text-center py-12 bg-white rounded-xl shadow-sm animate-fade-in">
               <svg
@@ -1330,7 +987,7 @@ const Home = () => {
         </div>
       </div>
 
-      {/* COMPLETE PRODUCTS SECTION */}
+      {/* COMPLETE PRODUCTS LIST SECTION */}
       <div className="py-12 bg-white">
         <div className="container mx-auto px-4">
           <div className="text-center mb-10">
@@ -1348,173 +1005,9 @@ const Home = () => {
 
           {/* Products Grid */}
           <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6">
-            {displayProducts.map((product, index) => {
-              const discountAmount = product.price - product.offerPrice;
-              const discountPercentage = Math.round(
-                (discountAmount / product.price) * 100
-              );
-
-              return (
-                <div
-                  key={product.id}
-                  className="bg-white rounded-lg shadow-md hover:shadow-lg transition-all duration-300 transform hover:scale-[1.02] group relative animate-fade-in border border-gray-100"
-                  style={{ animationDelay: `${index * 0.05}s` }}
-                >
-                  {/* Product Image Container */}
-                  <Link
-                    to={`/product/${product.id}`}
-                    state={{ product, source: product.productTag }}
-                    className="block relative overflow-hidden"
-                  >
-                    <div className="relative h-48 md:h-56 bg-gray-100">
-                      {product.image ? (
-                        <img
-                          src={product.image}
-                          alt={product.name}
-                          className="w-full h-full object-contain p-2 group-hover:scale-105 transition-transform duration-300"
-                          onError={(e) => {
-                            e.target.onerror = null;
-                            e.target.style.display = "none";
-                            e.target.parentElement.innerHTML = `
-                              <div class="w-full h-full bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center">
-                                <svg class="w-12 h-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                                </svg>
-                              </div>
-                            `;
-                          }}
-                        />
-                      ) : (
-                        <div className="w-full h-full bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center">
-                          <svg
-                            className="w-12 h-12 text-gray-400"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
-                            />
-                          </svg>
-                        </div>
-                      )}
-
-                      {discountAmount > 0 && (
-                        <div className="absolute top-2 left-2 bg-red-600 text-white px-2 py-1 rounded text-xs font-bold">
-                          Save ₹{discountAmount}
-                        </div>
-                      )}
-
-                      {/* Heart Icon */}
-                    </div>
-                  </Link>
-
-                  {/* Product Info */}
-                  <div className="p-3">
-                    {/* Product Title */}
-                    <Link
-                      to={`/product/${product.id}`}
-                      state={{ product, source: product.productTag }}
-                    >
-                      <h3 className="font-semibold text-gray-900 text-sm hover:text-blue-600 transition-colors line-clamp-2 h-10">
-                        {product.name}
-                      </h3>
-                    </Link>
-
-                    {/* Star Rating */}
-                    <div className="flex items-center -mt-4">
-                      <div className="flex items-center">
-                        {[...Array(5)].map((_, i) => (
-                          <svg
-                            key={i}
-                            className="w-4 h-4 text-yellow-400 fill-current"
-                            viewBox="0 0 20 20"
-                          >
-                            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                          </svg>
-                        ))}
-                      </div>
-                      <span className="text-xs text-gray-500 ml-2">
-                        {product.rating || "4.3"}
-                      </span>
-                    </div>
-
-                    {/* Price Section */}
-                    <div className="flex items-center justify-between mb-3">
-                      <div className="flex items-center gap-3">
-                        {/* Offer Price */}
-                        <span className="text-xl md:text-2xl font-bold text-red-600">
-                          ₹{product.offerPrice}
-                        </span>
-
-                        {/* Original Price */}
-                        {product.offerPrice < product.price && (
-                          <span className="text-sm md:text-base text-gray-400 line-through">
-                            ₹{product.price}
-                          </span>
-                        )}
-
-                        {/* Discount Badge */}
-                        {discountPercentage > 0 && (
-                          <span className="text-xs font-semibold text-white bg-red-500 px-2 py-0.5 rounded">
-                            -{discountPercentage}%
-                          </span>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Add to Cart Button */}
-                    {getQuantity(product.id) > 0 ? (
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          navigate("/cart");
-                        }}
-                        className="w-full bg-green-600 hover:bg-green-700 text-white py-2 rounded-md font-medium transition-all duration-200 flex items-center justify-center space-x-2"
-                      >
-                        <svg
-                          className="w-5 h-5"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M3 3h2l.4 2M7 13h10l4-8H5.4m0 0L7 13m0 0l-2.5 5M7 13l2.5 5m6-5v6a2 2 0 01-2 2H9a2 2 0 01-2-2v-6m8 0V9a2 2 0 00-2-2H9a2 2 0 00-2 2v4.01"
-                          />
-                        </svg>
-                        <span>View Cart</span>
-                      </button>
-                    ) : (
-                      <button
-                        onClick={(e) => handleAddToCart(product, e)}
-                        className="w-full bg-orange-500 hover:bg-orange-600 text-white py-2 rounded-md font-medium transition-all duration-200 flex items-center justify-center space-x-2 group/btn"
-                      >
-                        <svg
-                          className="w-5 h-5"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M3 3h2l.4 2M7 13h10l4-8H5.4m0 0L7 13m0 0l-2.5 5M7 13l2.5 5m6-5v6a2 2 0 01-2 2H9a2 2 0 01-2-2v-6m8 0V9a2 2 0 00-2-2H9a2 2 0 00-2 2v4.01"
-                          />
-                        </svg>
-                        <span>Add to Cart</span>
-                      </button>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
+            {displayProducts.map((product, index) => (
+              <ProductCardHome key={product.id} product={product} />
+            ))}
           </div>
         </div>
       </div>

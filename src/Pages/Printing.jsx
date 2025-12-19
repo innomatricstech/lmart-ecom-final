@@ -184,7 +184,7 @@ const ProductCard = ({ product, addToCart, getQuantity, updateQuantity, navigate
         <img
           src={product.image}
           alt={product.name}
-          className="object-cover w-full h-full"
+          className="object-fill w-full h-full"
           onError={(e) => (e.target.src = PLACEHOLDER_IMAGE)}
         />
         <button

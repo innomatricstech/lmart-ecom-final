@@ -237,16 +237,11 @@ const NewsToday = () => {
             <div className="p-8">
               <div className="prose prose-lg max-w-none">
                 <p className="text-xl text-gray-700 leading-relaxed mb-8 border-l-4 border-purple-500 pl-4 italic">
-                  {selectedArticle.excerpt}
+                   {selectedArticle.content || selectedArticle.excerpt}
                 </p>
                 
                 {/* Full Content */}
-                <div className="text-gray-800 space-y-6 text-lg leading-relaxed">
-                  <p>
-                    {selectedArticle.content || selectedArticle.excerpt}
-                  </p>
-                   
-                </div>
+                 
               </div>
 
               {/* Back to List Button */}

@@ -7,11 +7,9 @@ import { ref, getDownloadURL } from "firebase/storage";
 import emailjs from '@emailjs/browser';
 
 // 🔑 EMAIL.JS CONFIGURATION
-const EMAILJS_SERVICE_ID = "service_36kp6wg"; 
-const EMAILJS_COD_TEMPLATE_ID = "template_1g7dneu"; 
-const EMAILJS_PAID_TEMPLATE_ID = "your_actual_paid_template_id_here"; 
-const EMAILJS_PUBLIC_KEY = "3oPaXcWIwr2sMfais"; 
-const EMAILJS_AUTO_REPLY_TEMPLATE_ID = "template_1c9n9w2"; 
+const EMAILJS_SERVICE_ID = "service_yg9pb3f"; 
+const EMAILJS_PUBLIC_KEY = "av8_Oe-8pG16qxp2M"; 
+const EMAILJS_AUTO_REPLY_TEMPLATE_ID = "template_mbbvaa1"; 
 const ADMIN_EMAIL = "your.shop.admin@example.com";''
 
 
@@ -630,6 +628,7 @@ const Checkout = () => {
         setErrors(prev => ({ ...prev, form: "User details are not loaded. Please wait or refresh." }));
         return;
     }
+     window.scrollTo({ top: 0, behavior: "smooth" });
 
     setCurrentStep(2);
     setErrors({ form: "", customization: "", payment: "" });
