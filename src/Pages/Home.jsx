@@ -555,7 +555,7 @@ const Home = () => {
                         <img
                           src={product.image}
                           alt={product.name}
-                          className="w-full h-14 sm:h-16 md:h-20 lg:h-24 xl:h-28 object-fit"
+                          className="w-[500px] h-14 sm:h-16 md:h-20 lg:h-24 xl:h-28 object-fit"
                           onError={(e) => {
                             e.target.onerror = null;
                             e.target.style.display = "none";

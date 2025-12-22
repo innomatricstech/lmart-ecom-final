@@ -1543,7 +1543,7 @@ if (allMedia.length > 0) {
                       <img
                         src={currentImg}
                         alt={`${product.name} - ${selectedColor}`}
-                        className={`w-full h-auto max-h-[450px] object-contain transition-opacity duration-300 rounded-xl ${
+                        className={`w-full h-[850px] max-h-[850px] object-contain transition-opacity duration-300 rounded-xl ${
                           imageLoading ? 'opacity-0' : 'opacity-100'
                         }`}
                         onLoad={() => {
@@ -1572,7 +1572,7 @@ if (allMedia.length > 0) {
                     <img
                       src={images[0]}
                       alt={product.name}
-                      className={`w-full h-auto max-h-[450px] object-contain transition-opacity duration-300 ${imageLoading ? 'opacity-0' : 'opacity-100'}`}
+                      className={`w-full h-auto max-h-[600px] object-contain transition-opacity duration-300 ${imageLoading ? 'opacity-0' : 'opacity-100'}`}
                       onLoad={() => {
                         console.log('Fallback image loaded:', images[0]);
                         setImageLoading(false);
