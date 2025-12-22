@@ -116,10 +116,11 @@ const OldeeProductDetails = ({ product, onBack, onEdit }) => {
               <div className="mb-6">
                 {mainImage ? (
                   <img
-                    src={mainImage}
-                    alt={name}
-                    className="w-full max-h-[70vh] object-contain rounded-xl shadow-lg bg-gray-50"
-                  />
+  src={mainImage}
+  alt={name}
+  className="w-full h-[70vh] object-contain rounded-xl shadow-lg bg-white"
+/>
+
                 ) : (
                   <div className="w-full h-[60vh] flex items-center justify-center bg-gray-200 text-gray-500 rounded-xl">
                     No Image
@@ -141,11 +142,13 @@ const OldeeProductDetails = ({ product, onBack, onEdit }) => {
                       }`}
                       title={`View image ${index + 1}`}
                     >
-                      <img
-                        src={url}
-                        alt={`${name} - ${index + 1}`}
-                        className="w-full h-full object-cover"
-                      />
+                     <img
+  src={url}
+  alt={`${name} - ${index + 1}`}
+  className="w-full h-full object-contain bg-white"
+/>
+
+
                     </button>
                   ))}
                 </div>

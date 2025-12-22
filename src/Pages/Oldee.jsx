@@ -662,7 +662,12 @@ const SellProductForm = ({
                             className="relative rounded-lg overflow-hidden border-2"
                             style={{ borderColor: img.isPrimary ? '#3b82f6' : '#e5e7eb' }}
                           >
-                            <img src={img.url} alt={`Product ${idx + 1}`} className="w-full h-20 object-fill" />
+                            <img
+  src={img.url}
+  alt={`Product ${idx + 1}`}
+  className="w-full h-20 object-cover rounded-md"
+/>
+
 
                             {img.isPrimary ? (
                               <div className="absolute top-0 left-0 bg-blue-500 text-white text-xs font-bold px-2 py-0.5 rounded-br-lg">
