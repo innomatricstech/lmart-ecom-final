@@ -1543,9 +1543,10 @@ if (allMedia.length > 0) {
                       <img
                         src={currentImg}
                         alt={`${product.name} - ${selectedColor}`}
-                        className={`w-full h-[850px] max-h-[850px] object-contain transition-opacity duration-300 rounded-xl ${
-                          imageLoading ? 'opacity-0' : 'opacity-100'
-                        }`}
+                        className={`w-full h-[850px] max-h-[850px] object-cover transition-opacity duration-300 rounded-xl ${
+  imageLoading ? 'opacity-0' : 'opacity-100'
+}`}
+
                         onLoad={() => {
                           console.log('Main image loaded successfully:', currentImg);
                           setImageLoading(false);
