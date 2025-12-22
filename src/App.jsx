@@ -9,6 +9,7 @@ import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 import CartNotification from './components/CartNotification';
 import LoginModal from './components/LoginModal';
+import UserProfile from "./Pages/UserProfile";
 
 import Home from './Pages/Home';
 import Printing from './Pages/Printing';
@@ -89,7 +90,7 @@ const App = () => {
                         <Route path="/local-market" element={<LocalMarket />} />
                         <Route path="/news-today" element={<NewsToday />} />
                         <Route path="/oldee" element={<Oldee />} />
-
+                          <Route path="/profile" element={<UserProfile />} />
                         <Route path="/login" element={<UserLogin />} />
                         <Route path="/register" element={<UserRegister />} />
                         <Route path="/forgot-password" element={<ForgotPassword />} />

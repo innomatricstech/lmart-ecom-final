@@ -199,11 +199,14 @@ const Cart = () => {
                 </p>
                 <div className="flex flex-col sm:flex-row gap-4 justify-center">
                   <button
-                    onClick={() => navigate("/e-market")}
-                    className="px-8 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 font-semibold transition-colors shadow-md"
-                  >
-                    Continue Shopping
-                  </button>
+  onClick={() => {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+    navigate("/e-market");
+  }}
+  className="w-full py-3 bg-gray-600 text-white rounded-xl font-semibold hover:bg-gray-700 transition-colors"
+>
+  Continue Shopping
+</button>
                   <button
                     onClick={() => navigate("/")}
                     className="px-8 py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700 font-semibold transition-colors"
@@ -550,11 +553,15 @@ const Cart = () => {
                  
 
                   <button
-                    onClick={() => navigate("/e-market")}
-                    className="w-full py-3 bg-gray-600 text-white rounded-xl font-semibold hover:bg-gray-700 transition-colors"
-                  >
-                    Continue Shopping
-                  </button>
+  onClick={() => {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+    navigate("/e-market");
+  }}
+  className="w-full py-3 bg-gray-600 text-white rounded-xl font-semibold hover:bg-gray-700 transition-colors"
+>
+  Continue Shopping
+</button>
+
                 </div>
 
                 {/* Security Badge */}

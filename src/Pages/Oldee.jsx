@@ -187,6 +187,7 @@ const SellProductForm = ({
     }
   };
 
+  // ✅ EXACT REAL LOCATION FETCH FUNCTION
   const handleGetLiveLocation = () => {
     if (!navigator.geolocation) {
       alert("Geolocation is not supported by your browser");
@@ -198,48 +199,35 @@ const SellProductForm = ({
     navigator.geolocation.getCurrentPosition(
       async (position) => {
         const { latitude, longitude } = position.coords;
+
         try {
           const response = await fetch(
             `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${latitude}&lon=${longitude}`
           );
           const data = await response.json();
-          
-          if (data && data.display_name) {
-            setFormData(prev => ({ 
-              ...prev, 
-              address: data.display_name 
-            }));
-          } else {
-            setFormData(prev => ({ 
-              ...prev, 
-              address: `${latitude.toFixed(6)}, ${longitude.toFixed(6)}` 
-            }));
-          }
-        } catch (error) {
-          console.error("Error fetching address:", error);
-          setFormData(prev => ({ 
-            ...prev, 
-            address: `${latitude.toFixed(6)}, ${longitude.toFixed(6)}` 
+
+          setFormData(prev => ({
+            ...prev,
+            address: data?.display_name
+              || `${latitude.toFixed(6)}, ${longitude.toFixed(6)}`
+          }));
+        } catch (e) {
+          setFormData(prev => ({
+            ...prev,
+            address: `${latitude.toFixed(6)}, ${longitude.toFixed(6)}`
           }));
         } finally {
           setIsFetchingLocation(false);
         }
       },
-      (error) => {
+      () => {
         setIsFetchingLocation(false);
-        switch(error.code) {
-          case error.PERMISSION_DENIED:
-            alert("Location access was denied. Please enable location permissions in your browser.");
-            break;
-          case error.POSITION_UNAVAILABLE:
-            alert("Location information is unavailable.");
-            break;
-          case error.TIMEOUT:
-            alert("Location request timed out.");
-            break;
-          default:
-            alert("Unable to retrieve your location.");
-        }
+        alert("Unable to fetch live location");
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 20000,
+        maximumAge: 0,
       }
     );
   };
@@ -262,7 +250,7 @@ const SellProductForm = ({
       await setDoc(doc(db, CUSTOMER_COLLECTION, user.uid), base, { merge: true });
       await setDoc(doc(db, USERS_COLLECTION_MIRROR, user.uid), base, { merge: true });
       setCustomerDoc(base);
-      alert("✅ Customer details saved.");
+      
     } catch (e) {
       console.error("saveCustomerDetails error:", e);
       alert("Failed to save customer details: " + e.message);
@@ -674,7 +662,7 @@ const SellProductForm = ({
                             className="relative rounded-lg overflow-hidden border-2"
                             style={{ borderColor: img.isPrimary ? '#3b82f6' : '#e5e7eb' }}
                           >
-                            <img src={img.url} alt={`Product ${idx + 1}`} className="w-full h-20 object-cover" />
+                            <img src={img.url} alt={`Product ${idx + 1}`} className="w-full h-20 object-fill" />
 
                             {img.isPrimary ? (
                               <div className="absolute top-0 left-0 bg-blue-500 text-white text-xs font-bold px-2 py-0.5 rounded-br-lg">
@@ -1028,7 +1016,7 @@ const ProductsViewer = ({ user, isAdmin, onClose, onEdit, isUserViewer = false }
                       <img 
                         src={p.imageURLs[0]} 
                         alt={p.name} 
-                        className="w-full h-full object-cover" 
+                        className="w-full h-full object-fill" 
                       />
                       <div className="absolute top-2 left-2 flex flex-col gap-1">
                         <span className={`px-2 py-1 rounded-full text-xs font-medium ${

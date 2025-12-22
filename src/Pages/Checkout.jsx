@@ -60,7 +60,8 @@ const Checkout = () => {
   const [checkoutItems, setCheckoutItems] = useState([]);
   const [total, setTotal] = useState(0);
   // ⭐ MODIFIED LINE: Check for 'isBuyNow' or 'skipToPayment' to start at Step 2
-  const [currentStep, setCurrentStep] = useState(isBuyNow || skipToPayment ? 2 : 1);
+  const [currentStep, setCurrentStep] = useState(2);
+
   const [processingPayment, setProcessingPayment] = useState(false);
   const [loadingImages, setLoadingImages] = useState({});
 
@@ -1079,23 +1080,7 @@ const Checkout = () => {
       <div className="max-w-4xl mx-auto bg-white rounded-lg shadow-lg p-6">
 
         {/* STEP INDICATOR */}
-        <div className="flex justify-center mb-8">
-          <div className="flex items-center">
-            <div className={`flex flex-col items-center ${currentStep >= 1 ? 'text-purple-600' : 'text-gray-400'}`}>
-              <div className={`w-10 h-10 rounded-full flex items-center justify-center border-2 ${currentStep >= 1 ? 'bg-purple-600 text-white border-purple-600' : 'border-gray-400'}`}>
-                1
-              </div>
-              <span className="text-sm mt-1">Customize</span>
-            </div>
-            <div className={`w-16 h-1 mx-2 ${currentStep >= 2 ? 'bg-purple-600' : 'bg-gray-300'}`}></div>
-            <div className={`flex flex-col items-center ${currentStep >= 2 ? 'text-purple-600' : 'text-gray-400'}`}>
-              <div className={`w-10 h-10 rounded-full flex items-center justify-center border-2 ${currentStep >= 2 ? 'bg-purple-600 text-white border-purple-600' : 'border-gray-400'}`}>
-                2
-              </div>
-              <span className="text-sm mt-1">Payment</span>
-            </div>
-          </div>
-        </div>
+         
 
         {/* PAGE TITLE */}
         <h2 className="text-2xl font-bold text-center mb-6">
@@ -1556,15 +1541,7 @@ const Checkout = () => {
 
             {/* ACTION BUTTONS */}
             <div className="flex flex-col md:flex-row gap-4">
-              <button
-                onClick={backToCustomization}
-                className="flex-1 bg-gray-600 hover:bg-gray-700 text-white py-3 rounded-lg font-medium transition-colors flex items-center justify-center"
-              >
-                <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-                </svg>
-                {isBuyNow ? 'Back to Product' : 'Back to Customization'}
-              </button>
+              
               
               <button
                 onClick={handlePayment}

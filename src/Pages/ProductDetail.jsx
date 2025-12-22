@@ -656,14 +656,25 @@ const { storePath, storeLabel } = useMemo(() => {
           setProduct(productData);
           
           // Process images
-          const imageUrls = productData.imageUrls || [];
-          const urls = imageUrls.map(img => {
-            if (typeof img === 'string') return img;
-            if (img?.url) return img.url;
-            return null;
-          }).filter(Boolean);
-          
-          setImages(urls);
+         // ⭐ FILTER MAIN IMAGE LOGIC (IMPORTANT FIX)
+const imageUrls = productData.imageUrls || [];
+
+const urls = imageUrls
+  .filter(img => {
+    // old string images → show
+    if (typeof img === "string") return true;
+
+    // explicitly hide main image
+    if (img?.isMain === true) return false;
+
+    // isMain === false OR undefined → show
+    return true;
+  })
+  .map(img => (typeof img === "string" ? img : img.url))
+  .filter(Boolean);
+
+setImages(urls);
+
           
           // ⭐ Fetch video URLs
           let videoUrls = [];
@@ -757,25 +768,43 @@ const { storePath, storeLabel } = useMemo(() => {
           const allMedia = [...urls, ...videoUrls];
           
           // ALWAYS set currentImg if media exists
-          if (allMedia.length > 0) {
-            // ⭐ FIXED: Set initial image based on first color if available
-            if (colors.length > 0 && colorImageMap[colors[0]] !== undefined && urls[colorImageMap[colors[0]]]) {
-              setCurrentImg(urls[colorImageMap[colors[0]]]);
-              setCurrentIsVideo(false);
-            } else {
-              setCurrentImg(allMedia[0]);
-              // Check if first media is video
-              const isVideo = isVideoUrl(allMedia[0]);
-              if (isVideo) {
-                setCurrentIsVideo(true);
-              }
-            }
-          } else {
-            // Use placeholder if no media
-            setCurrentImg("https://placehold.co/600x400?text=No+Image");
-            setImageLoading(false);
-          }
-          
+      // ✅ PRESERVE MAIN IMAGE EVEN AFTER ADMIN UPDATE
+if (allMedia.length > 0) {
+  let nextImg = null;
+
+  // 1️⃣ First load
+  if (!currentImg) {
+    if (
+      colors.length > 0 &&
+      colorImageMap[colors[0]] !== undefined &&
+      urls[colorImageMap[colors[0]]]
+    ) {
+      nextImg = urls[colorImageMap[colors[0]]];
+    } else {
+      nextImg = allMedia[0];
+    }
+  }
+
+  // 2️⃣ Preserve existing image
+  else if (allMedia.includes(currentImg)) {
+    nextImg = currentImg;
+  }
+
+  // 3️⃣ If current image deleted
+  else {
+    nextImg = allMedia[0];
+  }
+
+  setCurrentImg(nextImg);
+  setCurrentIsVideo(isVideoUrl(nextImg));
+  setImageLoading(true);
+} else {
+  setCurrentImg("https://placehold.co/600x400?text=No+Image");
+  setCurrentIsVideo(false);
+  setImageLoading(false);
+}
+
+
           // Set default selections
           if (colors.length > 0) {
             setSelectedColor(colors[0]);
@@ -1037,7 +1066,7 @@ const { storePath, storeLabel } = useMemo(() => {
     };
 
     addToCart(item);
-    addToast(product, variant, quantity);
+     
 
     // Button click animation
     const button = e.currentTarget;
@@ -1814,7 +1843,8 @@ const { storePath, storeLabel } = useMemo(() => {
                 </button>
 
                 <button
-                  onClick={onBuyNow}
+                  onClick={
+                    onBuyNow}
                   disabled={!isInStock || !selectedColor}
                   className={`flex-1 py-4 rounded-xl text-white font-semibold transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-1 active:translate-y-0 ${
                     isInStock && selectedColor

@@ -795,14 +795,7 @@ const MyOrders = () => {
                       </button>
                     )}
 
-                    {status === 'shipped' && (
-                      <button 
-                        onClick={() => navigate(`/track-order?orderId=${order.id}`)}
-                        className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
-                      >
-                        Track Order
-                      </button>
-                    )}
+                     
                   </div>
                 </div>
               </div>

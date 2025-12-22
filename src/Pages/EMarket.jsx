@@ -6,6 +6,7 @@ import { getFirestore, collection, getDocs, query, where } from "firebase/firest
 import { useCart } from "../context/CartContext";
 import { useWishlist } from "../context/WishlistContext";
 
+
 // ---------------- FIREBASE INIT ----------------
 const firebaseConfig =
   typeof __firebase_config !== "undefined" ? JSON.parse(__firebase_config) : {};

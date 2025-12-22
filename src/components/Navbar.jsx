@@ -720,6 +720,16 @@ const UploadProgress = () => {
                       {/* Menu Items */}
                       <div className="py-2">
                         <button
+  onClick={() => {
+    setIsUserDropdownOpen(false);
+    navigate("/profile");
+  }}
+  className="w-full px-6 py-3 text-left text-gray-700 hover:bg-gray-50 flex items-center text-base font-medium border-b border-gray-100"
+>
+  👤 Profile Settings
+</button>
+
+                        <button
                           onClick={() => {
                             setIsUserDropdownOpen(false);
                             localStorage.setItem("shouldOpenUserDropdown", "false");
@@ -856,9 +866,18 @@ const UploadProgress = () => {
                   onClick={() => setIsMenuOpen(true)}
                   className="w-7 h-7 border border-purple-300 rounded-full flex items-center justify-center bg-white hover:bg-gray-50 transition duration-200"
                 >
-                  <div className="w-4 h-4 bg-purple-600 rounded-full flex items-center justify-center text-white text-xs font-bold">
-                    {user.name ? user.name.charAt(0).toUpperCase() : 'U'}
-                  </div>
+                  {user.photoURL ? (
+  <img
+    src={user.photoURL}
+    alt="Profile"
+    className="w-6 h-6 rounded-full object-cover"
+  />
+) : (
+  <div className="w-6 h-6 bg-purple-600 rounded-full flex items-center justify-center text-white text-xs font-bold">
+    {user.name ? user.name.charAt(0).toUpperCase() : "U"}
+  </div>
+)}
+
                 </button>
               )}
               

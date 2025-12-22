@@ -59,7 +59,7 @@ const WishlistPage = () => {
                   <img 
                     src={product.image || "https://placehold.co/400x300?text=No+Image"} 
                     alt={product.name} 
-                    className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
+                    className="w-full h-full object-fit hover:scale-105 transition-transform duration-300"
                     onError={(e) => (e.target.src = "https://placehold.co/400x300?text=No+Image")}
                   />
                   <button
