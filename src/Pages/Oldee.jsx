@@ -1019,13 +1019,7 @@ const ProductsViewer = ({ user, isAdmin, onClose, onEdit, isUserViewer = false }
                         className="w-full h-full object-fill" 
                       />
                       <div className="absolute top-2 left-2 flex flex-col gap-1">
-                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                          p.approved 
-                            ? "bg-emerald-100 text-emerald-700" 
-                            : "bg-yellow-100 text-yellow-700"
-                        }`}>
-                          {p.approved ? "Approved" : "Pending"}
-                        </span>
+                         
                         {p.featured && (
                           <span className="px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-700">
                             Featured
