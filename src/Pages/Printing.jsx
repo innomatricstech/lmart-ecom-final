@@ -154,8 +154,7 @@ const ProductCard = ({ product, addToCart, getQuantity, updateQuantity, navigate
     }
     toggleWishlist(product);
     if (onToggleWishlist) {
-      
-      onToggleWishlist(message);
+       
     }
   };
   
@@ -169,45 +168,43 @@ const ProductCard = ({ product, addToCart, getQuantity, updateQuantity, navigate
       ...product, 
       quantity: 1 
     });
-    if (onToggleWishlist) {
-   
-    }
   };
 
+  // 🔥 UPDATED: Image container with full image display
   return (
     <div
       key={product.id}
-      className="bg-white rounded-lg shadow-sm hover:shadow-md transition border cursor-pointer"
+      className="bg-white rounded-lg shadow-sm hover:shadow-md transition border cursor-pointer flex flex-col h-full"
       onClick={() => navigate(`/product/${product.id}`, { state: { product } })}
     >
-      <div className="relative h-40 sm:h-48">
+      <div className="relative flex items-center justify-center bg-white p-4 h-48 sm:h-56">
         <img
           src={product.image}
           alt={product.name}
-          className="object-fill w-full h-full"
+          className="object-contain w-full h-full max-h-full"
           onError={(e) => (e.target.src = PLACEHOLDER_IMAGE)}
         />
         <button
           onClick={handleWishlistToggle}
-          className={`absolute top-2 sm:top-5 right-0 p-2 bg-white rounded-full shadow-md hover:scale-110 transition ${inWishlist ? "text-red-700" : "text-red-400" }`}
+          className={`absolute top-3 right-3 p-2 bg-white rounded-full shadow-md hover:scale-110 transition ${inWishlist ? "text-red-700" : "text-red-400" }`}
         >
           <svg className="w-4 h-4" fill={inWishlist ? "#fdd8d8ff" : "none"} stroke="currentColor" viewBox="0 0 26 28">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 25s-9.5-5.6-12-12.3C-1.4 7.9 1.6 2.4 7 2.1c2.9-.1 5.1 1.8 6 3.4 1-1.6 3.1-3.5 6-3.4 5.4.3 8.4 5.8 6 10.6C22.5 19.4 13 25 13 25z" />
           </svg>
         </button>
         {discount > 0 && (
-          <span className="absolute top-2 left-2 sm:top-3 sm:left-3 bg-red-600 text-white text-xs px-2 py-1 rounded">-{discount}%</span>
+          <span className="absolute top-3 left-3 bg-red-600 text-white text-xs px-2 py-1 rounded">-{discount}%</span>
         )}
       </div>
 
-      <div className="p-3 sm:p-4">
-        <h3 className="font-medium text-sm sm:text-base line-clamp-2 h-10 sm:h-12">{product.name}</h3>
-        <div className="flex items-center -mt-5">
+      <div className="p-4 flex flex-col flex-grow">
+        <h3 className="font-medium text-sm sm:text-base line-clamp-2 h-10 sm:h-12 mb-2">{product.name}</h3>
+        <div className="flex items-center mb-3">
           <span className="text-xs sm:text-sm font-medium text-yellow-500 mr-1">{rating.toFixed(1)}</span>
           <StarRating rating={rating} size="w-3 h-3 sm:w-4 sm:h-4" />
           <span className="text-xs text-gray-500 ml-2">({reviewCount})</span>
         </div>
-        <div className="flex items-center space-x-2 mb-1">
+        <div className="flex items-center space-x-2 mb-4 flex-grow">
           {original > finalPrice ? (
             <>
               <span className="text-red-600 font-semibold text-base sm:text-lg">₹ {finalPrice}</span>
@@ -218,21 +215,19 @@ const ProductCard = ({ product, addToCart, getQuantity, updateQuantity, navigate
           )}
         </div>
         {qty > 0 ? (
-          <div className="space-y-2">
-            <button
-              onClick={(e) => { e.stopPropagation(); navigate("/cart"); }}
-              className="w-full bg-green-600 hover:bg-green-700 text-white py-1.5 sm:py-2 rounded-lg font-medium transition flex items-center justify-center gap-2 text-sm sm:text-base"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
-              </svg>
-              View Cart
-            </button>
-          </div>
+          <button
+            onClick={(e) => { e.stopPropagation(); navigate("/cart"); }}
+            className="w-full bg-green-600 hover:bg-green-700 text-white py-2 rounded-lg font-medium transition flex items-center justify-center gap-2 text-sm sm:text-base mt-auto"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+            </svg>
+            View Cart
+          </button>
         ) : (
           <button
             onClick={handleAddToCart}
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white py-1.5 sm:py-2 rounded-lg font-medium transition flex items-center justify-center gap-2 text-sm sm:text-base"
+            className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg font-medium transition flex items-center justify-center gap-2 text-sm sm:text-base mt-auto"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
@@ -494,7 +489,7 @@ const Printing = () => {
         </div>
       </div>
 
-      <div className="px-2 sm:px-4 py-4 sm:py-6  ">
+      <div className="px-2 sm:px-4 py-4 sm:py-6">
         <div className="flex flex-col lg:flex-row gap-4 sm:gap-6">
           {/* Sidebar Filters */}
           <div className={`${showFilters ? 'block' : 'hidden'} lg:block w-full lg:w-64 bg-white p-4 rounded-lg shadow-sm border lg:sticky lg:top-20 self-start z-20 max-h-[calc(100vh-120px)] overflow-y-auto`}>
@@ -621,7 +616,7 @@ const Printing = () => {
           </div>
           
           {/* Products Area */}
-          <div className="flex-1">
+          <div className="flex-1 ml-4">
             <div className="mb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
                 <h2 className="text-lg sm:text-xl font-semibold">
@@ -671,7 +666,7 @@ const Printing = () => {
             )}
 
             {!loading && filtered.length > 0 && (
-              <div className="grid grid-cols-2 xs:grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4 md:gap-6">
+              <div className="grid grid-cols-2 xs:grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
                 {filtered.map((p) => (
                   <ProductCard
                     key={p.id}

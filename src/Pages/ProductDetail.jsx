@@ -11,18 +11,16 @@ import {
   addDoc,
   serverTimestamp,
   runTransaction,
+  limit
 } from "firebase/firestore";
 import { getStorage, ref, getDownloadURL } from "firebase/storage";
 import { useCart } from "../context/CartContext";
-
 
 // ⭐ Star Rating Component
 const StarRating = ({ rating = 0, size = "w-4 h-4", color = "text-yellow-500", showText = false }) => {
   const fullStars = Math.floor(rating);
   const hasHalfStar = rating % 1 >= 0.5;
 
-  
-  
   return (
     <div className="flex items-center">
       {Array(5)
@@ -304,6 +302,10 @@ const ProductDetail = () => {
   const [availableSizes, setAvailableSizes] = useState([]);
   const [colorImageMap, setColorImageMap] = useState({}); 
   
+  // ⭐ RELATED PRODUCTS STATES - ADDED HERE
+  const [relatedProducts, setRelatedProducts] = useState([]);
+  const [loadingRelated, setLoadingRelated] = useState(false);
+
   // ⭐ FIXED: Define storePath and storeLabel using useMemo for Breadcrumb
 
   const productTag =
@@ -461,6 +463,103 @@ const { storePath, storeLabel } = useMemo(() => {
       clearInterval(storagePollInterval);
     };
   }, []);
+
+  // ⭐ FETCH RELATED PRODUCTS - ADDED HERE
+  useEffect(() => {
+    const fetchRelatedProducts = async () => {
+      if (!product || !storePath) return;
+      
+      setLoadingRelated(true);
+      try {
+        // Get the store collection based on storePath
+        let collectionName = "";
+        
+        if (storePath === "/local-market") {
+          collectionName = "localmarket";
+        } else if (storePath === "/printing") {
+          collectionName = "printing";
+        } else if (storePath === "/e-market") {
+          collectionName = "products";
+        } else {
+          // Fallback - fetch from all collections
+          setLoadingRelated(false);
+          return;
+        }
+        
+        // Fetch products from the same category/store, excluding current product
+        const productsRef = collection(db, collectionName);
+        let q;
+        
+        // Try to match by category first
+        if (product.category) {
+          q = query(
+            productsRef,
+            where("category", "==", product.category),
+            where("id", "!=", productId)
+          );
+        } else {
+          // If no category, fetch random products from same store
+          q = query(productsRef, where("id", "!=", productId));
+        }
+        
+        const querySnapshot = await getDocs(q);
+        const products = [];
+        
+        querySnapshot.forEach((doc) => {
+          if (products.length < 8) { // Limit to 8 related products
+            const data = doc.data();
+            products.push({
+              id: doc.id,
+              ...data,
+              // Get main image (not the one marked as main for display)
+              image: data.imageUrls?.find(img => img.isMain !== true)?.url || 
+                     data.imageUrls?.[0]?.url || 
+                     data.imageUrl || 
+                     data.image || 
+                     ""
+            });
+          }
+        });
+        
+        // If not enough products by category, fetch more random ones
+        if (products.length < 4 && collectionName === "products") {
+          const moreProductsRef = collection(db, collectionName);
+          const randomQ = query(
+            moreProductsRef, 
+            where("id", "!=", productId),
+            limit(8 - products.length)
+          );
+          const randomSnapshot = await getDocs(randomQ);
+          
+          randomSnapshot.forEach((doc) => {
+            if (products.length < 8) {
+              const data = doc.data();
+              if (!products.some(p => p.id === doc.id)) {
+                products.push({
+                  id: doc.id,
+                  ...data,
+                  image: data.imageUrls?.find(img => img.isMain !== true)?.url || 
+                         data.imageUrls?.[0]?.url || 
+                         data.imageUrl || 
+                         data.image || 
+                         ""
+                });
+              }
+            }
+          });
+        }
+        
+        setRelatedProducts(products);
+      } catch (error) {
+        console.error("Error fetching related products:", error);
+        setRelatedProducts([]);
+      } finally {
+        setLoadingRelated(false);
+      }
+    };
+    
+    fetchRelatedProducts();
+  }, [product, storePath, productId]);
 
   // ⭐ Auto-open review modal after login redirect - FIXED VERSION
   useEffect(() => {
@@ -1992,6 +2091,144 @@ if (allMedia.length > 0) {
             )}
           </div>
         </div>
+
+        {/* ⭐ RELATED PRODUCTS SECTION - ADDED HERE */}
+        {relatedProducts.length > 0 && (
+          <div className="mt-12">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-2xl font-bold text-gray-900">
+                Related Products from {storeLabel}
+              </h2>
+              <button
+                onClick={() => navigate(storePath)}
+                className="text-purple-600 hover:text-purple-800 font-semibold flex items-center gap-2 hover:underline transition-colors"
+              >
+                View All
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+              </button>
+            </div>
+            
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+              {relatedProducts.map((relatedProduct) => (
+                <div
+                  key={relatedProduct.id}
+                  className="bg-white rounded-xl shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden group cursor-pointer border border-gray-200 hover:border-purple-300"
+                  onClick={() => {
+                    navigate(`/product/${relatedProduct.id}`, {
+                      state: {
+                        product: relatedProduct,
+                        source: source
+                      }
+                    });
+                  }}
+                >
+                  {/* Product Image */}
+                  <div className="relative overflow-hidden h-48 bg-gray-100">
+                    {relatedProduct.image ? (
+                      <img
+                        src={relatedProduct.image}
+                        alt={relatedProduct.name}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                        loading="lazy"
+                        onError={(e) => {
+                          e.target.onerror = null;
+                          e.target.src = "https://placehold.co/300x200?text=Product";
+                        }}
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center">
+                        <svg className="w-12 h-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        </svg>
+                      </div>
+                    )}
+                    
+                    {/* Quick view overlay */}
+                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-all duration-300 flex items-center justify-center">
+                      <button className="opacity-0 group-hover:opacity-100 transform translate-y-4 group-hover:translate-y-0 transition-all duration-300 bg-white text-purple-600 font-semibold px-4 py-2 rounded-full shadow-lg">
+                        Quick View
+                      </button>
+                    </div>
+                  </div>
+                  
+                  {/* Product Info */}
+                  <div className="p-4">
+                    <h3 className="font-semibold text-gray-900 line-clamp-1 mb-2 group-hover:text-purple-600 transition-colors">
+                      {relatedProduct.name}
+                    </h3>
+                    
+                    {/* Rating */}
+                    <div className="flex items-center gap-1 mb-3">
+                      <StarRating 
+                        rating={relatedProduct.rating || 4.0} 
+                        size="w-4 h-4" 
+                        color="text-yellow-500" 
+                      />
+                      <span className="text-sm text-gray-600 ml-1">
+                        ({relatedProduct.reviewCount || Math.floor(Math.random() * 100) + 1})
+                      </span>
+                    </div>
+                    
+                    {/* Price */}
+                    <div className="flex items-center gap-2">
+                      <span className="text-xl font-bold text-gray-900">
+                        ₹{relatedProduct.price?.toLocaleString() || relatedProduct.offerPrice?.toLocaleString() || "0"}
+                      </span>
+                      {relatedProduct.originalPrice && relatedProduct.originalPrice > relatedProduct.price && (
+                        <span className="text-sm text-gray-500 line-through">
+                          ₹{relatedProduct.originalPrice.toLocaleString()}
+                        </span>
+                      )}
+                    </div>
+                    
+                    {/* Stock Status */}
+                    <div className="mt-3">
+                      {relatedProduct.stock > 0 ? (
+                        <span className="inline-flex items-center text-sm text-green-600 bg-green-50 px-2 py-1 rounded">
+                          <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                          </svg>
+                          In Stock
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center text-sm text-red-600 bg-red-50 px-2 py-1 rounded">
+                          <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                          </svg>
+                          Out of Stock
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Loading state for related products */}
+        {loadingRelated && (
+          <div className="mt-12">
+            <h2 className="text-2xl font-bold text-gray-900 mb-6">
+              Related Products from {storeLabel}
+            </h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+              {[...Array(4)].map((_, index) => (
+                <div key={index} className="bg-white rounded-xl shadow-md overflow-hidden animate-pulse">
+                  <div className="h-48 bg-gray-300"></div>
+                  <div className="p-4">
+                    <div className="h-4 bg-gray-300 rounded mb-2"></div>
+                    <div className="h-4 bg-gray-300 rounded mb-4 w-3/4"></div>
+                    <div className="h-6 bg-gray-300 rounded mb-2 w-1/2"></div>
+                    <div className="h-4 bg-gray-300 rounded w-1/4"></div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Floating Scroll to Top Button */}
@@ -2081,9 +2318,24 @@ if (allMedia.length > 0) {
         ::-webkit-scrollbar-thumb:hover {
           background: linear-gradient(to bottom, #7c3aed, #db2777);
         }
+
+        /* Line clamp styles for related products */
+        .line-clamp-1 {
+          overflow: hidden;
+          display: -webkit-box;
+          -webkit-box-orient: vertical;
+          -webkit-line-clamp: 1;
+        }
+
+        .line-clamp-2 {
+          overflow: hidden;
+          display: -webkit-box;
+          -webkit-box-orient: vertical;
+          -webkit-line-clamp: 2;
+        }
       `}</style>
     </div>
   );
 };
 
-export default ProductDetail
+export default ProductDetail;

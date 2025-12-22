@@ -26,9 +26,11 @@ const getPriceData = (product) => {
 };
 
 // ----------- Product Card Component -----------
+// Only updating the ProductCardHome component in Home.jsx
+// Replace the existing ProductCardHome component with this:
 const ProductCardHome = ({ product }) => {
   const navigate = useNavigate();
-  
+
   const imageUrl = product.image || PLACEHOLDER_IMAGE;
   const { finalPrice, original, discount } = getPriceData(product);
   const rating = product.rating || 4.3;
@@ -41,74 +43,79 @@ const ProductCardHome = ({ product }) => {
 
   return (
     <div
-      className="bg-white rounded-lg shadow-sm hover:shadow-md transition border cursor-pointer"
+      className="bg-white rounded-lg shadow-sm hover:shadow-md transition border cursor-pointer flex flex-col"
       onClick={() => navigate(`/product/${product.id}`, { state: { product } })}
     >
-      <div className="relative h-40 sm:h-48">
+      {/* IMAGE */}
+      <div className="relative flex items-center justify-center bg-white h-44 sm:h-52">
         <img
           src={imageUrl}
           alt={product.name}
-          className="w-full h-full object-fill"
-          onError={(e) => {
-            console.error("Image failed to load:", imageUrl);
-            e.target.src = PLACEHOLDER_IMAGE;
-          }}
+          className="object-contain w-full h-full"
+          onError={(e) => (e.target.src = PLACEHOLDER_IMAGE)}
         />
+
         {discount > 0 && (
-          <>
-            <span className="absolute top-2 left-2 sm:top-3 sm:left-3 bg-red-600 text-white text-xs px-2 py-1 rounded">
-              -{discount}%
-            </span>
-            <div className="absolute top-2 right-2 bg-green-600 text-white text-xs px-2 py-1 rounded font-bold">
-              Save ₹{original - finalPrice}
-            </div>
-          </>
+          <span className="absolute top-2 left-2 bg-red-600 text-white text-xs px-2 py-0.5 rounded">
+            -{discount}%
+          </span>
         )}
       </div>
 
-      <div className="p-3 sm:p-4">
-        <h3 className="font-medium text-sm sm:text-base line-clamp-2 h-10 sm:h-12">
+      {/* CONTENT */}
+      <div className="px-3 pt-2 pb-3">
+        {/* NAME */}
+        <h3 className="font-medium text-sm sm:text-base leading-tight line-clamp-2">
           {product.name}
         </h3>
-        
-        <div className="flex items-center -mt-5">
-          <span className="text-xs sm:text-sm font-medium text-yellow-500 mr-1">
+
+        {/* RATING */}
+        <div className="flex items-center mt-1">
+          <span className="text-xs font-medium text-yellow-500 mr-1">
             {rating.toFixed(1)}
           </span>
-          <div className="flex items-center">
-            {Array(5).fill(0).map((_, i) => (
-              <svg
-                key={i}
-                className="w-3 h-3 sm:w-4 sm:h-4 text-yellow-400 fill-current"
-                viewBox="0 0 20 20"
-              >
-                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-              </svg>
-            ))}
+
+          <div className="flex">
+            {Array(5)
+              .fill(0)
+              .map((_, i) => (
+                <svg
+                  key={i}
+                  className="w-3 h-3 sm:w-4 sm:h-4 text-yellow-400 fill-current"
+                  viewBox="0 0 20 20"
+                >
+                  <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                </svg>
+              ))}
           </div>
-          <span className="text-xs text-gray-500 ml-2">({reviewCount})</span>
+
+          <span className="text-xs text-gray-500 ml-1">
+            ({reviewCount})
+          </span>
         </div>
 
-        <div className="flex items-center space-x-2 mb-3">
+        {/* PRICE */}
+        <div className="flex items-center gap-2 mt-1">
           {original > finalPrice ? (
             <>
-              <span className="text-red-600 font-semibold text-base sm:text-lg">
+              <span className="text-red-600 font-semibold text-base">
                 ₹ {finalPrice}
               </span>
-              <span className="line-through text-gray-500 text-sm sm:text-base">
+              <span className="line-through text-gray-500 text-sm">
                 ₹ {original}
               </span>
             </>
           ) : (
-            <span className="text-gray-900 font-bold text-base sm:text-lg">
+            <span className="text-gray-900 font-bold text-base">
               ₹ {finalPrice}
             </span>
           )}
         </div>
 
+        {/* BUTTON */}
         <button
           onClick={handleViewProduct}
-          className="w-full bg-blue-600 hover:bg-blue-700 text-white py-1.5 sm:py-2 rounded-lg font-medium transition flex items-center justify-center gap-2 text-sm sm:text-base"
+          className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-md font-medium transition text-sm mt-2"
         >
           View
         </button>
@@ -537,79 +544,83 @@ const Home = () => {
 
           {/* Product Boxes Overlay */}
           <div className="container-responsive">
-            <div className="relative overflow-hidden mask-gradient">
-              <div
-                className={`flex space-x-2 sm:space-x-3 md:space-x-4 lg:space-x-5 ${
-                  displayProducts.length > 6 ? "animate-scroll-horizontal" : ""
-                }`}
-                style={{ width: displayProducts.length > 6 ? "200%" : "100%" }}
-              >
-                {displayProducts.length > 0 ? (
-                  displayProducts.map((product, index) => (
-                    <div
-                      key={`first-${product.id}`}
-                      className="bg-white bg-opacity-90 rounded-lg shadow-lg overflow-hidden border-2 border-yellow-400 hover:shadow-xl transition-all transform hover:scale-105 flex-shrink-0 w-28 sm:w-32 md:w-36 lg:w-40 xl:w-44 cursor-pointer"
-                      onClick={() => navigate(`/product/${product.id}`, { state: { product } })}
-                    >
-                      {product.image ? (
-                        <img
-                          src={product.image}
-                          alt={product.name}
-                          className="w-[500px] h-14 sm:h-16 md:h-20 lg:h-24 xl:h-28 object-fit"
-                          onError={(e) => {
-                            e.target.onerror = null;
-                            e.target.style.display = "none";
-                            e.target.parentElement.innerHTML =
-                              '<div class="w-full h-14 sm:h-16 md:h-20 lg:h-24 xl:h-28 bg-gray-200 flex items-center justify-center"><svg class="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg></div>';
-                          }}
-                        />
-                      ) : (
-                        <div className="w-full h-14 sm:h-16 md:h-20 lg:h-24 xl:h-28 bg-gray-200 flex items-center justify-center">
-                          <svg
-                            className="w-6 h-6 text-gray-400"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+                          {/* 🔥 UPDATED: Product image display in Hero section */}
+              <div className="relative overflow-hidden mask-gradient">
+                <div
+                  className={`flex space-x-2 sm:space-x-3 md:space-x-4 lg:space-x-5 ${
+                    displayProducts.length > 6 ? "animate-scroll-horizontal" : ""
+                  }`}
+                  style={{ width: displayProducts.length > 6 ? "200%" : "100%" }}
+                >
+                  {displayProducts.length > 0 ? (
+                    displayProducts.map((product, index) => (
+                      <div
+                        key={`first-${product.id}`}
+                        className="bg-white bg-opacity-90 rounded-lg shadow-lg overflow-hidden border-2 border-yellow-400 hover:shadow-xl transition-all transform hover:scale-105 flex-shrink-0 w-28 sm:w-32 md:w-36 lg:w-40 xl:w-44 cursor-pointer"
+                        onClick={() => navigate(`/product/${product.id}`, { state: { product } })}
+                      >
+                        {/* 🔥 UPDATED: Changed from object-fit to object-contain for full images */}
+                        {product.image ? (
+                          <div className="w-full h-14 sm:h-16 md:h-20 lg:h-24 xl:h-28 flex items-center justify-center bg-white p-2">
+                            <img
+                              src={product.image}
+                              alt={product.name}
+                              className="object-contain w-full h-full max-h-full"
+                              onError={(e) => {
+                                e.target.onerror = null;
+                                e.target.style.display = "none";
+                                e.target.parentElement.innerHTML =
+                                  '<div class="w-full h-full bg-gray-200 flex items-center justify-center"><svg class="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg></div>';
+                              }}
                             />
-                          </svg>
-                        </div>
-                      )}
-                      <div className="p-1 sm:p-2 lg:p-3">
-                        <h3 className="text-xs sm:text-sm lg:text-base font-semibold text-gray-800 truncate">
-                          {product.name}
-                        </h3>
-                        <div className="flex items-center mt-1">
-                          {product.offerPrice < product.price ? (
-                            <>
-                              <span className="text-xs sm:text-sm font-bold text-red-600">
-                                ₹{product.offerPrice}
-                              </span>
-                              <span className="text-xs text-gray-500 line-through ml-1">
+                          </div>
+                        ) : (
+                          <div className="w-full h-14 sm:h-16 md:h-20 lg:h-24 xl:h-28 bg-gray-200 flex items-center justify-center">
+                            <svg
+                              className="w-6 h-6 text-gray-400"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+                              />
+                            </svg>
+                          </div>
+                        )}
+                        <div className="p-1 sm:p-2 lg:p-3">
+                          <h3 className="text-xs sm:text-sm lg:text-base font-semibold text-gray-800 truncate">
+                            {product.name}
+                          </h3>
+                          <div className="flex items-center mt-1">
+                            {product.offerPrice < product.price ? (
+                              <>
+                                <span className="text-xs sm:text-sm font-bold text-red-600">
+                                  ₹{product.offerPrice}
+                                </span>
+                                <span className="text-xs text-gray-500 line-through ml-1">
+                                  ₹{product.price}
+                                </span>
+                              </>
+                            ) : (
+                              <span className="text-xs sm:text-sm font-bold text-gray-800">
                                 ₹{product.price}
                               </span>
-                            </>
-                          ) : (
-                            <span className="text-xs sm:text-sm font-bold text-gray-800">
-                              ₹{product.price}
-                            </span>
-                          )}
+                            )}
+                          </div>
                         </div>
                       </div>
+                    ))
+                  ) : (
+                    <div className="flex items-center justify-center w-full py-8">
+                      <p className="text-gray-500 text-center">No products available</p>
                     </div>
-                  ))
-                ) : (
-                  <div className="flex items-center justify-center w-full py-8">
-                    <p className="text-gray-500 text-center">No products available</p>
-                  </div>
-                )}
+                  )}
+                </div>
               </div>
-            </div>
           </div>
         </div>
 

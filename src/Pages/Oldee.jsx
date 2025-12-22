@@ -1351,9 +1351,9 @@ const Oldee = () => {
     <div className="min-h-screen bg-gray-50">
       {/* Categories Section at the top like navbar */}
       <div className="bg-white border-b shadow-sm">
-        <div className="w-full px-8 py-4">
+        <div className="w-full px-6 py-2">
           {/* Categories Filter */}
-          <div className="mb-4">
+          <div className="mb-0.5">
             <div className="flex flex-wrap gap-2">
               {categories.map((category) => (
                 <button
