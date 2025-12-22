@@ -998,9 +998,7 @@ const Home = () => {
               Browse through our extensive collection of products from all
               categories
             </p>
-            <div className="mt-2 text-sm text-gray-500 animate-slide-up delay-200">
-              Showing {displayProducts.length} of {allProducts.length} products
-            </div>
+             
           </div>
 
           {/* Products Grid */}
