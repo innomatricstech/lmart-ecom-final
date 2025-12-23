@@ -648,27 +648,11 @@ const EMarket = () => {
           <div className="flex-1 ml-4">
             <div className="mb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
-                <h2 className="text-lg sm:text-xl font-semibold">
-                  {searchQuery ? `Results for "${searchQuery}"` : selectedMainCategory === "All Products" ? "All E-Store Products" : selectedMainCategory}
-                  {!searchQuery && selectedSubCategory !== "All" && ` - ${selectedSubCategory}`}
-                  {selectedBrand !== "All Brands" && ` - ${selectedBrand}`}
-                  {selectedRatings.length > 0 && ` · ${selectedRatings.map(r => `${r}+ stars`).join(', ')}`}
-                </h2>
+                 
                 {(selectedSubCategory !== "All" || selectedBrand !== "All Brands" || selectedRatings.length > 0) && (
                   <div className="mt-2 flex items-center gap-2 flex-wrap">
-                    {selectedSubCategory !== "All" && (
-                      <span className="inline-flex items-center bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm">
-                        Subcategory: {selectedSubCategory}
-                        <button onClick={() => setSelectedSubCategory("All")} className="ml-2 text-blue-600 hover:text-blue-900">×</button>
-                      </span>
-                    )}
-                    {selectedBrand !== "All Brands" && (
-                      <span className="inline-flex items-center bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm">
-                        Brand: {selectedBrand}
-                        <button onClick={() => setSelectedBrand("All Brands")} className="ml-2 text-green-600 hover:text-green-900">×</button>
-                      </span>
-                    )}
                     
+                     
                   </div>
                 )}
               </div>
