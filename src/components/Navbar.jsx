@@ -216,7 +216,7 @@ const Navbar = () => {
 
     sessionStorage.setItem("selectedCartItems", JSON.stringify(selected));
     setIsCartOpen(false);
-    navigate("/checkout");
+    navigate("/cart");
   };
 
   // Handle quantity updates in sidebar

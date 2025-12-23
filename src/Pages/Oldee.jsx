@@ -1394,7 +1394,7 @@ const Oldee = () => {
                   </div>
                 )}
                 
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 mr-2">
                   <button
                     onClick={openUserViewer}
                     className="px-4 py-2 rounded-lg bg-gray-800 hover:bg-black text-white font-medium text-sm transition-colors flex items-center gap-2"

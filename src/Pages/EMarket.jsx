@@ -668,17 +668,7 @@ const EMarket = () => {
                         <button onClick={() => setSelectedBrand("All Brands")} className="ml-2 text-green-600 hover:text-green-900">×</button>
                       </span>
                     )}
-                    {selectedRatings.length > 0 && (
-                      <>
-                        {selectedRatings.map(rating => (
-                          <span key={rating} className="inline-flex items-center bg-yellow-100 text-yellow-800 px-3 py-1 rounded-full text-sm">
-                            {rating}★ & above
-                            <button onClick={() => handleRatingToggle(rating)} className="ml-2 text-yellow-600 hover:text-yellow-900">×</button>
-                          </span>
-                        ))}
-                        <button onClick={clearRatingFilter} className="text-sm text-blue-600 hover:text-blue-800">Clear ratings</button>
-                      </>
-                    )}
+                    
                   </div>
                 )}
               </div>
