@@ -10,8 +10,7 @@ import {
   getDocs,
   addDoc,
   serverTimestamp,
-  runTransaction,
-  limit
+  runTransaction
 } from "firebase/firestore";
 import { getStorage, ref, getDownloadURL } from "firebase/storage";
 import { useCart } from "../context/CartContext";
@@ -27,7 +26,7 @@ const StarRating = ({ rating = 0, size = "w-4 h-4", color = "text-yellow-500", s
         .fill(0)
         .map((_, i) => {
           const starValue = i + 1;
-          
+
           return (
             <div key={i} className="relative">
               {/* Gray background star */}
@@ -38,7 +37,7 @@ const StarRating = ({ rating = 0, size = "w-4 h-4", color = "text-yellow-500", s
               >
                 <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
               </svg>
-              
+
               {/* Colored star overlay */}
               {(starValue <= fullStars || (starValue === fullStars + 1 && hasHalfStar)) && (
                 <svg
@@ -52,7 +51,7 @@ const StarRating = ({ rating = 0, size = "w-4 h-4", color = "text-yellow-500", s
             </div>
           );
         })}
-      
+
       {showText && (
         <span className="ml-2 text-sm font-semibold text-gray-700">
           {rating.toFixed(1)}
@@ -73,23 +72,23 @@ const WriteReviewModal = ({ onClose, onSubmit, productName, currentUser, product
 
   const validateForm = () => {
     const newErrors = {};
-    
+
     if (!rating) newErrors.rating = "Please select a rating";
     if (!title.trim()) newErrors.title = "Review title is required";
     if (!content.trim()) newErrors.content = "Review content is required";
     if (content.trim().length < 10) newErrors.content = "Review must be at least 10 characters";
-    
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
   const submitReview = async (e) => {
     e.preventDefault();
-    
+
     if (!validateForm()) {
       return;
     }
-    
+
     setSubmitting(true);
     try {
       const ok = await onSubmit({ rating, title, content });
@@ -136,14 +135,14 @@ const WriteReviewModal = ({ onClose, onSubmit, productName, currentUser, product
         {/* User Info Display - Guest or User */}
         <div className="mb-4 p-3 bg-blue-50 rounded-lg">
           <p className="text-sm text-gray-700">
-            <span className="font-semibold">Reviewing as:</span> 
-            {currentUser ? 
-              currentUser.displayName || currentUser.name || "User" 
+            <span className="font-semibold">Reviewing as:</span>
+            {currentUser ?
+              currentUser.displayName || currentUser.name || "User"
               : "Guest User"
             }
           </p>
           <p className="text-xs text-gray-500 mt-1">
-            {currentUser ? 
+            {currentUser ?
               `User ID: ${currentUser.uid || currentUser.id}`
               : "You're reviewing as a guest"
             }
@@ -170,11 +169,10 @@ const WriteReviewModal = ({ onClose, onSubmit, productName, currentUser, product
                       className="focus:outline-none"
                     >
                       <svg
-                        className={`w-10 h-10 cursor-pointer transition-transform hover:scale-110 ${
-                          starValue <= (hoverRating || rating) 
-                            ? "text-yellow-500" 
+                        className={`w-10 h-10 cursor-pointer transition-transform hover:scale-110 ${starValue <= (hoverRating || rating)
+                            ? "text-yellow-500"
                             : "text-gray-300"
-                        }`}
+                          }`}
                         fill="currentColor"
                         viewBox="0 0 20 20"
                       >
@@ -195,9 +193,8 @@ const WriteReviewModal = ({ onClose, onSubmit, productName, currentUser, product
                 Review Title *
               </label>
               <input
-                className={`border ${
-                  errors.title ? "border-red-500" : "border-gray-300"
-                } p-3 rounded-lg w-full focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all`}
+                className={`border ${errors.title ? "border-red-500" : "border-gray-300"
+                  } p-3 rounded-lg w-full focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all`}
                 placeholder="What's most important to know?"
                 value={title}
                 onChange={(e) => {
@@ -216,9 +213,8 @@ const WriteReviewModal = ({ onClose, onSubmit, productName, currentUser, product
                 Your Review *
               </label>
               <textarea
-                className={`border ${
-                  errors.content ? "border-red-500" : "border-gray-300"
-                } p-3 rounded-lg w-full focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all`}
+                className={`border ${errors.content ? "border-red-500" : "border-gray-300"
+                  } p-3 rounded-lg w-full focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all`}
                 rows={4}
                 placeholder="Share your experience with this product..."
                 value={content}
@@ -237,11 +233,10 @@ const WriteReviewModal = ({ onClose, onSubmit, productName, currentUser, product
           <button
             type="submit"
             disabled={submitting}
-            className={`w-full py-3 rounded-lg text-white font-semibold mt-6 transition-all ${
-              submitting
+            className={`w-full py-3 rounded-lg text-white font-semibold mt-6 transition-all ${submitting
                 ? "bg-gray-400 cursor-not-allowed"
                 : "bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
-            }`}
+              }`}
           >
             {submitting ? "Submitting..." : "Submit Review"}
           </button>
@@ -251,23 +246,273 @@ const WriteReviewModal = ({ onClose, onSubmit, productName, currentUser, product
   );
 };
 
+// 🛒 FIXED Related Products Component
+const RelatedProducts = ({ categoryId, currentProductId, source, storeLabel }) => {
+  const navigate = useNavigate();
+  const [relatedProducts, setRelatedProducts] = useState([]);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    const fetchRelatedProducts = async () => {
+      if (!categoryId || !source) {
+        console.log("Missing categoryId or source");
+        return;
+      }
+
+      setLoading(true);
+      try {
+        // 🔄 Identify the correct Firestore collection
+        let collectionName = "";
+        switch (source) {
+          case "local-market":
+            collectionName = "localmarket";
+            break;
+          case "printing":
+            collectionName = "printing";
+            break;
+          case "e-market":
+          default:
+            collectionName = "products";
+            break;
+        }
+
+        console.log("Fetching from collection:", collectionName, "with category:", categoryId);
+
+        // 🔄 Fetch all products from the collection
+        const productsRef = collection(db, collectionName);
+        const querySnapshot = await getDocs(productsRef);
+        const products = [];
+
+        querySnapshot.forEach((doc) => {
+          const data = doc.data();
+          
+          // ⭐ Handle category comparison - check if category matches
+          // The category field could be string or object
+          const productCategory = typeof data.category === 'object' ? data.category.id : data.category;
+          const categoryToCompare = typeof categoryId === 'object' ? categoryId.id : categoryId;
+          
+          console.log("Product category check:", {
+            productId: doc.id,
+            productCategory,
+            categoryToCompare,
+            matches: productCategory === categoryToCompare
+          });
+          
+          // Only add if category matches
+          if (productCategory === categoryToCompare) {
+            products.push({
+              id: doc.id,
+              ...data,
+              // Get the correct image URL
+              image: data.imageUrls?.[0]?.url || data.imageUrl || data.image || data.mainImage || "",
+              // Ensure price is available
+              price: data.price || data.offerPrice || 0,
+              name: data.name || "Unnamed Product"
+            });
+          }
+        });
+
+        console.log("Found products in same category:", products.length);
+
+        // 🔥 Remove current product from the list
+        const filteredProducts = products.filter(product => product.id !== currentProductId);
+        
+        console.log("After filtering current product:", filteredProducts.length);
+
+        // Randomize and limit to 4 products
+        const shuffled = [...filteredProducts].sort(() => 0.5 - Math.random());
+        const selectedProducts = shuffled.slice(0, 4);
+        
+        setRelatedProducts(selectedProducts);
+      } catch (error) {
+        console.error("Error fetching related products:", error);
+        setRelatedProducts([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchRelatedProducts();
+  }, [categoryId, currentProductId, source]);
+
+  // 🔄 Loading state
+  if (loading) {
+    return (
+      <div className="mt-12">
+        <h2 className="text-2xl font-bold text-gray-900 mb-6">
+          Related Products from {storeLabel}
+        </h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+          {[...Array(4)].map((_, index) => (
+            <div key={index} className="bg-white rounded-xl shadow-md overflow-hidden animate-pulse">
+              <div className="h-48 bg-gray-300"></div>
+              <div className="p-4">
+                <div className="h-4 bg-gray-300 rounded mb-2"></div>
+                <div className="h-4 bg-gray-300 rounded mb-4 w-3/4"></div>
+                <div className="h-6 bg-gray-300 rounded mb-2 w-1/2"></div>
+                <div className="h-4 bg-gray-300 rounded w-1/4"></div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  // 🔄 Don't show anything if no related products
+  if (relatedProducts.length === 0) {
+    console.log("No related products found");
+    return null;
+  }
+
+  return (
+    <div className="mt-12">
+      <div className="flex justify-between items-center mb-6">
+        <h2 className="text-2xl font-bold text-gray-900">
+          Related Products from {storeLabel}
+        </h2>
+        <button
+          onClick={() => {
+            let storePath = "";
+            switch (source) {
+              case "local-market":
+                storePath = "/local-market";
+                break;
+              case "printing":
+                storePath = "/printing";
+                break;
+              case "e-market":
+              default:
+                storePath = "/e-market";
+                break;
+            }
+            navigate(storePath);
+          }}
+          className="text-purple-600 hover:text-purple-800 font-semibold flex items-center gap-2 hover:underline transition-colors"
+        >
+          View All
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+          </svg>
+        </button>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+        {relatedProducts.map((product) => (
+          <div
+            key={product.id}
+            className="bg-white rounded-xl shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden group cursor-pointer border border-gray-200 hover:border-purple-300"
+            onClick={() => {
+              navigate(`/product/${product.id}`, {
+                state: {
+                  product,
+                  source
+                }
+              });
+            }}
+          >
+            {/* Product Image */}
+            <div className="relative overflow-hidden h-48 bg-gray-100">
+              {product.image ? (
+                <img
+                  src={product.image}
+                  alt={product.name}
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                  loading="lazy"
+                  onError={(e) => {
+                    e.target.onerror = null;
+                    e.target.src = "https://placehold.co/300x200?text=Product";
+                  }}
+                />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center">
+                  <svg className="w-12 h-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
+                </div>
+              )}
+
+              {/* Quick view overlay */}
+              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-all duration-300 flex items-center justify-center">
+                <button className="opacity-0 group-hover:opacity-100 transform translate-y-4 group-hover:translate-y-0 transition-all duration-300 bg-white text-purple-600 font-semibold px-4 py-2 rounded-full shadow-lg">
+                  Quick View
+                </button>
+              </div>
+            </div>
+
+            {/* Product Info */}
+            <div className="p-4">
+              <h3 className="font-semibold text-gray-900 line-clamp-1 mb-2 group-hover:text-purple-600 transition-colors">
+                {product.name}
+              </h3>
+
+              {/* Rating */}
+              <div className="flex items-center gap-1 mb-3">
+                <StarRating
+                  rating={product.rating || 4.0}
+                  size="w-4 h-4"
+                  color="text-yellow-500"
+                />
+                <span className="text-sm text-gray-600 ml-1">
+                  ({product.reviewCount || Math.floor(Math.random() * 100) + 1})
+                </span>
+              </div>
+
+              {/* Price */}
+              <div className="flex items-center gap-2">
+                <span className="text-xl font-bold text-gray-900">
+                  ₹{product.price?.toLocaleString() || product.offerPrice?.toLocaleString() || "0"}
+                </span>
+                {product.originalPrice && product.originalPrice > product.price && (
+                  <span className="text-sm text-gray-500 line-through">
+                    ₹{product.originalPrice.toLocaleString()}
+                  </span>
+                )}
+              </div>
+
+              {/* Stock Status */}
+              <div className="mt-3">
+                {product.stock > 0 ? (
+                  <span className="inline-flex items-center text-sm text-green-600 bg-green-50 px-2 py-1 rounded">
+                    <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                    </svg>
+                    In Stock
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center text-sm text-red-600 bg-red-50 px-2 py-1 rounded">
+                    <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                    </svg>
+                    Out of Stock
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
 // Helper function to check if URL is a video
 const isVideoUrl = (url) => {
   if (!url) return false;
-  
+
   // Check by file extension
   const videoExtensions = ['.mp4', '.webm', '.ogg', '.mov', '.avi', '.wmv', '.flv', '.mkv'];
   const urlLower = url.toLowerCase();
-  
+
   // Check if URL contains video patterns
   return videoExtensions.some(ext => urlLower.includes(ext)) ||
-         urlLower.includes('video') ||
-         (urlLower.includes('firebasestorage') && 
-          (urlLower.includes('.mp4') || urlLower.includes('.webm') || urlLower.includes('.ogg')));
+    urlLower.includes('video') ||
+    (urlLower.includes('firebasestorage') &&
+      (urlLower.includes('.mp4') || urlLower.includes('.webm') || urlLower.includes('.ogg')));
 };
 
-// ⭐ Main Product Detail Component - Fixed Size and Color Selection
-const ProductDetail = () => {
+// ⭐ Main Product Detail Component
+const ProductDetail = ({ product: propProduct }) => {
   const { productId } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
@@ -276,8 +521,8 @@ const ProductDetail = () => {
 
   const productState = useMemo(() => location.state?.product, [location.state]);
 
-  const [product, setProduct] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [product, setProduct] = useState(propProduct || null);
+  const [loading, setLoading] = useState(!propProduct);
   const [images, setImages] = useState([]);
   const [videos, setVideos] = useState([]);
   const [currentImg, setCurrentImg] = useState("");
@@ -300,96 +545,61 @@ const ProductDetail = () => {
   const [currentUser, setCurrentUser] = useState(null);
   const [availableColors, setAvailableColors] = useState([]);
   const [availableSizes, setAvailableSizes] = useState([]);
-  const [colorImageMap, setColorImageMap] = useState({}); 
-  
-  // ⭐ RELATED PRODUCTS STATES - ADDED HERE
-  const [relatedProducts, setRelatedProducts] = useState([]);
-  const [loadingRelated, setLoadingRelated] = useState(false);
+  const [colorImageMap, setColorImageMap] = useState({});
 
-  // ⭐ FIXED: Define storePath and storeLabel using useMemo for Breadcrumb
+  // FIXED: Get store info from location state or prop
+  const productTag = location.state?.source || product?.productTag || null;
+  const source = location.state?.source || "e-market"; // Default to e-market
 
-  const productTag =
-  location.state?.source || product?.productTag || null;
-
-const source = location.state?.source;
-
-const { storePath, storeLabel } = useMemo(() => {
-  if (source === "local-market") {
-    return { storePath: "/local-market", storeLabel: "Local Market" };
-  }
-
-  if (source === "printing") {
-    return { storePath: "/printing", storeLabel: "Printing" };
-  }
-
-  if (source === "e-market") {
+  const { storePath, storeLabel } = useMemo(() => {
+    if (source === "local-market") {
+      return { storePath: "/local-market", storeLabel: "Local Market" };
+    }
+    if (source === "printing") {
+      return { storePath: "/printing", storeLabel: "Printing" };
+    }
+    if (source === "e-market") {
+      return { storePath: "/e-market", storeLabel: "E-store" };
+    }
+    // Default fallback
     return { storePath: "/e-market", storeLabel: "E-store" };
-  }
-
-  // ❌ NO DEFAULT
-  return { storePath: null, storeLabel: null };
-}, [source]);
-
-    
+  }, [source]);
 
   // 🔝 AUTO SCROLL TO TOP
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, [productId]);
 
-  // Debug useEffect for image loading
-  useEffect(() => {
-    console.log('Image Debug:', {
-      images,
-      videos,
-      currentImg,
-      currentIsVideo,
-      productId,
-      product: product?.name,
-      imageLoading,
-      colorImageMap // Add this to debug
-    });
-  }, [images, videos, currentImg, currentIsVideo, productId, product, imageLoading, colorImageMap]);
-
-  // 🔄 GET CURRENT LOGGED IN USER - IMPROVED VERSION
+  // 🔄 GET CURRENT LOGGED IN USER
   useEffect(() => {
     const getUserData = async () => {
       try {
         const token = localStorage.getItem("token");
         const userDataStr = localStorage.getItem("userData");
         const userStr = localStorage.getItem("user");
-        
-        console.log("🔄 Getting user data from localStorage:", { 
-          token: !!token, 
-          userDataStr: !!userDataStr, 
-          userStr: !!userStr 
-        });
-        
+
         if (token) {
           let userData = null;
-          
+
           // Try to parse user data from localStorage
           if (userDataStr) {
             try {
               userData = JSON.parse(userDataStr);
-              console.log("✅ Parsed userData from localStorage:", userData);
             } catch (e) {
               console.error("Error parsing userData:", e);
             }
           }
-          
+
           // If no userData, try the 'user' key
           if (!userData && userStr) {
             try {
               userData = JSON.parse(userStr);
-              console.log("✅ Parsed user from localStorage:", userData);
             } catch (e) {
               console.error("Error parsing user:", e);
             }
           }
-          
+
           if (userData) {
-            console.log("✅ Setting currentUser from localStorage:", userData);
             setCurrentUser({
               uid: userData.uid || token,
               id: userData.uid || token,
@@ -399,15 +609,13 @@ const { storePath, storeLabel } = useMemo(() => {
               photoURL: userData.photoURL || ""
             });
           } else {
-            console.log("⚠️ No user data in localStorage, trying Firestore...");
             // Try to fetch from Firestore using token as userId
             try {
               const userRef = doc(db, "users", token);
               const userSnap = await getDoc(userRef);
-              
+
               if (userSnap.exists()) {
                 const userData = userSnap.data();
-                console.log("✅ Fetched user from Firestore:", userData);
                 setCurrentUser({
                   uid: token,
                   id: token,
@@ -417,7 +625,6 @@ const { storePath, storeLabel } = useMemo(() => {
                   photoURL: userData.photoURL || ""
                 });
               } else {
-                console.log("❌ No user data found anywhere");
                 setCurrentUser(null);
               }
             } catch (error) {
@@ -426,7 +633,6 @@ const { storePath, storeLabel } = useMemo(() => {
             }
           }
         } else {
-          console.log("❌ No token in localStorage");
           setCurrentUser(null);
         }
       } catch (error) {
@@ -436,156 +642,45 @@ const { storePath, storeLabel } = useMemo(() => {
     };
 
     getUserData();
-    
-    // Listen for storage changes (when login updates localStorage in same tab)
+
+    // Listen for storage changes
     const handleStorageChange = (e) => {
       if (e.key === "token" || e.key === "userData" || e.key === "user" || e.key === "isLoggedIn") {
-        console.log("📢 Storage changed:", e.key, "Refreshing user data...");
         getUserData();
       }
     };
-    
+
     window.addEventListener('storage', handleStorageChange);
-    
-    // Also poll for changes (for same-tab updates)
+
+    // Poll for changes
     const storagePollInterval = setInterval(() => {
       const token = localStorage.getItem("token");
       const isLoggedIn = localStorage.getItem("isLoggedIn") === "true";
-      
+
       if ((token && !currentUser) || (!token && currentUser)) {
-        console.log("🔄 Polling detected change, refreshing user data");
         getUserData();
       }
     }, 1000);
-    
+
     return () => {
       window.removeEventListener('storage', handleStorageChange);
       clearInterval(storagePollInterval);
     };
   }, []);
 
-  // ⭐ FETCH RELATED PRODUCTS - ADDED HERE
+  // ⭐ Auto-open review modal after login redirect
   useEffect(() => {
-    const fetchRelatedProducts = async () => {
-      if (!product || !storePath) return;
-      
-      setLoadingRelated(true);
-      try {
-        // Get the store collection based on storePath
-        let collectionName = "";
-        
-        if (storePath === "/local-market") {
-          collectionName = "localmarket";
-        } else if (storePath === "/printing") {
-          collectionName = "printing";
-        } else if (storePath === "/e-market") {
-          collectionName = "products";
-        } else {
-          // Fallback - fetch from all collections
-          setLoadingRelated(false);
-          return;
-        }
-        
-        // Fetch products from the same category/store, excluding current product
-        const productsRef = collection(db, collectionName);
-        let q;
-        
-        // Try to match by category first
-        if (product.category) {
-          q = query(
-            productsRef,
-            where("category", "==", product.category),
-            where("id", "!=", productId)
-          );
-        } else {
-          // If no category, fetch random products from same store
-          q = query(productsRef, where("id", "!=", productId));
-        }
-        
-        const querySnapshot = await getDocs(q);
-        const products = [];
-        
-        querySnapshot.forEach((doc) => {
-          if (products.length < 8) { // Limit to 8 related products
-            const data = doc.data();
-            products.push({
-              id: doc.id,
-              ...data,
-              // Get main image (not the one marked as main for display)
-              image: data.imageUrls?.find(img => img.isMain !== true)?.url || 
-                     data.imageUrls?.[0]?.url || 
-                     data.imageUrl || 
-                     data.image || 
-                     ""
-            });
-          }
-        });
-        
-        // If not enough products by category, fetch more random ones
-        if (products.length < 4 && collectionName === "products") {
-          const moreProductsRef = collection(db, collectionName);
-          const randomQ = query(
-            moreProductsRef, 
-            where("id", "!=", productId),
-            limit(8 - products.length)
-          );
-          const randomSnapshot = await getDocs(randomQ);
-          
-          randomSnapshot.forEach((doc) => {
-            if (products.length < 8) {
-              const data = doc.data();
-              if (!products.some(p => p.id === doc.id)) {
-                products.push({
-                  id: doc.id,
-                  ...data,
-                  image: data.imageUrls?.find(img => img.isMain !== true)?.url || 
-                         data.imageUrls?.[0]?.url || 
-                         data.imageUrl || 
-                         data.image || 
-                         ""
-                });
-              }
-            }
-          });
-        }
-        
-        setRelatedProducts(products);
-      } catch (error) {
-        console.error("Error fetching related products:", error);
-        setRelatedProducts([]);
-      } finally {
-        setLoadingRelated(false);
-      }
-    };
-    
-    fetchRelatedProducts();
-  }, [product, storePath, productId]);
-
-  // ⭐ Auto-open review modal after login redirect - FIXED VERSION
-  useEffect(() => {
-    console.log("🔍 Checking for review modal auto-open:", {
-      locationState: location.state,
-      currentUser: !!currentUser,
-      showReviewModalFlag: location.state?.showReviewModal
-    });
-    
     const { state } = location;
-    
+
     // Check if we're returning from login with review redirect
     if (state?.showReviewModal && currentUser) {
-      console.log("✅✅✅ CONDITIONS MET - Opening review modal automatically");
-      console.log("showReviewModal:", state.showReviewModal);
-      console.log("currentUser exists:", !!currentUser);
-      
-      // Use setTimeout to ensure state is fully loaded
       setTimeout(() => {
         setShowReviewModal(true);
       }, 300);
-      
+
       // Clear the state after opening modal
       setTimeout(() => {
         if (location.state?.showReviewModal) {
-          console.log("🔄 Clearing review redirect state");
           navigate(`/product/${productId}`, { replace: true });
         }
       }, 500);
@@ -596,7 +691,7 @@ const { storePath, storeLabel } = useMemo(() => {
   const addToast = useCallback((product, variant, quantity) => {
     const toastId = Date.now();
     const variantType = Math.floor(Math.random() * 3);
-    
+
     const newToast = {
       id: toastId,
       productName: product.name,
@@ -626,20 +721,20 @@ const { storePath, storeLabel } = useMemo(() => {
   const fetchReviews = useCallback(async () => {
     try {
       if (!productId) return;
-      
+
       const q = query(
         collection(db, "reviews"),
         where("productId", "==", productId)
       );
-      
+
       const querySnapshot = await getDocs(q);
-      
+
       const reviewsData = [];
       const authenticatedUserIds = new Set();
-      
+
       querySnapshot.forEach((doc) => {
         const data = doc.data();
-        
+
         reviewsData.push({
           id: doc.id,
           rating: data.rating || 0,
@@ -653,20 +748,20 @@ const { storePath, storeLabel } = useMemo(() => {
           verifiedPurchase: data.verifiedPurchase || false,
           createdAt: data.createdAt?.toDate ? data.createdAt.toDate() : new Date(),
         });
-        
+
         if (data.userId && !data.userId.startsWith('guest_') && data.userType === 'authenticated') {
           authenticatedUserIds.add(data.userId);
         }
       });
-      
+
       const usersData = {};
-      
+
       if (authenticatedUserIds.size > 0) {
         const userPromises = Array.from(authenticatedUserIds).map(async (userId) => {
           try {
             const userRef = doc(db, "users", userId);
             const userSnap = await getDoc(userRef);
-            
+
             if (userSnap.exists()) {
               const userData = userSnap.data();
               usersData[userId] = {
@@ -694,28 +789,28 @@ const { storePath, storeLabel } = useMemo(() => {
             };
           }
         });
-        
+
         await Promise.all(userPromises);
       }
-      
+
       setUsersMap(usersData);
-      
+
       reviewsData.sort((a, b) => b.createdAt - a.createdAt);
       setReviews(reviewsData);
-      
+
       const total = reviewsData.length;
       let sum = 0;
       const dist = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
-      
+
       reviewsData.forEach((review) => {
         const rating = Math.max(1, Math.min(5, Math.floor(Number(review.rating) || 0)));
         dist[rating] = (dist[rating] || 0) + 1;
         sum += rating;
       });
-      
+
       const avg = total === 0 ? (product?.rating || 4.3) : +(sum / total).toFixed(1);
       setStats({ avg, total, dist });
-      
+
     } catch (error) {
       console.error("Error fetching reviews:", error);
       setStats({
@@ -729,12 +824,22 @@ const { storePath, storeLabel } = useMemo(() => {
   // 🔄 LOAD PRODUCT DATA
   useEffect(() => {
     const loadProduct = async () => {
+      // If product is passed as prop, use it
+      if (propProduct) {
+        setProduct(propProduct);
+        processProductData(propProduct);
+        await fetchReviews();
+        setLoading(false);
+        return;
+      }
+
+      // Otherwise fetch from Firestore
       setLoading(true);
       setImageLoading(true);
-      
+
       try {
         let productData = null;
-        
+
         // Check if product data is passed via state
         if (productState && productState.id === productId) {
           productData = productState;
@@ -742,7 +847,7 @@ const { storePath, storeLabel } = useMemo(() => {
           // Fetch from Firestore
           const productRef = doc(db, "products", productId);
           const productSnap = await getDoc(productRef);
-          
+
           if (productSnap.exists()) {
             productData = {
               id: productSnap.id,
@@ -750,197 +855,14 @@ const { storePath, storeLabel } = useMemo(() => {
             };
           }
         }
-        
+
         if (productData) {
           setProduct(productData);
-          
-          // Process images
-         // ⭐ FILTER MAIN IMAGE LOGIC (IMPORTANT FIX)
-const imageUrls = productData.imageUrls || [];
-
-const urls = imageUrls
-  .filter(img => {
-    // old string images → show
-    if (typeof img === "string") return true;
-
-    // explicitly hide main image
-    if (img?.isMain === true) return false;
-
-    // isMain === false OR undefined → show
-    return true;
-  })
-  .map(img => (typeof img === "string" ? img : img.url))
-  .filter(Boolean);
-
-setImages(urls);
-
-          
-          // ⭐ Fetch video URLs
-          let videoUrls = [];
-          
-          // Check if product has video URLs stored in Firestore
-          if (productData.videoUrls && Array.isArray(productData.videoUrls)) {
-            videoUrls = productData.videoUrls.map(video => {
-              if (typeof video === 'string') return video;
-              if (video?.url) return video.url;
-              return null;
-            }).filter(Boolean);
-          }
-          
-          // ⭐ If video URLs are stored as storage paths, fetch them from Firebase Storage
-          if (productData.videoStoragePaths && Array.isArray(productData.videoStoragePaths)) {
-            const videoPromises = productData.videoStoragePaths.map(async (storagePath) => {
-              try {
-                if (!storagePath) return null;
-                
-                // Create storage reference
-                const videoRef = ref(storage, storagePath);
-                
-                // Get download URL
-                const downloadURL = await getDownloadURL(videoRef);
-                return downloadURL;
-              } catch (error) {
-                console.error(`Error fetching video from path ${storagePath}:`, error);
-                return null;
-              }
-            });
-            
-            const fetchedVideoUrls = await Promise.all(videoPromises);
-            videoUrls = [...videoUrls, ...fetchedVideoUrls.filter(Boolean)];
-          }
-          
-          // ⭐ Check for single videoUrl field
-          if (productData.videoUrl && !videoUrls.includes(productData.videoUrl)) {
-            videoUrls.push(productData.videoUrl);
-          }
-          
-          setVideos(videoUrls);
-          
-          console.log('Fetched product media:', {
-            images: urls,
-            videos: videoUrls,
-            productName: productData.name
-          });
-          
-          const variants = productData.variants || [];
-          
-          // Get unique colors from variants that have stock > 0
-          const colors = [...new Set(
-            variants
-              .filter(v => v.color && (v.stock === undefined || v.stock > 0))
-              .map(v => v.color)
-              .filter(Boolean)
-          )];
-          
-          // Get unique sizes from variants that have stock > 0
-          const sizes = [...new Set(
-            variants
-              .filter(v => v.size && (v.stock === undefined || v.stock > 0))
-              .map(v => v.size)
-              .filter(Boolean)
-          )];
-          
-          setAvailableColors(colors);
-          setAvailableSizes(sizes);
-          
-          // ⭐ FIXED: Create color-image mapping from product data
-          // Check if product has colorImageMap from database
-          if (productData.colorImageMap) {
-            console.log('Using colorImageMap from database:', productData.colorImageMap);
-            setColorImageMap(productData.colorImageMap);
-          } else {
-            // Create default mapping: first image for first color, second for second, etc.
-            const defaultMap = {};
-            colors.forEach((color, index) => {
-              if (urls[index]) {
-                defaultMap[color] = index;
-              } else if (urls.length > 0) {
-                // If more colors than images, cycle through images
-                defaultMap[color] = index % urls.length;
-              }
-            });
-            console.log('Created default colorImageMap:', defaultMap);
-            setColorImageMap(defaultMap);
-          }
-         
-          // Combine images and videos for display
-          const allMedia = [...urls, ...videoUrls];
-          
-          // ALWAYS set currentImg if media exists
-      // ✅ PRESERVE MAIN IMAGE EVEN AFTER ADMIN UPDATE
-if (allMedia.length > 0) {
-  let nextImg = null;
-
-  // 1️⃣ First load
-  if (!currentImg) {
-    if (
-      colors.length > 0 &&
-      colorImageMap[colors[0]] !== undefined &&
-      urls[colorImageMap[colors[0]]]
-    ) {
-      nextImg = urls[colorImageMap[colors[0]]];
-    } else {
-      nextImg = allMedia[0];
-    }
-  }
-
-  // 2️⃣ Preserve existing image
-  else if (allMedia.includes(currentImg)) {
-    nextImg = currentImg;
-  }
-
-  // 3️⃣ If current image deleted
-  else {
-    nextImg = allMedia[0];
-  }
-
-  setCurrentImg(nextImg);
-  setCurrentIsVideo(isVideoUrl(nextImg));
-  setImageLoading(true);
-} else {
-  setCurrentImg("https://placehold.co/600x400?text=No+Image");
-  setCurrentIsVideo(false);
-  setImageLoading(false);
-}
-
-
-          // Set default selections
-          if (colors.length > 0) {
-            setSelectedColor(colors[0]);
-          }
-          if (sizes.length > 0) {
-            setSelectedSize(sizes[0]);
-          }
-          
-          // ⭐ FIXED: Find initial variant based on selected color and size
-          let initialVariant = null;
-          
-          // First try to find variant with both color and size
-          if (colors.length > 0 && sizes.length > 0) {
-            initialVariant = variants.find(
-              v => v.color === colors[0] && v.size === sizes[0] && (v.stock === undefined || v.stock > 0)
-            );
-          }
-          
-          // If not found, try to find variant with just color
-          if (!initialVariant && colors.length > 0) {
-            initialVariant = variants.find(
-              v => v.color === colors[0] && (v.stock === undefined || v.stock > 0)
-            );
-          }
-          
-          // If still not found, take the first variant with stock
-          if (!initialVariant) {
-            initialVariant = variants.find(v => v.stock === undefined || v.stock > 0) || variants[0] || null;
-          }
-          
-          setVariant(initialVariant);
+          processProductData(productData);
+          await fetchReviews();
         } else {
           setProduct(null);
         }
-        
-        await fetchReviews();
-        
       } catch (error) {
         console.error("Error loading product:", error);
         setProduct(null);
@@ -948,33 +870,191 @@ if (allMedia.length > 0) {
         setLoading(false);
       }
     };
-    
+
+    const processProductData = (productData) => {
+      // Process images
+      const imageUrls = productData.imageUrls || [];
+      const urls = imageUrls
+        .filter(img => {
+          if (typeof img === "string") return true;
+          if (img?.isMain === true) return false;
+          return true;
+        })
+        .map(img => (typeof img === "string" ? img : img.url))
+        .filter(Boolean);
+
+      setImages(urls);
+
+      // Fetch video URLs
+      let videoUrls = [];
+
+      // Check if product has video URLs stored in Firestore
+      if (productData.videoUrls && Array.isArray(productData.videoUrls)) {
+        videoUrls = productData.videoUrls.map(video => {
+          if (typeof video === 'string') return video;
+          if (video?.url) return video.url;
+          return null;
+        }).filter(Boolean);
+      }
+
+      // If video URLs are stored as storage paths, fetch them from Firebase Storage
+      if (productData.videoStoragePaths && Array.isArray(productData.videoStoragePaths)) {
+        const videoPromises = productData.videoStoragePaths.map(async (storagePath) => {
+          try {
+            if (!storagePath) return null;
+            const videoRef = ref(storage, storagePath);
+            const downloadURL = await getDownloadURL(videoRef);
+            return downloadURL;
+          } catch (error) {
+            console.error(`Error fetching video from path ${storagePath}:`, error);
+            return null;
+          }
+        });
+
+        Promise.all(videoPromises).then(fetchedVideoUrls => {
+          const allVideoUrls = [...videoUrls, ...fetchedVideoUrls.filter(Boolean)];
+          setVideos(allVideoUrls);
+        });
+      } else {
+        setVideos(videoUrls);
+      }
+
+      // Check for single videoUrl field
+      if (productData.videoUrl && !videoUrls.includes(productData.videoUrl)) {
+        setVideos(prev => [...prev, productData.videoUrl]);
+      }
+
+      const variants = productData.variants || [];
+
+      // Get unique colors from variants that have stock > 0
+      const colors = [...new Set(
+        variants
+          .filter(v => v.color && (v.stock === undefined || v.stock > 0))
+          .map(v => v.color)
+          .filter(Boolean)
+      )];
+
+      // Get unique sizes from variants that have stock > 0
+      const sizes = [...new Set(
+        variants
+          .filter(v => v.size && (v.stock === undefined || v.stock > 0))
+          .map(v => v.size)
+          .filter(Boolean)
+      )];
+
+      setAvailableColors(colors);
+      setAvailableSizes(sizes);
+
+      // Create color-image mapping
+      if (productData.colorImageMap) {
+        setColorImageMap(productData.colorImageMap);
+      } else {
+        // Create default mapping
+        const defaultMap = {};
+        colors.forEach((color, index) => {
+          if (urls[index]) {
+            defaultMap[color] = index;
+          } else if (urls.length > 0) {
+            defaultMap[color] = index % urls.length;
+          }
+        });
+        setColorImageMap(defaultMap);
+      }
+
+      // Combine images and videos for display
+      const allMedia = [...urls, ...videoUrls];
+
+      // Set current image
+      if (allMedia.length > 0) {
+        let nextImg = null;
+
+        // First load
+        if (!currentImg) {
+          if (
+            colors.length > 0 &&
+            colorImageMap[colors[0]] !== undefined &&
+            urls[colorImageMap[colors[0]]]
+          ) {
+            nextImg = urls[colorImageMap[colors[0]]];
+          } else {
+            nextImg = allMedia[0];
+          }
+        }
+        // Preserve existing image
+        else if (allMedia.includes(currentImg)) {
+          nextImg = currentImg;
+        }
+        // If current image deleted
+        else {
+          nextImg = allMedia[0];
+        }
+
+        setCurrentImg(nextImg);
+        setCurrentIsVideo(isVideoUrl(nextImg));
+        setImageLoading(true);
+      } else {
+        setCurrentImg("https://placehold.co/600x400?text=No+Image");
+        setCurrentIsVideo(false);
+        setImageLoading(false);
+      }
+
+      // Set default selections
+      if (colors.length > 0) {
+        setSelectedColor(colors[0]);
+      }
+      if (sizes.length > 0) {
+        setSelectedSize(sizes[0]);
+      }
+
+      // Find initial variant
+      let initialVariant = null;
+
+      // First try to find variant with both color and size
+      if (colors.length > 0 && sizes.length > 0) {
+        initialVariant = variants.find(
+          v => v.color === colors[0] && v.size === sizes[0] && (v.stock === undefined || v.stock > 0)
+        );
+      }
+
+      // If not found, try to find variant with just color
+      if (!initialVariant && colors.length > 0) {
+        initialVariant = variants.find(
+          v => v.color === colors[0] && (v.stock === undefined || v.stock > 0)
+        );
+      }
+
+      // If still not found, take the first variant with stock
+      if (!initialVariant) {
+        initialVariant = variants.find(v => v.stock === undefined || v.stock > 0) || variants[0] || null;
+      }
+
+      setVariant(initialVariant);
+    };
+
     loadProduct();
-  }, [productId, productState, fetchReviews]);
+  }, [productId, productState, fetchReviews, propProduct]);
 
   // 🔄 Update variant when color/size changes
   useEffect(() => {
     if (!product || !product.variants) return;
 
     const variants = product.variants || [];
-    
-    // ⭐ FIXED: Find variant based on selected color and size
     let selectedVariant = null;
-    
+
     // If both color and size are selected, try to find exact match
     if (selectedColor && selectedSize) {
       selectedVariant = variants.find(
         v => v.color === selectedColor && v.size === selectedSize && (v.stock === undefined || v.stock > 0)
       );
     }
-    
+
     // If not found or only color is selected, try to find by color
     if (!selectedVariant && selectedColor) {
       selectedVariant = variants.find(
         v => v.color === selectedColor && (v.stock === undefined || v.stock > 0)
       );
     }
-    
+
     // If still not found, take the first available variant
     if (!selectedVariant) {
       selectedVariant = variants.find(v => v.stock === undefined || v.stock > 0) || null;
@@ -986,12 +1066,12 @@ if (allMedia.length > 0) {
   // ⭐ FIXED: Get available sizes for selected color
   const getAvailableSizesForColor = useMemo(() => {
     if (!product || !product.variants || !selectedColor) return [];
-    
+
     return [...new Set(
       product.variants
-        .filter(v => 
-          v.color === selectedColor && 
-          v.size && 
+        .filter(v =>
+          v.color === selectedColor &&
+          v.size &&
           (v.stock === undefined || v.stock > 0)
         )
         .map(v => v.size)
@@ -999,37 +1079,18 @@ if (allMedia.length > 0) {
     )];
   }, [product, selectedColor]);
 
-  // ⭐ FIXED: Get available colors for selected size
-  const getAvailableColorsForSize = useMemo(() => {
-    if (!product || !product.variants || !selectedSize) return [];
-    
-    return [...new Set(
-      product.variants
-        .filter(v => 
-          v.size === selectedSize && 
-          v.color && 
-          (v.stock === undefined || v.stock > 0)
-        )
-        .map(v => v.color)
-        .filter(Boolean)
-    )];
-  }, [product, selectedSize]);
-
   // 🎨 Handle color selection - updates image based on color
   const handleColorSelect = (color) => {
-    console.log('Color selected:', color, 'colorImageMap:', colorImageMap);
     setSelectedColor(color);
     // Reset size when color changes
     setSelectedSize("");
-    
+
     // Update image based on selected color
     if (colorImageMap[color] !== undefined && images[colorImageMap[color]]) {
-      console.log('Setting image for color', color, 'image index:', colorImageMap[color], 'image URL:', images[colorImageMap[color]]);
       setCurrentImg(images[colorImageMap[color]]);
       setCurrentIsVideo(false);
       setImageLoading(true);
     } else {
-      console.log('No image mapping found for color:', color);
       // Fallback to first image if no mapping found
       if (images.length > 0) {
         setCurrentImg(images[0]);
@@ -1043,11 +1104,11 @@ if (allMedia.length > 0) {
   const onThumbnailClick = (media, index) => {
     setCurrentImg(media);
     setImageLoading(true);
-    
+
     // Check if it's a video
     const isVideo = isVideoUrl(media);
     setCurrentIsVideo(isVideo);
-    
+
     // Update color selection if image is associated with a color
     if (!isVideo && colorImageMap) {
       for (const [color, imgIndex] of Object.entries(colorImageMap)) {
@@ -1077,25 +1138,14 @@ if (allMedia.length > 0) {
 
   // ⭐ Handle review button click - check login status
   const handleReviewButtonClick = () => {
-    console.log("🎯 Review button clicked", { 
-      currentUser: !!currentUser, 
-      productId, 
-      productName: product?.name 
-    });
-    
     // Check localStorage directly for immediate login status
     const token = localStorage.getItem("token");
     const isLoggedIn = token && localStorage.getItem("isLoggedIn") === "true";
-    
-    console.log("🔐 Direct localStorage check:", { token: !!token, isLoggedIn });
-    
+
     if (isLoggedIn) {
       // User is logged in, show review modal directly
-      console.log("✅ User is logged in, opening review modal");
-      
-      // Make sure currentUser state is up to date
       if (!currentUser) {
-        console.log("🔄 CurrentUser state not updated yet, forcing refresh...");
+        // Make sure currentUser state is up to date
         const userDataStr = localStorage.getItem("userData");
         if (userDataStr) {
           try {
@@ -1111,15 +1161,10 @@ if (allMedia.length > 0) {
           }
         }
       }
-      
+
       setShowReviewModal(true);
     } else {
-      // User is not logged in, redirect to login page with product info
-      console.log("❌ User not logged in, redirecting to login", {
-        productId,
-        productName: product?.name
-      });
-      
+      // User is not logged in, redirect to login page
       navigate("/login", {
         state: {
           reviewRedirect: true,
@@ -1134,7 +1179,7 @@ if (allMedia.length > 0) {
   // 🛒 Add to cart
   const onAddToCart = async (e) => {
     e.preventDefault();
-    
+
     if (!product || !variant) {
       alert("Please select a variant");
       return;
@@ -1165,7 +1210,7 @@ if (allMedia.length > 0) {
     };
 
     addToCart(item);
-     
+  
 
     // Button click animation
     const button = e.currentTarget;
@@ -1305,11 +1350,11 @@ if (allMedia.length > 0) {
   const submitReview = async ({ rating, title, content }) => {
     try {
       const isGuest = !currentUser;
-      
+
       if (isGuest) {
         const guestId = `guest_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
         const guestName = "Guest User";
-        
+
         const payload = {
           productId,
           productName: product?.name || "",
@@ -1342,28 +1387,14 @@ if (allMedia.length > 0) {
 
         await addDoc(collection(db, "reviews"), payload);
       }
-      
+
       await fetchReviews();
-      
-      setToasts(prev => [{
-        id: Date.now(),
-        productName: product?.name || "",
-        message: "Review submitted successfully!",
-        type: "success"
-      }, ...prev.slice(0, 3)]);
-      
+
+      // ✅ Removed the toast notification for review submission
       return true;
 
     } catch (error) {
       console.error("Error submitting review:", error);
-      
-      setToasts(prev => [{
-        id: Date.now(),
-        productName: product?.name || "",
-        message: "Failed to submit review. Please try again.",
-        type: "error"
-      }, ...prev.slice(0, 3)]);
-      
       return false;
     }
   };
@@ -1411,7 +1442,7 @@ if (allMedia.length > 0) {
   const isInStock = variant?.stock === undefined ? true : variant.stock > 0;
   const displayPrice = variant?.offerPrice ?? variant?.price ?? product.price ?? 0;
   const originalPrice = variant?.price ?? product.price ?? 0;
-  const discount = originalPrice > displayPrice 
+  const discount = originalPrice > displayPrice
     ? Math.round(((originalPrice - displayPrice) / originalPrice) * 100)
     : 0;
 
@@ -1425,15 +1456,14 @@ if (allMedia.length > 0) {
         {toasts.map((toast, index) => (
           <div
             key={toast.id}
-            className={`relative overflow-hidden rounded-2xl shadow-2xl border-l-4 transform transition-all duration-300 hover:scale-105 hover:shadow-3xl ${
-              toast.type === "error" 
+            className={`relative overflow-hidden rounded-2xl shadow-2xl border-l-4 transform transition-all duration-300 hover:scale-105 hover:shadow-3xl ${toast.type === "error"
                 ? "bg-gradient-to-r from-red-50 to-orange-50 border-red-500"
                 : toast.variantType === 0
-                ? "bg-gradient-to-r from-green-50 to-emerald-50 border-emerald-500"
-                : toast.variantType === 1
-                ? "bg-gradient-to-r from-blue-50 to-cyan-50 border-blue-500"
-                : "bg-gradient-to-r from-purple-50 to-pink-50 border-purple-500"
-            }`}
+                  ? "bg-gradient-to-r from-green-50 to-emerald-50 border-emerald-500"
+                  : toast.variantType === 1
+                    ? "bg-gradient-to-r from-blue-50 to-cyan-50 border-blue-500"
+                    : "bg-gradient-to-r from-purple-50 to-pink-50 border-purple-500"
+              }`}
             style={{
               animation: `toastSlideIn 0.5s cubic-bezier(0.68, -0.55, 0.27, 1.55) ${index * 0.1}s both, toastFloat 3s ease-in-out ${index * 0.1}s infinite alternate`
             }}
@@ -1456,10 +1486,9 @@ if (allMedia.length > 0) {
                   </div>
                 ) : toast.productImage ? (
                   <div className="relative flex-shrink-0">
-                    <div className={`absolute inset-0 rounded-xl blur-md ${
-                      toast.variantType === 0 ? "bg-emerald-200" :
-                      toast.variantType === 1 ? "bg-blue-200" : "bg-purple-200"
-                    }`}></div>
+                    <div className={`absolute inset-0 rounded-xl blur-md ${toast.variantType === 0 ? "bg-emerald-200" :
+                        toast.variantType === 1 ? "bg-blue-200" : "bg-purple-200"
+                      }`}></div>
                     <img
                       src={toast.productImage}
                       alt={toast.productName}
@@ -1495,7 +1524,7 @@ if (allMedia.length > 0) {
                       {toast.time}
                     </span>
                   </div>
-                  
+
                   {!toast.message && (
                     <>
                       <p className="font-semibold text-gray-800 text-sm truncate mb-1">
@@ -1512,10 +1541,9 @@ if (allMedia.length > 0) {
                         </div>
                       )}
                       <div className="flex items-center justify-between">
-                        <span className={`text-lg font-bold ${
-                          toast.variantType === 0 ? "text-emerald-600" :
-                          toast.variantType === 1 ? "text-blue-600" : "text-purple-600"
-                        }`}>
+                        <span className={`text-lg font-bold ${toast.variantType === 0 ? "text-emerald-600" :
+                            toast.variantType === 1 ? "text-blue-600" : "text-purple-600"
+                          }`}>
                           ₹{toast.price}
                         </span>
                       </div>
@@ -1527,15 +1555,14 @@ if (allMedia.length > 0) {
               {/* Progress Bar */}
               <div className="mt-3 h-1 bg-gray-200 rounded-full overflow-hidden">
                 <div
-                  className={`h-full rounded-full animate-progress-bar ${
-                    toast.type === "error" 
+                  className={`h-full rounded-full animate-progress-bar ${toast.type === "error"
                       ? "bg-gradient-to-r from-red-400 to-orange-500"
-                      : toast.variantType === 0 
-                      ? "bg-gradient-to-r from-emerald-400 to-green-500"
-                      : toast.variantType === 1 
-                      ? "bg-gradient-to-r from-blue-400 to-cyan-500"
-                      : "bg-gradient-to-r from-purple-400 to-pink-500"
-                  }`}
+                      : toast.variantType === 0
+                        ? "bg-gradient-to-r from-emerald-400 to-green-500"
+                        : toast.variantType === 1
+                          ? "bg-gradient-to-r from-blue-400 to-cyan-500"
+                          : "bg-gradient-to-r from-purple-400 to-pink-500"
+                    }`}
                 ></div>
               </div>
             </div>
@@ -1557,38 +1584,37 @@ if (allMedia.length > 0) {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Breadcrumb */}
-       <nav className="text-sm mb-6 text-gray-600 flex items-center space-x-2">
-  {/* Home */}
-  <button
-    onClick={() => navigate("/")}
-    className="hover:text-gray-800"
-  >
-    Home
-  </button>
+        <nav className="text-sm mb-6 text-gray-600 flex items-center space-x-2">
+          {/* Home */}
+          <button
+            onClick={() => navigate("/")}
+            className="hover:text-gray-800"
+          >
+            Home
+          </button>
 
-  {/* productTag */}
-  {productTag && (
-    <>
-      <svg className="w-3 h-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-      </svg>
+          {/* productTag */}
+          {productTag && (
+            <>
+              <svg className="w-3 h-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
 
-      <span className="capitalize">
-        {productTag.replace("-", " ")}
-      </span>
-    </>
-  )}
+              <span className="capitalize">
+                {productTag.replace("-", " ")}
+              </span>
+            </>
+          )}
 
-  {/* Product name */}
-  <svg className="w-3 h-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-  </svg>
+          {/* Product name */}
+          <svg className="w-3 h-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+          </svg>
 
-  <span className="text-gray-800 font-medium truncate max-w-xs">
-    {product.name}
-  </span>
-</nav>
-
+          <span className="text-gray-800 font-medium truncate max-w-xs">
+            {product.name}
+          </span>
+        </nav>
 
         <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 p-6 md:p-8">
@@ -1602,7 +1628,7 @@ if (allMedia.length > 0) {
                         <div className="animate-spin h-16 w-12 rounded-full border-b-2 border-purple-600"></div>
                       </div>
                     )}
-                    
+
                     {/* Check if current media is a video */}
                     {currentIsVideo || isVideoUrl(currentImg) ? (
                       <div className="w-full h-full flex items-center justify-center">
@@ -1612,7 +1638,6 @@ if (allMedia.length > 0) {
                           controlsList="nodownload"
                           className="w-full h-auto max-h-[450px] object-contain transition-opacity duration-300 rounded-xl"
                           onLoadedData={() => {
-                            console.log('Video loaded successfully:', currentImg);
                             setImageLoading(false);
                           }}
                           onError={(e) => {
@@ -1629,7 +1654,7 @@ if (allMedia.length > 0) {
                         >
                           Your browser does not support the video tag.
                         </video>
-                        
+
                         {/* Video Badge */}
                         <div className="absolute top-4 right-4 bg-black/70 text-white px-3 py-1.5 rounded-full text-sm font-semibold flex items-center gap-2 backdrop-blur-sm">
                           <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
@@ -1642,12 +1667,9 @@ if (allMedia.length > 0) {
                       <img
                         src={currentImg}
                         alt={`${product.name} - ${selectedColor}`}
-                        className={`w-full h-[850px] max-h-[850px] object-cover transition-opacity duration-300 rounded-xl ${
-  imageLoading ? 'opacity-0' : 'opacity-100'
-}`}
-
+                        className={`w-full h-[850px] max-h-[850px] object-cover transition-opacity duration-300 rounded-xl ${imageLoading ? 'opacity-0' : 'opacity-100'
+                          }`}
                         onLoad={() => {
-                          console.log('Main image loaded successfully:', currentImg);
                           setImageLoading(false);
                         }}
                         onError={(e) => {
@@ -1674,7 +1696,6 @@ if (allMedia.length > 0) {
                       alt={product.name}
                       className={`w-full h-auto max-h-[600px] object-contain transition-opacity duration-300 ${imageLoading ? 'opacity-0' : 'opacity-100'}`}
                       onLoad={() => {
-                        console.log('Fallback image loaded:', images[0]);
                         setImageLoading(false);
                       }}
                       onError={(e) => {
@@ -1702,20 +1723,19 @@ if (allMedia.length > 0) {
                 <div className="grid grid-cols-4 gap-3">
                   {allMedia.map((media, i) => {
                     const isVideo = isVideoUrl(media);
-                    
+
                     return (
                       <button
                         key={i}
                         onClick={() => onThumbnailClick(media, i)}
-                        className={`rounded-xl overflow-hidden border-2 transition-all duration-200 relative group ${
-                          currentImg === media
+                        className={`rounded-xl overflow-hidden border-2 transition-all duration-200 relative group ${currentImg === media
                             ? "border-purple-500 ring-2 ring-purple-200"
                             : "border-gray-300 hover:border-gray-400"
-                        }`}
+                          }`}
                       >
                         {isVideo ? (
                           <div className="relative h-30 w-full bg-gradient-to-br from-gray-800 to-gray-900 flex items-center justify-center">
-                            {/* Video Thumbnail Image (use first product image as poster) */}
+                            {/* Video Thumbnail Image */}
                             {images[0] && (
                               <img
                                 src={images[0]}
@@ -1727,7 +1747,7 @@ if (allMedia.length > 0) {
                                 }}
                               />
                             )}
-                            
+
                             {/* Play Icon */}
                             <div className="absolute inset-0 flex items-center justify-center">
                               <div className="w-10 h-10 bg-purple-600 rounded-full flex items-center justify-center transform group-hover:scale-110 transition-transform">
@@ -1736,7 +1756,7 @@ if (allMedia.length > 0) {
                                 </svg>
                               </div>
                             </div>
-                            
+
                             {/* Video Badge */}
                             <div className="absolute bottom-2 right-2 bg-black/70 text-white text-xs px-2 py-1 rounded flex items-center gap-1 backdrop-blur-sm">
                               <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
@@ -1744,9 +1764,6 @@ if (allMedia.length > 0) {
                               </svg>
                               VIDEO
                             </div>
-                            
-                            {/* Index Overlay (for debugging) */}
-                            
                           </div>
                         ) : (
                           <div className="relative">
@@ -1762,8 +1779,6 @@ if (allMedia.length > 0) {
                                 e.target.className = "h-30 w-full object-cover bg-gray-200";
                               }}
                             />
-                            {/* Index Overlay (for debugging) */}
-                             
                           </div>
                         )}
                       </button>
@@ -1803,7 +1818,7 @@ if (allMedia.length > 0) {
                 >
                   {stats.total} {stats.total === 1 ? 'review' : 'reviews'}
                 </button>
-                
+
               </div>
 
               {/* Price */}
@@ -1814,13 +1829,13 @@ if (allMedia.length > 0) {
                 {originalPrice > displayPrice && (
                   <div className="space-y-1">
                     <p className="line-through text-gray-500 text-lg">₹{originalPrice.toLocaleString()}</p>
-                     
+
                   </div>
                 )}
               </div>
 
               {/* ⭐ FIXED: Color Selection with Image Change */}
-               {availableColors.length > 0 && (
+              {availableColors.length > 0 && (
                 <div className="space-y-3">
                   <h3 className="font-semibold text-gray-700">
                     Color: <span className="font-normal text-gray-900">{selectedColor}</span>
@@ -1828,20 +1843,17 @@ if (allMedia.length > 0) {
                   <div className="flex gap-2 flex-wrap">
                     {availableColors.map((color) => (
                       <button
-  key={color}
-  onClick={() => handleColorSelect(color)}
-  className={`px-3 py-1.5 text-sm rounded-md border transition-all duration-200 font-medium flex items-center gap-1.5 ${
-    selectedColor === color
-      ? "border-purple-600 bg-gradient-to-r from-purple-50 to-pink-50 text-purple-700 shadow-md"
-      : "border-gray-300 hover:border-gray-400 hover:bg-gray-50"
-  }`}
->
-
+                        key={color}
+                        onClick={() => handleColorSelect(color)}
+                        className={`px-3 py-1.5 text-sm rounded-md border transition-all duration-200 font-medium flex items-center gap-1.5 ${selectedColor === color
+                            ? "border-purple-600 bg-gradient-to-r from-purple-50 to-pink-50 text-purple-700 shadow-md"
+                            : "border-gray-300 hover:border-gray-400 hover:bg-gray-50"
+                          }`}
+                      >
                         <span>{color}</span>
                       </button>
                     ))}
                   </div>
-                  
                 </div>
               )}
 
@@ -1860,20 +1872,18 @@ if (allMedia.length > 0) {
                         v => v.color === selectedColor && v.size === size
                       );
                       const isOutOfStock = sizeVariant?.stock !== undefined && sizeVariant.stock <= 0;
-                      
+
                       return (
                         <button
                           key={`${selectedColor}-${size}`}
                           onClick={() => setSelectedSize(size)}
                           disabled={isOutOfStock}
-                          className={`px-3 py-1.5 text-sm rounded-md border transition-all duration-200 font-medium relative ${
-  selectedSize === size
-    ? "border-purple-600 bg-gradient-to-r from-purple-50 to-pink-50 text-purple-700 shadow-md"
-    : isOutOfStock
-    ? "border-gray-200 bg-gray-100 text-gray-400 cursor-not-allowed"
-    : "border-gray-300 hover:border-gray-400 hover:bg-gray-50"
-}`}
-
+                          className={`px-3 py-1.5 text-sm rounded-md border transition-all duration-200 font-medium relative ${selectedSize === size
+                              ? "border-purple-600 bg-gradient-to-r from-purple-50 to-pink-50 text-purple-700 shadow-md"
+                              : isOutOfStock
+                                ? "border-gray-200 bg-gray-100 text-gray-400 cursor-not-allowed"
+                                : "border-gray-300 hover:border-gray-400 hover:bg-gray-50"
+                            }`}
                           title={isOutOfStock ? "Out of stock" : `Select size ${size}`}
                         >
                           {size}
@@ -1933,24 +1943,21 @@ if (allMedia.length > 0) {
                 <button
                   onClick={onAddToCart}
                   disabled={!isInStock || addingToCart || !selectedColor}
-                  className={`flex-1 py-4 rounded-xl text-white font-semibold transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-1 active:translate-y-0 ${
-                    isInStock && !addingToCart && selectedColor
+                  className={`flex-1 py-4 rounded-xl text-white font-semibold transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-1 active:translate-y-0 ${isInStock && !addingToCart && selectedColor
                       ? "bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
                       : "bg-gray-400 cursor-not-allowed"
-                  }`}
+                    }`}
                 >
                   {addingToCart ? "Adding..." : isInStock ? "Add to Cart" : "Out of Stock"}
                 </button>
 
                 <button
-                  onClick={
-                    onBuyNow}
+                  onClick={onBuyNow}
                   disabled={!isInStock || !selectedColor}
-                  className={`flex-1 py-4 rounded-xl text-white font-semibold transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-1 active:translate-y-0 ${
-                    isInStock && selectedColor
+                  className={`flex-1 py-4 rounded-xl text-white font-semibold transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-1 active:translate-y-0 ${isInStock && selectedColor
                       ? "bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700"
                       : "bg-gray-400 cursor-not-allowed"
-                  }`}
+                    }`}
                 >
                   Buy Now
                 </button>
@@ -2017,7 +2024,7 @@ if (allMedia.length > 0) {
                     {reviews.slice(0, 4).map((r) => {
                       const isGuest = r.userId?.startsWith('guest_') || r.userType === 'guest';
                       const displayName = isGuest ? "Guest User" : (usersMap[r.userId]?.displayName || r.userName || "Anonymous");
-                      
+
                       return (
                         <div key={r.id} className="border-b pb-8 last:border-b-0">
                           <div className="flex items-center justify-between mb-3">
@@ -2029,7 +2036,7 @@ if (allMedia.length > 0) {
                               {r.createdAt?.toLocaleDateString?.() || 'Recently'}
                             </span>
                           </div>
-                          
+
                           {/* User Info */}
                           <div className="flex items-center gap-3 mb-3">
                             <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center">
@@ -2050,9 +2057,9 @@ if (allMedia.length > 0) {
                               )}
                             </div>
                           </div>
-                          
+
                           <p className="text-gray-700 leading-relaxed">{r.content}</p>
-                          
+
                           {/* Verified Purchase Badge */}
                           {r.verifiedPurchase && (
                             <div className="mt-3 inline-flex items-center gap-1 bg-green-100 text-green-800 text-xs px-2 py-1 rounded">
@@ -2068,7 +2075,7 @@ if (allMedia.length > 0) {
 
                     {reviews.length > 4 && (
                       <div className="text-center pt-4">
-                        <button 
+                        <button
                           onClick={() => {
                             alert(`Viewing all ${reviews.length} reviews`);
                           }}
@@ -2092,143 +2099,13 @@ if (allMedia.length > 0) {
           </div>
         </div>
 
-        {/* ⭐ RELATED PRODUCTS SECTION - ADDED HERE */}
-        {relatedProducts.length > 0 && (
-          <div className="mt-12">
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-2xl font-bold text-gray-900">
-                Related Products from {storeLabel}
-              </h2>
-              <button
-                onClick={() => navigate(storePath)}
-                className="text-purple-600 hover:text-purple-800 font-semibold flex items-center gap-2 hover:underline transition-colors"
-              >
-                View All
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                </svg>
-              </button>
-            </div>
-            
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-              {relatedProducts.map((relatedProduct) => (
-                <div
-                  key={relatedProduct.id}
-                  className="bg-white rounded-xl shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden group cursor-pointer border border-gray-200 hover:border-purple-300"
-                  onClick={() => {
-                    navigate(`/product/${relatedProduct.id}`, {
-                      state: {
-                        product: relatedProduct,
-                        source: source
-                      }
-                    });
-                  }}
-                >
-                  {/* Product Image */}
-                  <div className="relative overflow-hidden h-48 bg-gray-100">
-                    {relatedProduct.image ? (
-                      <img
-                        src={relatedProduct.image}
-                        alt={relatedProduct.name}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                        loading="lazy"
-                        onError={(e) => {
-                          e.target.onerror = null;
-                          e.target.src = "https://placehold.co/300x200?text=Product";
-                        }}
-                      />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center">
-                        <svg className="w-12 h-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                        </svg>
-                      </div>
-                    )}
-                    
-                    {/* Quick view overlay */}
-                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-all duration-300 flex items-center justify-center">
-                      <button className="opacity-0 group-hover:opacity-100 transform translate-y-4 group-hover:translate-y-0 transition-all duration-300 bg-white text-purple-600 font-semibold px-4 py-2 rounded-full shadow-lg">
-                        Quick View
-                      </button>
-                    </div>
-                  </div>
-                  
-                  {/* Product Info */}
-                  <div className="p-4">
-                    <h3 className="font-semibold text-gray-900 line-clamp-1 mb-2 group-hover:text-purple-600 transition-colors">
-                      {relatedProduct.name}
-                    </h3>
-                    
-                    {/* Rating */}
-                    <div className="flex items-center gap-1 mb-3">
-                      <StarRating 
-                        rating={relatedProduct.rating || 4.0} 
-                        size="w-4 h-4" 
-                        color="text-yellow-500" 
-                      />
-                      <span className="text-sm text-gray-600 ml-1">
-                        ({relatedProduct.reviewCount || Math.floor(Math.random() * 100) + 1})
-                      </span>
-                    </div>
-                    
-                    {/* Price */}
-                    <div className="flex items-center gap-2">
-                      <span className="text-xl font-bold text-gray-900">
-                        ₹{relatedProduct.price?.toLocaleString() || relatedProduct.offerPrice?.toLocaleString() || "0"}
-                      </span>
-                      {relatedProduct.originalPrice && relatedProduct.originalPrice > relatedProduct.price && (
-                        <span className="text-sm text-gray-500 line-through">
-                          ₹{relatedProduct.originalPrice.toLocaleString()}
-                        </span>
-                      )}
-                    </div>
-                    
-                    {/* Stock Status */}
-                    <div className="mt-3">
-                      {relatedProduct.stock > 0 ? (
-                        <span className="inline-flex items-center text-sm text-green-600 bg-green-50 px-2 py-1 rounded">
-                          <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                          </svg>
-                          In Stock
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center text-sm text-red-600 bg-red-50 px-2 py-1 rounded">
-                          <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-                          </svg>
-                          Out of Stock
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Loading state for related products */}
-        {loadingRelated && (
-          <div className="mt-12">
-            <h2 className="text-2xl font-bold text-gray-900 mb-6">
-              Related Products from {storeLabel}
-            </h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-              {[...Array(4)].map((_, index) => (
-                <div key={index} className="bg-white rounded-xl shadow-md overflow-hidden animate-pulse">
-                  <div className="h-48 bg-gray-300"></div>
-                  <div className="p-4">
-                    <div className="h-4 bg-gray-300 rounded mb-2"></div>
-                    <div className="h-4 bg-gray-300 rounded mb-4 w-3/4"></div>
-                    <div className="h-6 bg-gray-300 rounded mb-2 w-1/2"></div>
-                    <div className="h-4 bg-gray-300 rounded w-1/4"></div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
+        {/* 🛒 FIXED RELATED PRODUCTS SECTION */}
+        <RelatedProducts
+          categoryId={product.category || product.categoryId}
+          currentProductId={productId}
+          source={source}
+          storeLabel={storeLabel}
+        />
       </div>
 
       {/* Floating Scroll to Top Button */}
