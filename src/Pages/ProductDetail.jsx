@@ -2129,11 +2129,20 @@ const ProductDetail = ({ product: propProduct }) => {
 {showAllReviews && (
   <div className="text-center mt-6">
     <button
-      onClick={() => setShowAllReviews(false)}
-      className="text-gray-600 hover:underline"
-    >
-      Show less reviews ↑
-    </button>
+  onClick={() => {
+    setShowAllReviews(false);
+
+    // 🔝 SCROLL BACK TO REVIEWS TOP
+    setTimeout(() => {
+      const reviewsSection = document.getElementById("reviews-section");
+      reviewsSection?.scrollIntoView({ behavior: "smooth" });
+    }, 0);
+  }}
+  className="text-gray-600 hover:underline"
+>
+  Show less reviews ↑
+</button>
+
   </div>
 )}
 
