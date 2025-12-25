@@ -209,33 +209,33 @@ const ProductCard = ({
         )}
       </div>
 
- <div className="px-3 pb-2 pt-0.5 sm:px-4 sm:pb-3 sm:pt-1 flex flex-col">
-  <h3 className="font-medium text-sm sm:text-base leading-tight line-clamp-2">
+<div className="px-2 pt-0 pb-1 sm:px-4 sm:pt-1 sm:pb-3 flex flex-col">
+  <h3 className="font-medium text-xs sm:text-base leading-tight line-clamp-2">
     {product.name}
   </h3>
 
-  <div className="flex items-center mt-0 sm:mt-0.5">
-    <span className="text-xs sm:text-sm font-medium text-yellow-500 mr-1">
+  <div className="flex items-center mt-0">
+    <span className="text-[11px] sm:text-sm font-medium text-yellow-500 mr-1">
       {rating.toFixed(1)}
     </span>
     <StarRating rating={rating} size="w-3 h-3 sm:w-4 sm:h-4" />
-    <span className="text-xs text-gray-500 ml-1">
+    <span className="text-[11px] text-gray-500 ml-1">
       ({reviewCount})
     </span>
   </div>
 
-  <div className="flex items-center space-x-2 mt-0 sm:mt-0.5">
+  <div className="flex items-center space-x-1 mt-0">
     {original > finalPrice ? (
       <>
-        <span className="text-red-600 font-semibold text-base sm:text-lg">
+        <span className="text-red-600 font-semibold text-sm sm:text-lg">
           ₹ {finalPrice}
         </span>
-        <span className="line-through text-gray-500 text-sm sm:text-base">
+        <span className="line-through text-gray-500 text-xs sm:text-base">
           ₹ {original}
         </span>
       </>
     ) : (
-      <span className="text-gray-900 font-bold text-base sm:text-lg">
+      <span className="text-gray-900 font-bold text-sm sm:text-lg">
         ₹ {finalPrice}
       </span>
     )}
@@ -247,14 +247,14 @@ const ProductCard = ({
         e.stopPropagation();
         navigate("/cart");
       }}
-      className="w-full bg-green-600 hover:bg-green-700 text-white py-2 rounded-md font-medium transition flex items-center justify-center gap-2 text-sm sm:text-base mt-1 sm:mt-2"
+      className="w-full bg-green-600 hover:bg-green-700 text-white py-1.5 sm:py-2 rounded-md font-medium transition text-xs sm:text-base mt-1"
     >
       View Cart
     </button>
   ) : (
     <button
       onClick={handleAddToCart}
-      className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-md font-medium transition flex items-center justify-center gap-2 text-sm sm:text-base mt-1 sm:mt-2"
+      className="w-full bg-blue-600 hover:bg-blue-700 text-white py-1.5 sm:py-2 rounded-md font-medium transition text-xs sm:text-base mt-1"
     >
       Add to Cart
     </button>
