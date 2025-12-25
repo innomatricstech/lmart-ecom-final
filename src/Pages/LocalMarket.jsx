@@ -189,12 +189,13 @@ const ProductCard = ({
     >
       {/* 🔥 UPDATED: Image container with full image display */}
       <div className="relative flex items-center justify-center bg-white p-4 h-48 sm:h-56">
-        <img
-          src={product.image}
-          alt={product.name}
-          className="object-contain w-full h-full max-h-full"
-          onError={(e) => (e.target.src = PLACEHOLDER_IMAGE)}
-        />
+       <img
+  src={product.image}
+  alt={product.name}
+  className="object-contain w-full h-full scale-110 sm:scale-100"
+  onError={(e) => (e.target.src = PLACEHOLDER_IMAGE)}
+/>
+
         <button
           onClick={handleWishlistToggle}
           className={`absolute top-3 right-3 p-2 bg-white rounded-full shadow-md hover:scale-110 transition ${inWishlist ? "text-red-700" : "text-red-400"}`}
