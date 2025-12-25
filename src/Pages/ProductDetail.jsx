@@ -69,6 +69,8 @@ const WriteReviewModal = ({ onClose, onSubmit, productName, currentUser, product
   const [submitting, setSubmitting] = useState(false);
   const [hoverRating, setHoverRating] = useState(0);
   const [errors, setErrors] = useState({});
+ 
+
 
   const validateForm = () => {
     const newErrors = {};
@@ -245,102 +247,111 @@ const WriteReviewModal = ({ onClose, onSubmit, productName, currentUser, product
     </div>
   );
 };
+// ⭐ FETCH AVG RATING & REVIEW COUNT FROM REVIEWS COLLECTION
+const fetchReviewStats = async (productId) => {
+  const q = query(
+    collection(db, "reviews"),
+    where("productId", "==", productId)
+  );
+
+  const snap = await getDocs(q);
+
+  let total = 0;
+  let count = 0;
+
+  snap.forEach((doc) => {
+    const data = doc.data();
+    if (typeof data.rating === "number") {
+      total += data.rating;
+      count++;
+    }
+  });
+
+  return {
+    rating: count > 0 ? Number((total / count).toFixed(1)) : 0,
+    reviewCount: count
+  };
+};
 
 // 🛒 FIXED Related Products Component
 const RelatedProducts = ({ categoryId, currentProductId, source, storeLabel }) => {
   const navigate = useNavigate();
   const [relatedProducts, setRelatedProducts] = useState([]);
   const [loading, setLoading] = useState(false);
+useEffect(() => {
+  const fetchRelatedProducts = async () => {
+    if (!categoryId || !source) return;
 
-  useEffect(() => {
-    const fetchRelatedProducts = async () => {
-      if (!categoryId || !source) {
-        console.log("Missing categoryId or source");
-        return;
-      }
+    setLoading(true);
+    try {
+      // 🔄 Identify collection
+      let collectionName = "products";
+      if (source === "local-market") collectionName = "localmarket";
+      if (source === "printing") collectionName = "printing";
 
-      setLoading(true);
-      try {
-        // 🔄 Identify the correct Firestore collection
-        let collectionName = "";
-        switch (source) {
-          case "local-market":
-            collectionName = "localmarket";
-            break;
-          case "printing":
-            collectionName = "printing";
-            break;
-          case "e-market":
-          default:
-            collectionName = "products";
-            break;
-        }
+      const productsRef = collection(db, collectionName);
+      const querySnapshot = await getDocs(productsRef);
 
-        console.log("Fetching from collection:", collectionName, "with category:", categoryId);
+      const products = [];
 
-        // 🔄 Fetch all products from the collection
-        const productsRef = collection(db, collectionName);
-        const querySnapshot = await getDocs(productsRef);
-        const products = [];
+      // ✅ ONLY THIS LOOP — NO forEach
+      for (const docSnap of querySnapshot.docs) {
+        const data = docSnap.data();
 
-        querySnapshot.forEach((doc) => {
-          const data = doc.data();
-          
-          // ⭐ Handle category comparison - check if category matches
-          // The category field could be string or object
-          const productCategory = typeof data.category === 'object' ? data.category.id : data.category;
-          const categoryToCompare = typeof categoryId === 'object' ? categoryId.id : categoryId;
-          
-          console.log("Product category check:", {
-            productId: doc.id,
-            productCategory,
-            categoryToCompare,
-            matches: productCategory === categoryToCompare
+        const productCategory =
+          typeof data.category === "object" ? data.category.id : data.category;
+        const categoryToCompare =
+          typeof categoryId === "object" ? categoryId.id : categoryId;
+
+        if (
+          productCategory === categoryToCompare &&
+          docSnap.id !== currentProductId
+        ) {
+          // ⭐ FETCH REVIEWS
+          const reviewStats = await fetchReviewStats(docSnap.id);
+
+          products.push({
+            id: docSnap.id,
+            ...data,
+            image:
+              data.imageUrls?.[0]?.url ||
+              data.image ||
+              data.mainImage ||
+              "",
+            price: data.price || data.offerPrice || 0,
+            name: data.name || "Unnamed Product",
+
+            // ⭐ FROM REVIEWS COLLECTION
+            rating: reviewStats.rating,
+            reviewCount: reviewStats.reviewCount,
           });
-          
-          // Only add if category matches
-          if (productCategory === categoryToCompare) {
-            products.push({
-              id: doc.id,
-              ...data,
-              // Get the correct image URL
-              image: data.imageUrls?.[0]?.url || data.imageUrl || data.image || data.mainImage || "",
-              // Ensure price is available
-              price: data.price || data.offerPrice || 0,
-              name: data.name || "Unnamed Product"
-            });
-          }
-        });
-
-        console.log("Found products in same category:", products.length);
-
-        // 🔥 Remove current product from the list
-        const filteredProducts = products.filter(product => product.id !== currentProductId);
-        
-        console.log("After filtering current product:", filteredProducts.length);
-
-        // Randomize and limit to 4 products
-        const shuffled = [...filteredProducts].sort(() => 0.5 - Math.random());
-        const selectedProducts = shuffled.slice(0, 4);
-        
-        setRelatedProducts(selectedProducts);
-      } catch (error) {
-        console.error("Error fetching related products:", error);
-        setRelatedProducts([]);
-      } finally {
-        setLoading(false);
+        }
       }
-    };
 
-    fetchRelatedProducts();
-  }, [categoryId, currentProductId, source]);
+      // 🔥 Randomize & limit
+      const selectedProducts = products
+        .sort(() => 0.5 - Math.random())
+        .slice(0, 4);
+
+      setRelatedProducts(selectedProducts);
+    } catch (error) {
+      console.error("Error fetching related products:", error);
+      setRelatedProducts([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  fetchRelatedProducts();
+}, [categoryId, currentProductId, source]);
+
 
   // 🔄 Loading state
   if (loading) {
     return (
       <div className="mt-12">
         <h2 className="text-2xl font-bold text-gray-900 mb-6">
-          Related Products from {storeLabel}
+          Related Products from  
         </h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
           {[...Array(4)].map((_, index) => (
@@ -369,32 +380,48 @@ const RelatedProducts = ({ categoryId, currentProductId, source, storeLabel }) =
     <div className="mt-12">
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-2xl font-bold text-gray-900">
-          Related Products from {storeLabel}
+          Related Products   
         </h2>
-        <button
-          onClick={() => {
-            let storePath = "";
-            switch (source) {
-              case "local-market":
-                storePath = "/local-market";
-                break;
-              case "printing":
-                storePath = "/printing";
-                break;
-              case "e-market":
-              default:
-                storePath = "/e-market";
-                break;
-            }
-            navigate(storePath);
-          }}
-          className="text-purple-600 hover:text-purple-800 font-semibold flex items-center gap-2 hover:underline transition-colors"
-        >
-          View All
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-          </svg>
-        </button>
+       <button
+  onClick={() => {
+    let storePath = "";
+    switch (source) {
+      case "local-market":
+        storePath = "/local-market";
+        break;
+      case "printing":
+        storePath = "/printing";
+        break;
+      default:
+        storePath = "/e-market";
+        break;
+    }
+
+    navigate(storePath);
+
+    // 🔝 NAVIGATION KAPRAM SCROLL TOP
+    setTimeout(() => {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }, 0);
+  }}
+  className="text-purple-600 hover:text-purple-800 font-semibold flex items-center gap-2 hover:underline transition-colors"
+>
+  View All
+  <svg
+    className="w-4 h-4"
+    fill="none"
+    stroke="currentColor"
+    viewBox="0 0 24 24"
+  >
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth={2}
+      d="M9 5l7 7-7 7"
+    />
+  </svg>
+</button>
+
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
@@ -412,18 +439,20 @@ const RelatedProducts = ({ categoryId, currentProductId, source, storeLabel }) =
             }}
           >
             {/* Product Image */}
-            <div className="relative overflow-hidden h-48 bg-gray-100">
-              {product.image ? (
-                <img
-                  src={product.image}
-                  alt={product.name}
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                  loading="lazy"
-                  onError={(e) => {
-                    e.target.onerror = null;
-                    e.target.src = "https://placehold.co/300x200?text=Product";
-                  }}
-                />
+            <div className="relative overflow-hidden h-48 bg-gray-100 flex items-center justify-center">
+  {product.image ? (
+    <img
+      src={product.image}
+      alt={product.name}
+      className="max-w-full max-h-full object-contain"
+      loading="lazy"
+      onError={(e) => {
+        e.target.onerror = null;
+        e.target.src = "https://placehold.co/300x200?text=Product";
+      }}
+    />
+  
+
               ) : (
                 <div className="w-full h-full flex items-center justify-center">
                   <svg className="w-12 h-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -448,15 +477,24 @@ const RelatedProducts = ({ categoryId, currentProductId, source, storeLabel }) =
 
               {/* Rating */}
               <div className="flex items-center gap-1 mb-3">
-                <StarRating
-                  rating={product.rating || 4.0}
-                  size="w-4 h-4"
-                  color="text-yellow-500"
-                />
-                <span className="text-sm text-gray-600 ml-1">
-                  ({product.reviewCount || Math.floor(Math.random() * 100) + 1})
-                </span>
-              </div>
+  {/* Rating Number */}
+  <span className="text-sm font-medium text-yellow-600">
+    {(product.rating ?? 0).toFixed(1)}
+  </span>
+
+  {/* Stars */}
+  <StarRating
+    rating={product.rating ?? 0}
+    size="w-4 h-4"
+    color="text-yellow-500"
+  />
+
+  {/* Review Count */}
+  <span className="text-sm text-gray-500">
+    ({product.reviewCount ?? 0})
+  </span>
+</div>
+
 
               {/* Price */}
               <div className="flex items-center gap-2">
@@ -519,6 +557,7 @@ const ProductDetail = ({ product: propProduct }) => {
   const storage = getStorage();
   const { addToCart } = useCart();
 
+
   const productState = useMemo(() => location.state?.product, [location.state]);
 
   const [product, setProduct] = useState(propProduct || null);
@@ -546,6 +585,7 @@ const ProductDetail = ({ product: propProduct }) => {
   const [availableColors, setAvailableColors] = useState([]);
   const [availableSizes, setAvailableSizes] = useState([]);
   const [colorImageMap, setColorImageMap] = useState({});
+   const [showAllReviews, setShowAllReviews] = useState(false);
 
   // FIXED: Get store info from location state or prop
   const productTag = location.state?.source || product?.productTag || null;
@@ -2020,74 +2060,88 @@ const ProductDetail = ({ product: propProduct }) => {
                 </div>
 
                 <div className="lg:col-span-2">
-                  <div className="space-y-8">
-                    {reviews.slice(0, 4).map((r) => {
-                      const isGuest = r.userId?.startsWith('guest_') || r.userType === 'guest';
-                      const displayName = isGuest ? "Guest User" : (usersMap[r.userId]?.displayName || r.userName || "Anonymous");
+                 <div className="space-y-6">
+  {(showAllReviews ? reviews : reviews.slice(0, 4)).map((r) => {
+    const isGuest =
+      r.userId?.startsWith("guest_") || r.userType === "guest";
+    const displayName = isGuest
+      ? "Guest User"
+      : usersMap[r.userId]?.displayName || r.userName || "Anonymous";
 
-                      return (
-                        <div key={r.id} className="border-b pb-8 last:border-b-0">
-                          <div className="flex items-center justify-between mb-3">
-                            <div className="flex items-center gap-3">
-                              <StarRating rating={r.rating} size="w-5 h-5" color="text-yellow-500" />
-                              <h4 className="font-bold text-lg text-gray-900">{r.title}</h4>
-                            </div>
-                            <span className="text-sm text-gray-500">
-                              {r.createdAt?.toLocaleDateString?.() || 'Recently'}
-                            </span>
-                          </div>
+    return (
+      <div
+        key={r.id}
+        className="border rounded-xl p-5 bg-white shadow-sm hover:shadow-md transition"
+      >
+        {/* TOP */}
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-3">
+            <StarRating rating={r.rating} size="w-5 h-5" />
+            <h4 className="font-semibold text-gray-900">
+              {r.title}
+            </h4>
+          </div>
+          <span className="text-sm text-gray-500">
+            {r.createdAt?.toLocaleDateString?.() || "Recently"}
+          </span>
+        </div>
 
-                          {/* User Info */}
-                          <div className="flex items-center gap-3 mb-3">
-                            <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center">
-                              {isGuest ? (
-                                <span className="text-gray-600 text-sm font-bold">👤</span>
-                              ) : (
-                                <span className="text-purple-600 text-sm font-bold">
-                                  {displayName.charAt(0).toUpperCase()}
-                                </span>
-                              )}
-                            </div>
-                            <div>
-                              <p className="text-sm font-medium text-gray-700">{displayName}</p>
-                              {isGuest ? (
-                                <p className="text-xs text-gray-500">Guest User</p>
-                              ) : (
-                                <p className="text-xs text-gray-500">User ID: {r.userId?.substring(0, 8)}...</p>
-                              )}
-                            </div>
-                          </div>
+        {/* USER */}
+        <div className="flex items-center gap-3 mb-3">
+          <div className="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center font-bold text-purple-700">
+            {isGuest ? "👤" : displayName.charAt(0).toUpperCase()}
+          </div>
+          <div>
+            <p className="text-sm font-medium text-gray-800">
+              {displayName}
+            </p>
+            <p className="text-xs text-gray-500">
+              {isGuest ? "Guest User" : "Verified User"}
+            </p>
+          </div>
+        </div>
 
-                          <p className="text-gray-700 leading-relaxed">{r.content}</p>
+        {/* CONTENT */}
+        <p className="text-gray-700 leading-relaxed mb-3">
+          {r.content}
+        </p>
 
-                          {/* Verified Purchase Badge */}
-                          {r.verifiedPurchase && (
-                            <div className="mt-3 inline-flex items-center gap-1 bg-green-100 text-green-800 text-xs px-2 py-1 rounded">
-                              <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-                                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                              </svg>
-                              Verified Purchase
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })}
+        {/* VERIFIED */}
+        {r.verifiedPurchase && (
+          <div className="inline-flex items-center gap-1 bg-green-100 text-green-800 text-xs px-2 py-1 rounded">
+            ✔ Verified Purchase
+          </div>
+        )}
+      </div>
+    );
+  })}
+</div>
+
 
                     {reviews.length > 4 && (
                       <div className="text-center pt-4">
                         <button
-                          onClick={() => {
-                            alert(`Viewing all ${reviews.length} reviews`);
-                          }}
-                          className="text-purple-600 hover:text-purple-800 font-semibold hover:underline transition-colors"
-                        >
-                          View all {reviews.length} reviews →
-                        </button>
+  onClick={() => setShowAllReviews(true)}
+  className="text-purple-600 hover:text-purple-800 font-semibold hover:underline transition-colors"
+>
+  View all {reviews.length} reviews →
+</button>
+{showAllReviews && (
+  <div className="text-center mt-6">
+    <button
+      onClick={() => setShowAllReviews(false)}
+      className="text-gray-600 hover:underline"
+    >
+      Show less reviews ↑
+    </button>
+  </div>
+)}
+
                       </div>
                     )}
                   </div>
                 </div>
-              </div>
+               
             ) : (
               <div className="text-center py-12">
                 <svg className="w-16 h-16 text-gray-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

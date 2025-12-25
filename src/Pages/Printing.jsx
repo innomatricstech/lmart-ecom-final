@@ -172,11 +172,12 @@ const ProductCard = ({ product, addToCart, getQuantity, updateQuantity, navigate
 
   // 🔥 UPDATED: Image container with full image display
   return (
-    <div
+        <div
       key={product.id}
       className="bg-white rounded-lg shadow-sm hover:shadow-md transition border cursor-pointer flex flex-col h-full"
       onClick={() => navigate(`/product/${product.id}`, { state: { product } })}
     >
+      {/* 🔥 UPDATED: Image container with full image display */}
       <div className="relative flex items-center justify-center bg-white p-4 h-48 sm:h-56">
         <img
           src={product.image}
@@ -186,7 +187,8 @@ const ProductCard = ({ product, addToCart, getQuantity, updateQuantity, navigate
         />
         <button
           onClick={handleWishlistToggle}
-          className={`absolute top-3 right-3 p-2 bg-white rounded-full shadow-md hover:scale-110 transition ${inWishlist ? "text-red-700" : "text-red-400" }`}
+          className={`absolute top-3 right-3 p-2 bg-white rounded-full shadow-md hover:scale-110 transition ${inWishlist ? "text-red-700" : "text-red-400"}`}
+          title={inWishlist ? "Remove from Wishlist" : "Add to Wishlist"}
         >
           <svg className="w-4 h-4" fill={inWishlist ? "#fdd8d8ff" : "none"} stroke="currentColor" viewBox="0 0 26 28">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 25s-9.5-5.6-12-12.3C-1.4 7.9 1.6 2.4 7 2.1c2.9-.1 5.1 1.8 6 3.4 1-1.6 3.1-3.5 6-3.4 5.4.3 8.4 5.8 6 10.6C22.5 19.4 13 25 13 25z" />
@@ -198,48 +200,61 @@ const ProductCard = ({ product, addToCart, getQuantity, updateQuantity, navigate
       </div>
 
       <div className="p-4 flex flex-col flex-grow">
-        <h3 className="font-medium text-sm sm:text-base line-clamp-2 h-10 sm:h-12 mb-2">{product.name}</h3>
-        <div className="flex items-center mb-3">
-          <span className="text-xs sm:text-sm font-medium text-yellow-500 mr-1">{rating.toFixed(1)}</span>
-          <StarRating rating={rating} size="w-3 h-3 sm:w-4 sm:h-4" />
-          <span className="text-xs text-gray-500 ml-2">({reviewCount})</span>
-        </div>
-        <div className="flex items-center space-x-2 mb-4 flex-grow">
-          {original > finalPrice ? (
-            <>
-              <span className="text-red-600 font-semibold text-base sm:text-lg">₹ {finalPrice}</span>
-              <span className="line-through text-gray-500 text-sm sm:text-base">₹ {original}</span>
-            </>
-          ) : (
-            <span className="text-gray-900 font-bold text-base sm:text-lg">₹ {finalPrice}</span>
-          )}
-        </div>
-        {qty > 0 ? (
-          <button
-            onClick={(e) => { e.stopPropagation(); navigate("/cart"); }}
-            className="w-full bg-green-600 hover:bg-green-700 text-white py-2 rounded-lg font-medium transition flex items-center justify-center gap-2 text-sm sm:text-base mt-auto"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
-            </svg>
-            View Cart
-          </button>
-        ) : (
-          <button
-            onClick={handleAddToCart}
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg font-medium transition flex items-center justify-center gap-2 text-sm sm:text-base mt-auto"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-            </svg>
-            Add to Cart
-          </button>
-        )}
+        <h3 className="font-medium text-sm sm:text-base leading-tight line-clamp-2">
+  {product.name}
+</h3>
+
+<div className="flex items-center mt-1">
+  <span className="text-xs sm:text-sm font-medium text-yellow-500 mr-1">
+    {rating.toFixed(1)}
+  </span>
+  <StarRating rating={rating} size="w-3 h-3 sm:w-4 sm:h-4" />
+  <span className="text-xs text-gray-500 ml-1">
+    ({reviewCount})
+  </span>
+</div>
+
+<div className="flex items-center space-x-2 mt-1">
+  {original > finalPrice ? (
+    <>
+      <span className="text-red-600 font-semibold text-base sm:text-lg">
+        ₹ {finalPrice}
+      </span>
+      <span className="line-through text-gray-500 text-sm sm:text-base">
+        ₹ {original}
+      </span>
+    </>
+  ) : (
+    <span className="text-gray-900 font-bold text-base sm:text-lg">
+      ₹ {finalPrice}
+    </span>
+  )}
+</div>
+
+{qty > 0 ? (
+  <button
+    onClick={(e) => {
+      e.stopPropagation();
+      navigate("/cart");
+    }}
+    className="w-full bg-green-600 hover:bg-green-700 text-white py-2 rounded-md font-medium transition flex items-center justify-center gap-2 text-sm sm:text-base mt-2"
+  >
+    View Cart
+  </button>
+) : (
+  <button
+    onClick={handleAddToCart}
+    className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-md font-medium transition flex items-center justify-center gap-2 text-sm sm:text-base mt-2"
+  >
+    Add to Cart
+  </button>
+)}
+
+     
       </div>
     </div>
   );
 };
-
 /* --------------------- Main Component --------------------- */
 const MAX_SLIDER = 100000;
 
