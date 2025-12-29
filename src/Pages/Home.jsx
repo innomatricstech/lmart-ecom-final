@@ -9,6 +9,7 @@ import { collection, getDocs, query, where, orderBy } from "firebase/firestore";
 const PLACEHOLDER_IMAGE = "https://placehold.co/400x300?text=No+Image";
 
 const pickVariant = (product) => {
+
   if (!Array.isArray(product.variants)) return null;
   return product.variants.find(v => Number(v.price) > 0) || product.variants[0] || null;
 };
@@ -28,13 +29,16 @@ const getPriceData = (product) => {
 // ----------- Product Card Component -----------
 // Only updating the ProductCardHome component in Home.jsx
 // Replace the existing ProductCardHome component with this:
-const ProductCardHome = ({ product }) => {
+const ProductCardHome = ({ product, reviewData }) => {
+
   const navigate = useNavigate();
 
   const imageUrl = product.image || PLACEHOLDER_IMAGE;
   const { finalPrice, original, discount } = getPriceData(product);
-  const rating = product.rating || 4.3;
-  const reviewCount = Math.floor(Math.random() * 100);
+const rating = reviewData?.rating ?? 0;
+const reviewCount = reviewData?.reviewCount ?? 0;
+
+
 
   const handleViewProduct = (e) => {
     e.stopPropagation();
@@ -72,26 +76,33 @@ const ProductCardHome = ({ product }) => {
         {/* RATING */}
         <div className="flex items-center mt-1">
           <span className="text-xs font-medium text-yellow-500 mr-1">
-            {rating.toFixed(1)}
-          </span>
+  {reviewCount > 0 ? rating.toFixed(1) : "No rating"}
+</span>
 
-          <div className="flex">
-            {Array(5)
-              .fill(0)
-              .map((_, i) => (
-                <svg
-                  key={i}
-                  className="w-3 h-3 sm:w-4 sm:h-4 text-yellow-400 fill-current"
-                  viewBox="0 0 20 20"
-                >
-                  <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                </svg>
-              ))}
-          </div>
+
+<div className="flex">
+  {Array(5)
+    .fill(0)
+    .map((_, i) => (
+      <svg
+        key={i}
+        className={`w-3 h-3 sm:w-4 sm:h-4 ${
+          i < Math.round(rating)
+            ? "text-yellow-400"
+            : "text-gray-300"
+        } fill-current`}
+        viewBox="0 0 20 20"
+      >
+        <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+      </svg>
+    ))}
+</div>
+
 
           <span className="text-xs text-gray-500 ml-1">
-            ({reviewCount})
-          </span>
+  ({reviewCount} reviews)
+</span>
+
         </div>
 
         {/* PRICE */}
@@ -137,6 +148,50 @@ const Home = () => {
   const [trendingLoading, setTrendingLoading] = useState(true);
   const [postersLoading, setPostersLoading] = useState(true);
   const [current, setCurrent] = useState(0);
+  const [reviewsMap, setReviewsMap] = useState({});
+  useEffect(() => {
+  const fetchReviews = async () => {
+    try {
+      const reviewsRef = collection(db, "reviews");
+      const snapshot = await getDocs(reviewsRef);
+
+      const tempMap = {};
+
+      snapshot.forEach((doc) => {
+        const data = doc.data();
+        if (!data.productId || typeof data.rating !== "number") return;
+
+        if (!tempMap[data.productId]) {
+          tempMap[data.productId] = {
+            totalRating: 0,
+            count: 0,
+          };
+        }
+
+        tempMap[data.productId].totalRating += data.rating;
+        tempMap[data.productId].count += 1;
+      });
+
+      // 🔥 convert to avg rating
+      const finalMap = {};
+      Object.keys(tempMap).forEach((productId) => {
+        finalMap[productId] = {
+          rating:
+            tempMap[productId].totalRating / tempMap[productId].count,
+          reviewCount: tempMap[productId].count,
+        };
+      });
+
+      setReviewsMap(finalMap);
+    } catch (err) {
+      console.error("Error fetching reviews:", err);
+    }
+  };
+
+  fetchReviews();
+}, []);
+
+
 
   // Fetch trending products from Firebase
   useEffect(() => {
@@ -189,18 +244,17 @@ const Home = () => {
               imageUrl = productData.image;
             }
 
-            fetchedTrendingProducts.push({
-              ...productData,
-              id: doc.id,
-              price: price,
-              offerPrice: offerPrice,
-              originalPrice: price > offerPrice ? price : null,
-              image: imageUrl,
-              category: productData.category || {},
-              subCategory: productData.subCategory || {},
-              brand: productData.brand || "",
-              productTag: productData.productTag || "",
-            });
+           fetchedTrendingProducts.push({
+  ...productData,
+  id: doc.id,
+  price,
+  offerPrice,
+  originalPrice: price > offerPrice ? price : null,
+  image: imageUrl,
+
+  // ✅ ADD THIS (REAL FIREBASE DATA)
+   
+});
           }
         });
 
@@ -261,21 +315,22 @@ const Home = () => {
             } else if (productData.image && productData.image.trim() !== "") {
               imageUrl = productData.image;
             }
+fetchedProducts.push({
+  ...productData,
+  id: doc.id,
+  price,
+  offerPrice,
+  originalPrice: price > offerPrice ? price : null,
+  image: imageUrl,
 
-            fetchedProducts.push({
-              ...productData,
-              id: doc.id,
-              price: price,
-              offerPrice: offerPrice,
-              originalPrice: price > offerPrice ? price : null,
-              image: imageUrl,
-              category: productData.category || {},
-              subCategory: productData.subCategory || {},
-              brand: productData.brand || "",
-              productTag: productData.productTag || "",
-              variants: productData.variants || [],
-              imageUrls: productData.imageUrls || [],
-            });
+  // ✅ ADD THIS (REAL FIREBASE DATA)
+  rating: Number(productData.rating || 0),
+  reviewCount: Number(productData.reviewCount || 0),
+
+  variants: productData.variants || [],
+  imageUrls: productData.imageUrls || [],
+});
+
           }
         });
 
@@ -969,7 +1024,12 @@ const Home = () => {
           ) : trendingProducts.length > 0 ? (
             <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6">
               {trendingProducts.map((product) => (
-                <ProductCardHome key={product.id} product={product} />
+               <ProductCardHome
+  key={product.id}
+  product={product}
+  reviewData={reviewsMap[product.id]}
+/>
+
               ))}
             </div>
           ) : (
@@ -1015,7 +1075,12 @@ const Home = () => {
           {/* Products Grid */}
           <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6">
             {displayProducts.map((product, index) => (
-              <ProductCardHome key={product.id} product={product} />
+             <ProductCardHome
+  key={product.id}
+  product={product}
+  reviewData={reviewsMap[product.id]}
+/>
+
             ))}
           </div>
         </div>

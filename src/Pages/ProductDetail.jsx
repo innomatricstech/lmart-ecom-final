@@ -69,8 +69,6 @@ const WriteReviewModal = ({ onClose, onSubmit, productName, currentUser, product
   const [submitting, setSubmitting] = useState(false);
   const [hoverRating, setHoverRating] = useState(0);
   const [errors, setErrors] = useState({});
- 
-
 
   const validateForm = () => {
     const newErrors = {};
@@ -247,6 +245,7 @@ const WriteReviewModal = ({ onClose, onSubmit, productName, currentUser, product
     </div>
   );
 };
+
 // ⭐ FETCH AVG RATING & REVIEW COUNT FROM REVIEWS COLLECTION
 const fetchReviewStats = async (productId) => {
   const q = query(
@@ -273,85 +272,115 @@ const fetchReviewStats = async (productId) => {
   };
 };
 
+// ⭐ PRICE HELPER (DO NOT CHANGE ANY OTHER LOGIC)
+const getVariantPrice = (product) => {
+  if (!Array.isArray(product?.variants)) {
+    return {
+      finalPrice: product.price || 0,
+      originalPrice: 0
+    };
+  }
+
+  const variant =
+    product.variants.find(v => v.offerPrice || v.price) ||
+    product.variants[0];
+
+  if (!variant) {
+    return { finalPrice: 0, originalPrice: 0 };
+  }
+
+  const price = Number(variant.price || 0);
+  const offer = Number(variant.offerPrice || 0);
+
+  if (offer > 0 && offer < price) {
+    return {
+      finalPrice: offer,
+      originalPrice: price
+    };
+  }
+
+  return {
+    finalPrice: price,
+    originalPrice: 0
+  };
+};
+
 // 🛒 FIXED Related Products Component
 const RelatedProducts = ({ categoryId, currentProductId, source, storeLabel }) => {
   const navigate = useNavigate();
   const [relatedProducts, setRelatedProducts] = useState([]);
   const [loading, setLoading] = useState(false);
-useEffect(() => {
-  const fetchRelatedProducts = async () => {
-    if (!categoryId || !source) return;
 
-    setLoading(true);
-    try {
-      // 🔄 Identify collection
-      let collectionName = "products";
-      if (source === "local-market") collectionName = "localmarket";
-      if (source === "printing") collectionName = "printing";
+  useEffect(() => {
+    const fetchRelatedProducts = async () => {
+      if (!categoryId || !source) return;
 
-      const productsRef = collection(db, collectionName);
-      const querySnapshot = await getDocs(productsRef);
+      setLoading(true);
+      try {
+        // 🔄 Identify collection
+        let collectionName = "products";
+        if (source === "local-market") collectionName = "localmarket";
+        if (source === "printing") collectionName = "printing";
 
-      const products = [];
+        const productsRef = collection(db, collectionName);
+        const querySnapshot = await getDocs(productsRef);
 
-      // ✅ ONLY THIS LOOP — NO forEach
-      for (const docSnap of querySnapshot.docs) {
-        const data = docSnap.data();
+        const products = [];
 
-        const productCategory =
-          typeof data.category === "object" ? data.category.id : data.category;
-        const categoryToCompare =
-          typeof categoryId === "object" ? categoryId.id : categoryId;
+        // ✅ ONLY THIS LOOP — NO forEach
+        for (const docSnap of querySnapshot.docs) {
+          const data = docSnap.data();
 
-        if (
-          productCategory === categoryToCompare &&
-          docSnap.id !== currentProductId
-        ) {
-          // ⭐ FETCH REVIEWS
-          const reviewStats = await fetchReviewStats(docSnap.id);
+          const productCategory =
+            typeof data.category === "object" ? data.category.id : data.category;
+          const categoryToCompare =
+            typeof categoryId === "object" ? categoryId.id : categoryId;
 
-          products.push({
-            id: docSnap.id,
-            ...data,
-            image:
-              data.imageUrls?.[0]?.url ||
-              data.image ||
-              data.mainImage ||
-              "",
-            price: data.price || data.offerPrice || 0,
-            name: data.name || "Unnamed Product",
+          if (
+            productCategory === categoryToCompare &&
+            docSnap.id !== currentProductId
+          ) {
+            // ⭐ FETCH REVIEWS
+            const reviewStats = await fetchReviewStats(docSnap.id);
 
-            // ⭐ FROM REVIEWS COLLECTION
-            rating: reviewStats.rating,
-            reviewCount: reviewStats.reviewCount,
-          });
+            const { finalPrice, originalPrice } = getVariantPrice(data);
+
+            products.push({
+              id: docSnap.id,
+              ...data,
+              image: data.imageUrls?.[0]?.url || "",
+              price: finalPrice,          // ✅ UI already uses product.price
+              originalPrice: originalPrice,
+              name: data.name,
+              rating: reviewStats.rating,
+              reviewCount: reviewStats.reviewCount,
+            });
+          }
         }
+
+        // 🔥 Randomize & limit
+        const selectedProducts = products
+          .sort(() => 0.5 - Math.random())
+          .slice(0, 4);
+
+        setRelatedProducts(selectedProducts);
+      } catch (error) {
+        console.error("Error fetching related products:", error);
+        setRelatedProducts([]);
+      } finally {
+        setLoading(false);
       }
+    };
 
-      // 🔥 Randomize & limit
-      const selectedProducts = products
-        .sort(() => 0.5 - Math.random())
-        .slice(0, 4);
-
-      setRelatedProducts(selectedProducts);
-    } catch (error) {
-      console.error("Error fetching related products:", error);
-      setRelatedProducts([]);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  fetchRelatedProducts();
-}, [categoryId, currentProductId, source]);
-
+    fetchRelatedProducts();
+  }, [categoryId, currentProductId, source]);
 
   // 🔄 Loading state
   if (loading) {
     return (
       <div className="mt-12">
         <h2 className="text-2xl font-bold text-gray-900 mb-6">
-          Related Products from  
+          Related Products from
         </h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
           {[...Array(4)].map((_, index) => (
@@ -380,149 +409,153 @@ useEffect(() => {
     <div className="mt-12">
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-2xl font-bold text-gray-900">
-          Related Products   
+          Related Products
         </h2>
-       <button
-  onClick={() => {
-    let storePath = "";
-    switch (source) {
-      case "local-market":
-        storePath = "/local-market";
-        break;
-      case "printing":
-        storePath = "/printing";
-        break;
-      default:
-        storePath = "/e-market";
-        break;
-    }
+        <button
+          onClick={() => {
+            let storePath = "";
+            switch (source) {
+              case "local-market":
+                storePath = "/local-market";
+                break;
+              case "printing":
+                storePath = "/printing";
+                break;
+              default:
+                storePath = "/e-market";
+                break;
+            }
 
-    navigate(storePath);
+            navigate(storePath);
 
-    // 🔝 NAVIGATION KAPRAM SCROLL TOP
-    setTimeout(() => {
-      window.scrollTo({ top: 0, behavior: "smooth" });
-    }, 0);
-  }}
-  className="text-purple-600 hover:text-purple-800 font-semibold flex items-center gap-2 hover:underline transition-colors"
->
-  View All
-  <svg
-    className="w-4 h-4"
-    fill="none"
-    stroke="currentColor"
-    viewBox="0 0 24 24"
-  >
-    <path
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      strokeWidth={2}
-      d="M9 5l7 7-7 7"
-    />
-  </svg>
-</button>
-
+            // 🔝 NAVIGATION KAPRAM SCROLL TOP
+            setTimeout(() => {
+              window.scrollTo({ top: 0, behavior: "smooth" });
+            }, 0);
+          }}
+          className="text-purple-600 hover:text-purple-800 font-semibold flex items-center gap-2 hover:underline transition-colors"
+        >
+          View All
+          <svg
+            className="w-4 h-4"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M9 5l7 7-7 7"
+            />
+          </svg>
+        </button>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 h-[299px] mt-2">
         {relatedProducts.map((product) => (
           <div
             key={product.id}
-            className="bg-white rounded-xl shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden group cursor-pointer border border-gray-200 hover:border-purple-300"
-            onClick={() => {
+            className="bg-white rounded-lg shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden group cursor-pointer border border-gray-200 hover:border-purple-300"
+            onClick={() =>
               navigate(`/product/${product.id}`, {
                 state: {
                   product,
-                  source
-                }
-              });
-            }}
+                  source: product.productTag || source,
+                },
+              })
+            }
           >
-            {/* Product Image */}
-            <div className="relative overflow-hidden h-48 bg-gray-100 flex items-center justify-center">
-  {product.image ? (
-    <img
-      src={product.image}
-      alt={product.name}
-      className="max-w-full max-h-full object-contain"
-      loading="lazy"
-      onError={(e) => {
-        e.target.onerror = null;
-        e.target.src = "https://placehold.co/300x200?text=Product";
-      }}
-    />
-  
-
+            {/* PRODUCT IMAGE */}
+            <div className="relative h-40 bg-gray-100 flex items-center justify-center overflow-hidden ">
+              {product.image ? (
+                <img
+                  src={product.image}
+                  alt={product.name}
+                  className="max-w-full max-h-full object-contain"
+                  loading="lazy"
+                  onError={(e) => {
+                    e.target.onerror = null;
+                    e.target.src = "https://placehold.co/300x200?text=Product";
+                  }}
+                />
               ) : (
-                <div className="w-full h-full flex items-center justify-center">
-                  <svg className="w-12 h-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                  </svg>
-                </div>
+                <svg
+                  className="w-10 h-10 text-gray-400"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={1.5}
+                    d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+                  />
+                </svg>
               )}
-
-              {/* Quick view overlay */}
-              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-all duration-300 flex items-center justify-center">
-                <button className="opacity-0 group-hover:opacity-100 transform translate-y-4 group-hover:translate-y-0 transition-all duration-300 bg-white text-purple-600 font-semibold px-4 py-2 rounded-full shadow-lg">
-                  Quick View
-                </button>
-              </div>
             </div>
 
-            {/* Product Info */}
-            <div className="p-4">
-              <h3 className="font-semibold text-gray-900 line-clamp-1 mb-2 group-hover:text-purple-600 transition-colors">
+            {/* PRODUCT INFO */}
+            <div className="p-3">
+              <h3 className="font-medium text-xs sm:text-base leading-tight line-clamp-2">
                 {product.name}
               </h3>
 
-              {/* Rating */}
-              <div className="flex items-center gap-1 mb-3">
-  {/* Rating Number */}
-  <span className="text-sm font-medium text-yellow-600">
-    {(product.rating ?? 0).toFixed(1)}
-  </span>
-
-  {/* Stars */}
-  <StarRating
-    rating={product.rating ?? 0}
-    size="w-4 h-4"
-    color="text-yellow-500"
-  />
-
-  {/* Review Count */}
-  <span className="text-sm text-gray-500">
-    ({product.reviewCount ?? 0})
-  </span>
-</div>
-
-
-              {/* Price */}
-              <div className="flex items-center gap-2">
-                <span className="text-xl font-bold text-gray-900">
-                  ₹{product.price?.toLocaleString() || product.offerPrice?.toLocaleString() || "0"}
+              {/* RATING */}
+              <div className="flex items-center gap-1 mt-0.5">
+                <span className="text-sm font-medium text-yellow-600">
+                  {(product.rating ?? 0).toFixed(1)}
                 </span>
-                {product.originalPrice && product.originalPrice > product.price && (
-                  <span className="text-sm text-gray-500 line-through">
-                    ₹{product.originalPrice.toLocaleString()}
-                  </span>
-                )}
+
+                <StarRating
+                  rating={product.rating ?? 0}
+                  size="w-3 h-3"
+                  color="text-yellow-500"
+                />
+
+                <span className="text-xs text-gray-500">
+                  ({product.reviewCount ?? 0})
+                </span>
               </div>
 
-              {/* Stock Status */}
-              <div className="mt-3">
+              {/* PRICE */}
+              <div className="flex items-center gap-1 mt-0.5">
+                <span className="text-base font-bold text-gray-900">
+                  ₹
+                  {product.price?.toLocaleString() ||
+                    product.offerPrice?.toLocaleString() ||
+                    "0"}
+                </span>
+
+                {product.originalPrice &&
+                  product.originalPrice > product.price && (
+                    <span className="text-xs text-gray-500 line-through">
+                      ₹{product.originalPrice.toLocaleString()}
+                    </span>
+                  )}
+              </div>
+
+              {/* STOCK / VIEW */}
+              <div className="mt-1">
                 {product.stock > 0 ? (
-                  <span className="inline-flex items-center text-sm text-green-600 bg-green-50 px-2 py-1 rounded">
-                    <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                  <span className="inline-flex items-center text-xs text-green-600 bg-green-50 px-2 py-0.5 rounded">
+                    <svg
+                      className="w-3 h-3 mr-1"
+                      fill="currentColor"
+                      viewBox="0 0 20 20"
+                    >
+                      <path
+                        fillRule="evenodd"
+                        d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                        clipRule="evenodd"
+                      />
                     </svg>
                     In Stock
                   </span>
                 ) : (
-                  <span className="inline-flex items-center text-sm text-red-600 bg-red-50 px-2 py-1 rounded">
-                    <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-                    </svg>
-                    Out of Stock
+                  <span className="inline-flex w-full items-center justify-center text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 px-3 py-1.5 rounded transition">
+                    View
                   </span>
                 )}
               </div>
@@ -557,7 +590,6 @@ const ProductDetail = ({ product: propProduct }) => {
   const storage = getStorage();
   const { addToCart } = useCart();
 
-
   const productState = useMemo(() => location.state?.product, [location.state]);
 
   const [product, setProduct] = useState(propProduct || null);
@@ -585,12 +617,29 @@ const ProductDetail = ({ product: propProduct }) => {
   const [availableColors, setAvailableColors] = useState([]);
   const [availableSizes, setAvailableSizes] = useState([]);
   const [colorImageMap, setColorImageMap] = useState({});
-   const [showAllReviews, setShowAllReviews] = useState(false);
+  const [showAllReviews, setShowAllReviews] = useState(false);
 
   // FIXED: Get store info from location state or prop
   const productTag = location.state?.source || product?.productTag || null;
-  const source = location.state?.source || "e-market"; // Default to e-market
+  const source = location.state?.source || "e-market";
 
+  // 🔙 BACK BUTTON HANDLER - FIXED according to image
+  const handleBack = () => {
+    let path = "/e-market"; // default
+
+    if (productTag === "local-market") path = "/local-market";
+    if (productTag === "printing") path = "/printing";
+    if (productTag === "e-market") path = "/e-market";
+
+    navigate(path);
+
+    // 🔝 scroll to top
+    setTimeout(() => {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }, 0);
+  };
+
+  // Default to e-market
   const { storePath, storeLabel } = useMemo(() => {
     if (source === "local-market") {
       return { storePath: "/local-market", storeLabel: "Local Market" };
@@ -1250,7 +1299,6 @@ const ProductDetail = ({ product: propProduct }) => {
     };
 
     addToCart(item);
-  
 
     // Button click animation
     const button = e.currentTarget;
@@ -1622,39 +1670,93 @@ const ProductDetail = ({ product: propProduct }) => {
         />
       )}
 
+
+      
+
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Breadcrumb */}
-        <nav className="text-sm mb-6 text-gray-600 flex items-center space-x-2">
-          {/* Home */}
+        {/* 🔙 FIXED: Back Button and Breadcrumb Layout - Matching Image */}
+        <div className="flex justify-between items-center mb-6">
+                    {/* Breadcrumb Navigation - Right side like in image */}
+          <nav className="text-sm text-gray-600 flex items-center space-x-2 bg-white px-4 py-2 rounded-lg shadow-sm">
+            {/* Home */}
+            <button
+              onClick={() => navigate("/")}
+              className="hover:text-gray-800 hover:underline transition-colors"
+            >
+              Home
+            </button>
+
+            {/* Store/ProductTag */}
+            {productTag && (
+              <>
+                <svg
+                  className="w-3 h-3 text-gray-400"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M9 5l7 7-7 7"
+                  />
+                </svg>
+
+                <button
+                  onClick={() => {
+                    let path = "/e-market";
+
+                    if (productTag === "local-market") path = "/local-market";
+                    if (productTag === "printing") path = "/printing";
+                    if (productTag === "e-market") path = "/e-market";
+
+                    navigate(path);
+
+                    // 🔝 navigation apram scroll top
+                    setTimeout(() => {
+                      window.scrollTo({ top: 0, behavior: "smooth" });
+                    }, 0);
+                  }}
+                  className="capitalize text-purple-600 hover:text-purple-800 hover:underline transition-colors"
+                >
+                  {productTag.replace("-", " ")}
+                </button>
+              </>
+            )}
+
+            {/* Product name */}
+            <svg className="w-3 h-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+            </svg>
+
+            <span className="text-gray-800 font-medium truncate max-w-xs">
+              {product.name}
+            </span>
+          </nav>
+          {/* Back Button - Left side like in image */}
           <button
-            onClick={() => navigate("/")}
-            className="hover:text-gray-800"
+            onClick={handleBack}
+            className="flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors py-2 px-4 hover:bg-gray-100 rounded-lg"
           >
-            Home
+            <svg
+              className="w-5 h-5"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M15 19l-7-7 7-7"
+              />
+            </svg>
+            Back
           </button>
 
-          {/* productTag */}
-          {productTag && (
-            <>
-              <svg className="w-3 h-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-              </svg>
 
-              <span className="capitalize">
-                {productTag.replace("-", " ")}
-              </span>
-            </>
-          )}
-
-          {/* Product name */}
-          <svg className="w-3 h-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-          </svg>
-
-          <span className="text-gray-800 font-medium truncate max-w-xs">
-            {product.name}
-          </span>
-        </nav>
+        </div>
 
         <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 p-6 md:p-8">
@@ -2060,97 +2162,94 @@ const ProductDetail = ({ product: propProduct }) => {
                 </div>
 
                 <div className="lg:col-span-2">
-                 <div className="space-y-6">
-  {(showAllReviews ? reviews : reviews.slice(0, 4)).map((r) => {
-    const isGuest =
-      r.userId?.startsWith("guest_") || r.userType === "guest";
-    const displayName = isGuest
-      ? "Guest User"
-      : usersMap[r.userId]?.displayName || r.userName || "Anonymous";
+                  <div className="space-y-6">
+                    {(showAllReviews ? reviews : reviews.slice(0, 4)).map((r) => {
+                      const isGuest =
+                        r.userId?.startsWith("guest_") || r.userType === "guest";
+                      const displayName = isGuest
+                        ? "Guest User"
+                        : usersMap[r.userId]?.displayName || r.userName || "Anonymous";
 
-    return (
-      <div
-        key={r.id}
-        className="border rounded-xl p-5 bg-white shadow-sm hover:shadow-md transition"
-      >
-        {/* TOP */}
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center gap-3">
-            <StarRating rating={r.rating} size="w-5 h-5" />
-            <h4 className="font-semibold text-gray-900">
-              {r.title}
-            </h4>
-          </div>
-          <span className="text-sm text-gray-500">
-            {r.createdAt?.toLocaleDateString?.() || "Recently"}
-          </span>
-        </div>
+                      return (
+                        <div
+                          key={r.id}
+                          className="border rounded-xl p-5 bg-white shadow-sm hover:shadow-md transition"
+                        >
+                          {/* TOP */}
+                          <div className="flex items-center justify-between mb-3">
+                            <div className="flex items-center gap-3">
+                              <StarRating rating={r.rating} size="w-5 h-5" />
+                              <h4 className="font-semibold text-gray-900">
+                                {r.title}
+                              </h4>
+                            </div>
+                            <span className="text-sm text-gray-500">
+                              {r.createdAt?.toLocaleDateString?.() || "Recently"}
+                            </span>
+                          </div>
 
-        {/* USER */}
-        <div className="flex items-center gap-3 mb-3">
-          <div className="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center font-bold text-purple-700">
-            {isGuest ? "👤" : displayName.charAt(0).toUpperCase()}
-          </div>
-          <div>
-            <p className="text-sm font-medium text-gray-800">
-              {displayName}
-            </p>
-            <p className="text-xs text-gray-500">
-              {isGuest ? "Guest User" : "Verified User"}
-            </p>
-          </div>
-        </div>
+                          {/* USER */}
+                          <div className="flex items-center gap-3 mb-3">
+                            <div className="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center font-bold text-purple-700">
+                              {isGuest ? "👤" : displayName.charAt(0).toUpperCase()}
+                            </div>
+                            <div>
+                              <p className="text-sm font-medium text-gray-800">
+                                {displayName}
+                              </p>
+                              <p className="text-xs text-gray-500">
+                                {isGuest ? "Guest User" : "Verified User"}
+                              </p>
+                            </div>
+                          </div>
 
-        {/* CONTENT */}
-        <p className="text-gray-700 leading-relaxed mb-3">
-          {r.content}
-        </p>
+                          {/* CONTENT */}
+                          <p className="text-gray-700 leading-relaxed mb-3">
+                            {r.content}
+                          </p>
 
-        {/* VERIFIED */}
-        {r.verifiedPurchase && (
-          <div className="inline-flex items-center gap-1 bg-green-100 text-green-800 text-xs px-2 py-1 rounded">
-            ✔ Verified Purchase
-          </div>
-        )}
-      </div>
-    );
-  })}
-</div>
-
-
-                    {reviews.length > 4 && (
-                      <div className="text-center pt-4">
-                        <button
-  onClick={() => setShowAllReviews(true)}
-  className="text-purple-600 hover:text-purple-800 font-semibold hover:underline transition-colors"
->
-  View all {reviews.length} reviews →
-</button>
-{showAllReviews && (
-  <div className="text-center mt-6">
-    <button
-  onClick={() => {
-    setShowAllReviews(false);
-
-    // 🔝 SCROLL BACK TO REVIEWS TOP
-    setTimeout(() => {
-      const reviewsSection = document.getElementById("reviews-section");
-      reviewsSection?.scrollIntoView({ behavior: "smooth" });
-    }, 0);
-  }}
-  className="text-gray-600 hover:underline"
->
-  Show less reviews ↑
-</button>
-
-  </div>
-)}
-
-                      </div>
-                    )}
+                          {/* VERIFIED */}
+                          {r.verifiedPurchase && (
+                            <div className="inline-flex items-center gap-1 bg-green-100 text-green-800 text-xs px-2 py-1 rounded">
+                              ✔ Verified Purchase
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
+
+                  {reviews.length > 4 && (
+                    <div className="text-center pt-4">
+                      <button
+                        onClick={() => setShowAllReviews(true)}
+                        className="text-purple-600 hover:text-purple-800 font-semibold hover:underline transition-colors"
+                      >
+                        View all {reviews.length} reviews →
+                      </button>
+                      {showAllReviews && (
+                        <div className="text-center mt-6">
+                          <button
+                            onClick={() => {
+                              setShowAllReviews(false);
+
+                              // 🔝 SCROLL BACK TO REVIEWS TOP
+                              setTimeout(() => {
+                                const reviewsSection = document.getElementById("reviews-section");
+                                reviewsSection?.scrollIntoView({ behavior: "smooth" });
+                              }, 0);
+                            }}
+                            className="text-gray-600 hover:underline"
+                          >
+                            Show less reviews ↑
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
-               
+
+              </div>
             ) : (
               <div className="text-center py-12">
                 <svg className="w-16 h-16 text-gray-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

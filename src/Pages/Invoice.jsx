@@ -6,6 +6,7 @@ import jsPDF from 'jspdf';
 import { doc, getDoc, collection, getDocs } from 'firebase/firestore';
 import { db } from '../../firebase';
 import newlogo from "../assets/newlogo.png";
+import ReturnOrderModal from './ReturnOrderForm'; // Add this import
 
 const Invoice = () => {
   const [searchParams] = useSearchParams();
@@ -17,6 +18,7 @@ const Invoice = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [generatingPDF, setGeneratingPDF] = useState(false);
+  const [showReturnModal, setShowReturnModal] = useState(false); // Add this state
   
   const invoiceRef = useRef();
 
@@ -160,6 +162,29 @@ const Invoice = () => {
     return words + ' Rupees Only';
   };
 
+  // Return order handler
+  const handleReturnOrder = () => {
+    // Prevent return if status is final or action is in progress
+    if (!orderData || ['cancelled', 'return_requested', 'returned', 'return_rejected'].includes(orderData.status)) {
+      return;
+    }
+    
+    // Show the return modal
+    setShowReturnModal(true);
+  };
+
+  // Success handler for return modal
+  const handleReturnSuccess = (updatedData) => {
+    // Update local state to reflect return request
+    setOrderData(prev => ({ 
+      ...prev, 
+      ...updatedData
+    }));
+    
+    // Close the modal
+    setShowReturnModal(false);
+  };
+
   // Fetch order data
   useEffect(() => {
     const fetchOrder = async () => {
@@ -281,8 +306,34 @@ const Invoice = () => {
     );
   }
 
+  // Helper function for status display
+  const getStatusDisplay = (status) => {
+    const statusMap = {
+      'confirmed': { label: 'Confirmed', color: 'text-green-700' },
+      'shipped': { label: 'Shipped', color: 'text-blue-700' },
+      'delivered': { label: 'Delivered', color: 'text-green-700' },
+      'cancelled': { label: 'Cancelled', color: 'text-red-700' },
+      'return_requested': { label: 'Return Requested', color: 'text-orange-700' },
+      'return_approved': { label: 'Return Approved', color: 'text-teal-700' },
+      'return_rejected': { label: 'Return Rejected', color: 'text-red-700' },
+      'returned': { label: 'Returned', color: 'text-purple-700' },
+      'refunded': { label: 'Refunded', color: 'text-indigo-700' }
+    };
+    
+    return statusMap[status] || { label: status, color: 'text-gray-700' };
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 p-4 md:p-6">
+      {/* Return Order Modal */}
+      {showReturnModal && (
+        <ReturnOrderModal
+          orderData={orderData}
+          onClose={() => setShowReturnModal(false)}
+          onReturnSuccess={handleReturnSuccess}
+        />
+      )}
+      
       {/* Header with actions */}
       <div className="max-w-4xl mx-auto mb-8 no-print">
         <div className="bg-white rounded-xl shadow-lg p-6">
@@ -292,6 +343,17 @@ const Invoice = () => {
               <p className="text-gray-600 mt-2">
                 Order #{orderData.invoiceNumber} • {orderData.displayDate?.split(' at ')[0]}
               </p>
+              <div className="mt-2">
+                <span className={`px-3 py-1 rounded-full text-sm font-semibold ${
+                  orderData.status === 'cancelled' ? 'bg-red-100 text-red-800' :
+                  orderData.status === 'return_requested' ? 'bg-orange-100 text-orange-800' :
+                  orderData.status === 'returned' ? 'bg-purple-100 text-purple-800' :
+                  orderData.status === 'delivered' ? 'bg-green-100 text-green-800' :
+                  'bg-blue-100 text-blue-800'
+                }`}>
+                  {getStatusDisplay(orderData.status).label}
+                </span>
+              </div>
             </div>
             <div className="flex flex-wrap justify-center gap-3">
               <button
@@ -317,15 +379,6 @@ const Invoice = () => {
                   </>
                 )}
               </button>
-              {/* <button
-                onClick={triggerPrint}
-                className="px-5 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 hover:shadow-lg flex items-center gap-2 transition-all"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
-                </svg>
-                Print Invoice
-              </button> */}
               <button
                 onClick={() => navigate('/my-orders')}
                 className="px-5 py-2.5 bg-gray-600 text-white rounded-lg hover:bg-gray-700 hover:shadow-lg transition-all"
@@ -489,9 +542,33 @@ const Invoice = () => {
           <p>
             <strong>Payment Method:</strong> {orderData.paymentMethod?.toUpperCase() || 'COD'}
           </p>
-          <p>
-            <strong>Note:</strong> Thank you for your business!
-          </p>
+          
+          {/* Return Information Display */}
+          {orderData.returnDetails && (
+            <div className="mt-4 p-4 border-l-4 border-orange-500 bg-orange-50 rounded-lg">
+              <h3 className="font-bold text-lg text-orange-800 mb-2">Return Information</h3>
+              <div className="space-y-2 text-sm">
+                <p><strong>Reason:</strong> {orderData.returnDetails.reason}</p>
+                {orderData.returnDetails.details && (
+                  <p><strong>Details:</strong> {orderData.returnDetails.details}</p>
+                )}
+                <p><strong>Requested Date:</strong> {formatDate(orderData.returnDetails.requestedDate)}</p>
+                {orderData.returnDetails.status && (
+                  <p><strong>Status:</strong> 
+                    <span className={`ml-2 px-3 py-1 rounded-full text-xs font-semibold ${
+                      orderData.returnDetails.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                      orderData.returnDetails.status === 'approved' ? 'bg-green-100 text-green-800' :
+                      orderData.returnDetails.status === 'rejected' ? 'bg-red-100 text-red-800' :
+                      'bg-gray-100 text-gray-800'
+                    }`}>
+                      {orderData.returnDetails.status.charAt(0).toUpperCase() + orderData.returnDetails.status.slice(1)}
+                    </span>
+                  </p>
+                )}
+              </div>
+            </div>
+          )}
+          
           <p className="text-sm text-gray-600">
             All amounts are inclusive of applicable taxes.
           </p>
@@ -516,18 +593,34 @@ const Invoice = () => {
         <div className="bg-white rounded-xl shadow-lg p-6">
           <div className="flex flex-col md:flex-row justify-center gap-4">
             <button
-  onClick={() => {
-    window.scrollTo({ top: 0, behavior: "smooth" });
-    navigate('/e-market');
-  }}
-  className="px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-all hover:shadow-lg flex items-center justify-center gap-2"
->
-
+              onClick={() => {
+                window.scrollTo({ top: 0, behavior: "smooth" });
+                navigate('/e-market');
+              }}
+              className="px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-all hover:shadow-lg flex items-center justify-center gap-2"
+            >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
               </svg>
               Continue Shopping
             </button>
+            
+            {/* Return Order Button */}
+            <button
+              onClick={handleReturnOrder}
+              disabled={['cancelled', 'return_requested', 'returned', 'return_rejected'].includes(orderData.status)}
+              className={`px-6 py-3 rounded-lg transition-all flex items-center justify-center gap-2 ${
+                ['cancelled', 'return_requested', 'returned', 'return_rejected'].includes(orderData.status)
+                  ? 'bg-gray-400 text-gray-700 cursor-not-allowed'
+                  : 'bg-orange-600 text-white hover:bg-orange-700 hover:shadow-lg'
+              }`}
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 15v-1a4 4 0 00-4-4H8m0 0l3 3m-3-3l3-3m9 14V5a2 2 0 00-2-2H6a2 2 0 00-2 2v16l4-2 4 2 4-2 4 2z" />
+              </svg>
+              {orderData.status === 'return_requested' ? 'Return Requested' : 'Return Order'}
+            </button>
+            
             <button
               onClick={() => navigate('/my-orders')}
               className="px-6 py-3 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-all hover:shadow-lg flex items-center justify-center gap-2"

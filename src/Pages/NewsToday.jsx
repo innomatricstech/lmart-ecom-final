@@ -135,13 +135,14 @@ const NewsToday = () => {
               className="bg-white rounded-xl shadow-lg border hover:shadow-2xl transition flex flex-col overflow-hidden"
             >
               {/* IMAGE */}
-              <div className="h-44 overflow-hidden">
-                <img
-                  src={article.image}
-                  alt={article.title}
-                  className="w-full h-full object-cover hover:scale-105 transition"
-                />
-              </div>
+              <div className="h-44 bg-gray-100 flex items-center justify-center">
+  <img
+    src={article.image}
+    alt={article.title}
+    className="max-w-full max-h-full object-contain"
+  />
+</div>
+
 
               {/* CONTENT */}
               <div className="p-4 flex flex-col flex-grow">
@@ -184,43 +185,46 @@ const NewsToday = () => {
           <div className="bg-white max-w-4xl w-full rounded-xl overflow-hidden my-10">
 
             {/* HEADER */}
-            <div className="flex justify-between items-center p-4 border-b">
-              <div>
-                <span className="bg-purple-100 text-purple-700 px-3 py-1 rounded-full text-sm font-semibold">
-                  {selectedArticle.category}
-                </span>
-              </div>
-              <button
-                onClick={() => setSelectedArticle(null)}
-                className="text-2xl"
-              >
-                ✕
-              </button>
-            </div>
+         <div className="flex justify-between items-center p-4 border-b">
+  <div>
+    <span className="bg-purple-100 text-purple-700 px-3 py-1 rounded-full text-sm font-semibold">
+      {selectedArticle.category}
+    </span>
+  </div>
+  <button
+    onClick={() => setSelectedArticle(null)}
+    className="text-2xl"
+  >
+    ✕
+  </button>
+</div>
 
-            {/* IMAGE */}
-            <img
-              src={selectedArticle.image}
-              alt={selectedArticle.title}
-              className="w-full h-80 object-cover"
-            />
+{/* IMAGE – FULL IMAGE SHOW */}
+<div className="w-full h-80 bg-gray-100 flex items-center justify-center">
+  <img
+    src={selectedArticle.image}
+    alt={selectedArticle.title}
+    className="max-w-full max-h-full object-contain"
+  />
+</div>
 
-            {/* CONTENT */}
-            <div className="p-6">
-              <h1 className="text-3xl font-bold mb-4">
-                {selectedArticle.title}
-              </h1>
-              <p className="text-gray-700 leading-relaxed">
-                {selectedArticle.content}
-              </p>
+{/* CONTENT */}
+<div className="p-6">
+  <h1 className="text-3xl font-bold mb-4">
+    {selectedArticle.title}
+  </h1>
+  <p className="text-gray-700 leading-relaxed">
+    {selectedArticle.content}
+  </p>
 
-              <button
-                onClick={() => setSelectedArticle(null)}
-                className="mt-8 bg-purple-600 text-white px-5 py-2 rounded hover:bg-purple-700"
-              >
-                ← Back to News
-              </button>
-            </div>
+  <button
+    onClick={() => setSelectedArticle(null)}
+    className="mt-8 bg-purple-600 text-white px-5 py-2 rounded hover:bg-purple-700"
+  >
+    ← Back to News
+  </button>
+</div>
+
           </div>
         </div>
       )}
