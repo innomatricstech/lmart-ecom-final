@@ -940,7 +940,7 @@ const UploadProgress = () => {
               <Link
                 to="/"
                 onClick={scrollToTop}
-                className={`text-blue-700 hover:text-purple-500 font-medium relative text-sm ${
+                className={`text-blue-700 hover:text-purple-500 font-medium relative text-m ${
                   location.pathname === "/" ? "active-nav-item" : ""
                 }`}
               >
@@ -952,7 +952,7 @@ const UploadProgress = () => {
               <Link
                 to="/e-market"
                 onClick={scrollToTop}
-                className={`text-blue-700 hover:text-purple-500 font-medium relative text-sm ${
+                className={`text-blue-700 hover:text-purple-500 font-medium relative text-m ${
                   location.pathname === "/e-market" ? "active-nav-item" : ""
                 }`}
               >
@@ -964,7 +964,7 @@ const UploadProgress = () => {
               <Link
                 to="/local-market"
                 onClick={scrollToTop}
-                className={`text-blue-700 hover:text-purple-500 font-medium relative text-sm ${
+                className={`text-blue-700 hover:text-purple-500 font-medium relative text-m ${
                   location.pathname === "/local-market" ? "active-nav-item" : ""
                 }`}
               >
@@ -976,7 +976,7 @@ const UploadProgress = () => {
               <Link
                 to="/printing"
                 onClick={scrollToTop}
-                className={`text-blue-700 hover:text-purple-500 font-medium relative text-sm ${
+                className={`text-blue-700 hover:text-purple-500 font-medium relative text-m ${
                   location.pathname === "/printing" ? "active-nav-item" : ""
                 }`}
               >
@@ -988,7 +988,7 @@ const UploadProgress = () => {
               <Link
                 to="/news-today"
                 onClick={scrollToTop}
-                className={`text-blue-700 hover:text-purple-500 font-medium relative text-sm ${
+                className={`text-blue-700 hover:text-purple-500 font-medium relative text-m ${
                   location.pathname === "/news-today" ? "active-nav-item" : ""
                 }`}
               >
@@ -1001,7 +1001,7 @@ const UploadProgress = () => {
               <Link
                 to="/oldee"
                 onClick={scrollToTop}
-                className={`text-blue-700 hover:text-purple-500 font-medium relative text-sm ${
+                className={`text-blue-700 hover:text-purple-500 font-medium relative text-m ${
                   location.pathname === "/oldee" ? "active-nav-item" : ""
                 }`}
               >
