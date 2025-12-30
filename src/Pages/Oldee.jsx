@@ -623,7 +623,7 @@ const SellProductForm = ({
                       />
                     </div>
                     {hasDiscount && (
-                      <p className="mt-1 text-xs text-emerald-600">
+                      <p className="mt-1 text-xs text-danger">
                         Discount: ₹{priceNum - offerPriceNum} ({discountPct}%)
                       </p>
                     )}
@@ -1271,13 +1271,13 @@ const ProductsViewer = ({
                     <div className="text-sm mt-2">
                       {p.offerPrice != null ? (
                         <div className="flex items-center gap-2">
-                          <span className="font-bold text-emerald-700">
+                          <span className="font-bold text-red-600">
                             ₹{p.offerPrice}
                           </span>
                           <span className="line-through text-gray-400 text-xs">
                             ₹{p.price}
                           </span>
-                          <span className="text-xs bg-emerald-50 text-emerald-600 px-1.5 py-0.5 rounded">
+                          <span className="text-xs bg-emerald-50 text-red-600 px-1.5 py-0.5 rounded">
                             {Math.round(
                               ((p.price - p.offerPrice) / p.price) * 100
                             )}
@@ -1821,13 +1821,13 @@ const Oldee = () => {
                     <div className="mb-2">
                       {p.offerPrice != null ? (
                         <div className="flex items-center gap-2">
-                          <span className="font-bold text-lg text-emerald-700">
+                          <span className="font-bold text-lg text-red-600">
                             ₹{p.offerPrice}
                           </span>
                           <span className="line-through text-gray-400 text-sm">
                             ₹{p.price}
                           </span>
-                          <span className="text-xs bg-emerald-50 text-emerald-600 px-1.5 py-0.5 rounded">
+                          <span className="text-xs bg-emerald-50 text-red-600 px-1.5 py-0.5 rounded">
                             {Math.round(
                               ((p.price - p.offerPrice) / p.price) * 100
                             )}
