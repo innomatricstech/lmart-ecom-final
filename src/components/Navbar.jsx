@@ -19,7 +19,8 @@ import {
   getDownloadURL,
   deleteObject 
 } from "firebase/storage";
-import { getAuth } from "firebase/auth";
+import { useAuth } from "../context/AuthProvaider";
+
 
 const Navbar = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -27,7 +28,7 @@ const Navbar = () => {
   const [isUserDropdownOpen, setIsUserDropdownOpen] = useState(false);
   const [selectedTotal, setSelectedTotal] = useState(0);
   const [selectedCount, setSelectedCount] = useState(0);
-  const [user, setUser] = useState(null);
+  const { user, logout } = useAuth();
   const [uploadProgress, setUploadProgress] = useState({}); // Track upload progress
   const [isUploading, setIsUploading] = useState(false); // Track overall upload status
   
@@ -35,8 +36,7 @@ const Navbar = () => {
   const location = useLocation();
   const dropdownRef = useRef(null);
   const searchRef = useRef(null);
-   const auth = getAuth();
-  
+    
   const {
     getCartItemsCount,
     items,
@@ -122,24 +122,7 @@ const Navbar = () => {
   }, []);
 
   // Check if user is logged in
-  useEffect(() => {
-    const token = localStorage.getItem("token");
-    const userData = localStorage.getItem("user");
-
-    if (token && userData) {
-      try {
-        const parsedUser = JSON.parse(userData);
-        setUser(parsedUser);
-      } catch (error) {
-        console.error("Error parsing user data:", error);
-        setUser(null);
-        localStorage.removeItem("shouldOpenUserDropdown");
-      }
-    } else {
-      setUser(null);
-      localStorage.removeItem("shouldOpenUserDropdown");
-    }
-  }, [location.pathname]);
+  
 
   // Calculate selected total whenever items change or cart opens
   const getSelectedItemsMemo = useCallback(getSelectedItems, [getSelectedItems]);
@@ -190,14 +173,12 @@ const Navbar = () => {
   };
 
   // Handle logout
-  const handleLogout = () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
-    localStorage.removeItem("shouldOpenUserDropdown");
-    setUser(null);
-    setIsUserDropdownOpen(false);
-    navigate("/");
-  };
+ const handleLogout = async () => {
+  await logout();        // Firebase signOut
+  setIsUserDropdownOpen(false);
+  navigate("/", { replace: true });
+};
+
   
   // Handle mobile logout
   const handleMobileLogout = () => {

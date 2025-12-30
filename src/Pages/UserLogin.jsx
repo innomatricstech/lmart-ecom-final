@@ -5,14 +5,7 @@ import { signInWithEmailAndPassword } from "firebase/auth";
 import { doc, getDoc, setDoc } from "firebase/firestore";
 import { useWishlist } from "../context/WishlistContext";
 
-// User storage utility
-const storeUserData = (userData, uid) => {
-  localStorage.setItem("userData", JSON.stringify(userData));
-  localStorage.setItem("user", JSON.stringify(userData));
-  localStorage.setItem("token", uid);
-  localStorage.setItem("isLoggedIn", "true");
-};
-
+ 
 const UserLogin = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -70,7 +63,7 @@ const UserLogin = () => {
         await setDoc(userRef, userData);
       }
 
-      storeUserData(userData, user.uid);
+      
 
       const { state } = location;
 
