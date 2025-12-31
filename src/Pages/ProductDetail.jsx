@@ -1939,12 +1939,13 @@ const ProductDetail = ({ product: propProduct }) => {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 p-3 md:p-4">
             {/* LEFT SIDE — MEDIA */}
             <div className="space-y-2">
-              <div className="relative w-[300px] h-[300px] bg-dark-100 rounded-lg overflow-hidden ml-[148px]">
+             <div className="relative w-[500px] ml-[30px] aspect-square bg-white rounded-lg overflow-hidden flex items-center justify-center">
+
                 {currentImg ? (
                   <>
                     {imageLoading && (
                       <div className="absolute inset-0 flex items-center justify-center">
-                        <div className="animate-spin h-16 w-12 rounded-full border-b-2 border-purple-600"></div>
+                        <div className="animate-spin h-16 w-20 rounded-full border-b-2 border-purple-600"></div>
                       </div>
                     )}
 
@@ -1998,8 +1999,8 @@ const ProductDetail = ({ product: propProduct }) => {
                         src={currentImg}
                         alt={product.name}
                         className={`
-    w-full
-    h-full
+    w-[512px]
+    h-[683px]
     object-contain
     transition-opacity
     duration-300
@@ -2064,7 +2065,7 @@ const ProductDetail = ({ product: propProduct }) => {
 
               {/* Thumbnails - Combined Images and Videos */}
               {allMedia.length > 1 && (
-                <div className="grid grid-cols-4 gap-3">
+                <div className="grid grid-cols-4 gap-3 w-[250px] ml-[100px]">
                   {allMedia.map((media, i) => {
                     const isVideo = isVideoUrl(media);
 
@@ -2084,7 +2085,7 @@ const ProductDetail = ({ product: propProduct }) => {
                             {images[0] && (
                               <img
                                 src={images[0]}
-                                className="h-30 w-full object-cover opacity-60 group-hover:opacity-70 transition-opacity"
+                                className="h-16 w-full object-fill bg-white opacity-60 group-hover:opacity-70 transition-opacity"
                                 alt="Video thumbnail"
                                 onError={(e) => {
                                   e.target.onerror = null;
@@ -2130,7 +2131,7 @@ const ProductDetail = ({ product: propProduct }) => {
                           <div className="relative">
                             <img
                               src={media}
-                              className="h-30 w-full object-cover group-hover:opacity-90 transition-opacity"
+                              className="h-16 w-full object-contain bg-white group-hover:opacity-90 transition-opacity"
                               alt={`Thumbnail ${i + 1}`}
                               loading="lazy"
                               onError={(e) => {
