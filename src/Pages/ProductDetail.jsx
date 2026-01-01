@@ -1937,224 +1937,173 @@ const ProductDetail = ({ product: propProduct }) => {
           </button>
         </div>
         <div className="bg-white rounded-lg shadow-md overflow-hidden ">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 p-3 md:p-4">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-1 p-3 md:p-4">
             {/* LEFT SIDE — MEDIA */}
-            <div className="space-y-2">
-             <div className="relative w-[500px] ml-[30px] aspect-square bg-white rounded-lg overflow-hidden flex items-center justify-center">
+           <div className="space-y-3">
+  {/* MAIN IMAGE / VIDEO */}
+  <div
+    className="
+      relative
+      w-full
+      max-w-[450px]
+      h-[280px]
+      sm:h-[360px]
+      md:h-[420px]
+      lg:h-[500px]
+      mx-auto
+      lg:ml-12
+      rounded-lg
+      overflow-hidden
+      flex
+      items-center
+      justify-center
+    "
+  >
+    {currentImg ? (
+      <>
+        {imageLoading && (
+          <div className="absolute inset-0 flex items-center justify-center">
+            <div className="animate-spin h-14 w-14 rounded-full border-b-2 border-purple-600"></div>
+          </div>
+        )}
 
-                {currentImg ? (
-                  <>
-                    {imageLoading && (
-                      <div className="absolute inset-0 flex items-center justify-center">
-                        <div className="animate-spin h-16 w-20 rounded-full border-b-2 border-purple-600"></div>
-                      </div>
-                    )}
+        {/* VIDEO */}
+        {currentIsVideo || isVideoUrl(currentImg) ? (
+          <div className="w-full h-full flex items-center justify-center">
+            <video
+              src={currentImg}
+              controls
+              controlsList="nodownload"
+              className="w-full h-full object-contain transition-opacity duration-300 rounded-xl"
+              onLoadedData={() => setImageLoading(false)}
+              onError={() => {
+                setImageLoading(false);
+                if (images.length > 0) {
+                  setCurrentImg(images[0]);
+                  setCurrentIsVideo(false);
+                }
+              }}
+              poster={
+                images[0] ||
+                "https://placehold.co/600x400?text=Video+Loading"
+              }
+              playsInline
+            />
 
-                    {/* Check if current media is a video */}
-                    {currentIsVideo || isVideoUrl(currentImg) ? (
-                      <div className="w-full h-full flex items-center justify-center">
-                        <video
-                          src={currentImg}
-                          controls
-                          controlsList="nodownload"
-                          className="w-full h-auto max-h-[450px] object-contain transition-opacity duration-300 rounded-xl"
-                          onLoadedData={() => {
-                            setImageLoading(false);
-                          }}
-                          onError={(e) => {
-                            console.error("Error loading video:", currentImg);
-                            setImageLoading(false);
-                            // Fallback to image
-                            if (images.length > 0) {
-                              setCurrentImg(images[0]);
-                              setCurrentIsVideo(false);
-                            }
-                          }}
-                          poster={
-                            images[0] ||
-                            "https://placehold.co/600x400?text=Video+Loading"
-                          }
-                          playsInline
-                        >
-                          Your browser does not support the video tag.
-                        </video>
-
-                        {/* Video Badge */}
-                        <div className="absolute top-4 right-4 bg-black/70 text-white px-3 py-1.5 rounded-full text-sm font-semibold flex items-center gap-2 backdrop-blur-sm">
-                          <svg
-                            className="w-4 h-4"
-                            fill="currentColor"
-                            viewBox="0 0 20 20"
-                          >
-                            <path
-                              fillRule="evenodd"
-                              d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z"
-                              clipRule="evenodd"
-                            />
-                          </svg>
-                          VIDEO
-                        </div>
-                      </div>
-                    ) : (
-                      <img
-                        src={currentImg}
-                        alt={product.name}
-                        className={`
-    w-[512px]
-    h-[683px]
-    object-contain
-    transition-opacity
-    duration-300
-    ${imageLoading ? "opacity-0" : "opacity-100"}
-  `}
-                        onLoad={() => setImageLoading(false)}
-                        loading="lazy"
-                      />
-                    )}
-                  </>
-                ) : images.length > 0 ? (
-                  // Fallback to first image if currentImg is empty
-                  <>
-                    {imageLoading && (
-                      <div className="absolute inset-0 flex items-center justify-center">
-                        <div className="animate-spin h-10 w-10 rounded-full border-b-2 border-purple-600"></div>
-                      </div>
-                    )}
-
-                    <img
-                      src={images[0]}
-                      alt={product.name}
-                      className={`
-    w-full
-    h-full
-    object-contain
-    transition-opacity
-    duration-300
-    ${imageLoading ? "opacity-0" : "opacity-100"}
-  `}
-                      onLoad={() => setImageLoading(false)}
-                      onError={(e) => {
-                        e.target.onerror = null;
-                        e.target.src =
-                          "https://placehold.co/500x300?text=No+Image";
-                        e.target.className =
-                          "w-full h-full object-contain opacity-100";
-                        setImageLoading(false);
-                      }}
-                      loading="lazy"
-                    />
-                  </>
-                ) : (
-                  <div className="text-center p-8">
-                    <svg
-                      className="w-16 h-16 text-gray-400 mx-auto mb-4"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={1.5}
-                        d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
-                      />
-                    </svg>
-                    <p className="text-gray-500">No image available</p>
-                  </div>
-                )}
-              </div>
-
-              {/* Thumbnails - Combined Images and Videos */}
-              {allMedia.length > 1 && (
-                <div className="grid grid-cols-4 gap-3 w-[250px] ml-[100px]">
-                  {allMedia.map((media, i) => {
-                    const isVideo = isVideoUrl(media);
-
-                    return (
-                      <button
-                        key={i}
-                        onClick={() => onThumbnailClick(media, i)}
-                        className={`rounded-xl overflow-hidden border-2 transition-all duration-200 relative group ${
-                          currentImg === media
-                            ? "border-purple-500 ring-2 ring-purple-200"
-                            : "border-gray-300 hover:border-gray-400"
-                        }`}
-                      >
-                        {isVideo ? (
-                          <div className="relative h-30 w-full bg-gradient-to-br from-gray-800 to-gray-900 flex items-center justify-center">
-                            {/* Video Thumbnail Image */}
-                            {images[0] && (
-                              <img
-                                src={images[0]}
-                                className="h-16 w-full object-fill bg-white opacity-60 group-hover:opacity-70 transition-opacity"
-                                alt="Video thumbnail"
-                                onError={(e) => {
-                                  e.target.onerror = null;
-                                  e.target.style.display = "none";
-                                }}
-                              />
-                            )}
-
-                            {/* Play Icon */}
-                            <div className="absolute inset-0 flex items-center justify-center">
-                              <div className="w-10 h-10 bg-purple-600 rounded-full flex items-center justify-center transform group-hover:scale-110 transition-transform">
-                                <svg
-                                  className="w-5 h-5 text-white ml-1"
-                                  fill="currentColor"
-                                  viewBox="0 0 20 20"
-                                >
-                                  <path
-                                    fillRule="evenodd"
-                                    d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z"
-                                    clipRule="evenodd"
-                                  />
-                                </svg>
-                              </div>
-                            </div>
-
-                            {/* Video Badge */}
-                            <div className="absolute bottom-2 right-2 bg-black/70 text-white text-xs px-2 py-1 rounded flex items-center gap-1 backdrop-blur-sm">
-                              <svg
-                                className="w-3 h-3"
-                                fill="currentColor"
-                                viewBox="0 0 20 20"
-                              >
-                                <path
-                                  fillRule="evenodd"
-                                  d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z"
-                                  clipRule="evenodd"
-                                />
-                              </svg>
-                              VIDEO
-                            </div>
-                          </div>
-                        ) : (
-                          <div className="relative">
-                            <img
-                              src={media}
-                              className="h-16 w-full object-contain bg-white group-hover:opacity-90 transition-opacity"
-                              alt={`Thumbnail ${i + 1}`}
-                              loading="lazy"
-                              onError={(e) => {
-                                console.error("Thumbnail load error:", media);
-                                e.target.onerror = null;
-                                e.target.src =
-                                  "https://placehold.co/150x100?text=Image";
-                                e.target.className =
-                                  "h-30 w-full object-cover bg-gray-200";
-                              }}
-                            />
-                          </div>
-                        )}
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
+            {/* Video Badge */}
+            <div className="absolute top-3 right-3 bg-black/70 text-white px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1">
+              VIDEO
             </div>
+          </div>
+        ) : (
+          <img
+            src={currentImg}
+            alt={product.name}
+            className={`
+              w-full
+              h-full
+              object-contain
+              transition-opacity
+              duration-300
+              ${imageLoading ? "opacity-0" : "opacity-100"}
+            `}
+            onLoad={() => setImageLoading(false)}
+            loading="lazy"
+          />
+        )}
+      </>
+    ) : images.length > 0 ? (
+      <>
+        {imageLoading && (
+          <div className="absolute inset-0 flex items-center justify-center">
+            <div className="animate-spin h-12 w-12 rounded-full border-b-2 border-purple-600"></div>
+          </div>
+        )}
+
+        <img
+          src={images[0]}
+          alt={product.name}
+          className="
+            w-full
+            h-full
+            object-contain
+            transition-opacity
+            duration-300
+          "
+          onLoad={() => setImageLoading(false)}
+          onError={(e) => {
+            e.target.src = "https://placehold.co/500x300?text=No+Image";
+            setImageLoading(false);
+          }}
+          loading="lazy"
+        />
+      </>
+    ) : (
+      <div className="text-center p-8">
+        <p className="text-gray-500">No image available</p>
+      </div>
+    )}
+  </div>
+
+  {/* THUMBNAILS */}
+  {allMedia.length > 1 && (
+    <div
+      className="
+        grid
+        grid-cols-4
+        gap-3
+        w-full
+        max-w-[360px]
+        mx-auto
+        lg:ml-[62px]
+      "
+    >
+      {allMedia.map((media, i) => {
+        const isVideo = isVideoUrl(media);
+
+        return (
+          <button
+            key={i}
+            onClick={() => onThumbnailClick(media, i)}
+            className={`rounded-xl overflow-hidden border-2 transition-all duration-200 ${
+              currentImg === media
+                ? "border-purple-500 ring-2 ring-purple-200"
+                : "border-gray-300 hover:border-gray-400"
+            }`}
+          >
+            {isVideo ? (
+              <div className="relative h-20 sm:h-24 w-full bg-gradient-to-br from-gray-800 to-gray-900 flex items-center justify-center">
+                <span className="text-white text-xs font-semibold">VIDEO</span>
+              </div>
+            ) : (
+              <img
+                src={media}
+                alt={`Thumbnail ${i + 1}`}
+                className="
+                  h-20
+                  sm:h-24
+                  w-full
+                  object-contain
+                  bg-white
+                  transition-opacity
+                "
+                loading="lazy"
+                onError={(e) => {
+                  e.target.src =
+                    "https://placehold.co/150x100?text=Image";
+                }}
+              />
+            )}
+          </button>
+        );
+      })}
+    </div>
+  )}
+</div>
+
 
             {/* RIGHT SIDE — DETAILS */}
-            <div className="space-y-1">
+            <div className="-ml-20">
               <div>
                 {product.brand && (
                   <p className="text-purple-600 font-semibold uppercase tracking-wider text-sm mb-2">

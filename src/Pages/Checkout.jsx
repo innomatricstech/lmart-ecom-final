@@ -187,57 +187,57 @@ const Checkout = () => {
   };
 
   // 🔥 NEW FUNCTION: Fetch Seller IDs from Products
-  const fetchSellerIdsForProducts = async (productIds) => {
-    try {
-      const sellerInfo = {};
+  // const fetchSellerIdsForProducts = async (productIds) => {
+  //   try {
+  //     const sellerInfo = {};
       
-      for (const id of productIds) {
-        // Try to fetch from main products collection first
-        const productRef = doc(db, "products", id);
-        const productSnap = await getDoc(productRef);
+  //     for (const id of productIds) {
+  //       // Try to fetch from main products collection first
+  //       const productRef = doc(db, "products", id);
+  //       const productSnap = await getDoc(productRef);
 
-        if (productSnap.exists()) {
-          // Product is from main collection
-          const productData = productSnap.data();
-          sellerInfo[id] = {
-            sellerId: productData.sellerId || productData.sellerID || null,
-            sellerName: productData.sellerName || "Unknown Seller",
-            sellerEmail: productData.sellerEmail || "",
-            sellerPhone: productData.sellerPhone || "",
-            productType: "new"
-          };
-        } else {
-          // Try to fetch from oldee collection
-          const oldeeRef = doc(db, "oldee", id);
-          const oldeeSnap = await getDoc(oldeeRef);
+  //       if (productSnap.exists()) {
+  //         // Product is from main collection
+  //         const productData = productSnap.data();
+  //         sellerInfo[id] = {
+  //           sellerId: productData.sellerId || productData.sellerID || null,
+  //           sellerName: productData.sellerName || "Unknown Seller",
+  //           sellerEmail: productData.sellerEmail || "",
+  //           sellerPhone: productData.sellerPhone || "",
+  //           productType: "new"
+  //         };
+  //       } else {
+  //         // Try to fetch from oldee collection
+  //         const oldeeRef = doc(db, "oldee", id);
+  //         const oldeeSnap = await getDoc(oldeeRef);
           
-          if (oldeeSnap.exists()) {
-            // Product is from oldee collection
-            const oldeeData = oldeeSnap.data();
-            sellerInfo[id] = {
-              sellerId: oldeeData.sellerId || oldeeData.seller?.uid || null,
-              sellerName: oldeeData.seller?.displayName || "Unknown Seller",
-              sellerEmail: oldeeData.seller?.email || "",
-              sellerPhone: oldeeData.seller?.contactNumber || oldeeData.contactNumber || "",
-              productType: "old"
-            };
-          } else {
-            console.warn(`Product not found for ID: ${id} in either collection`);
-            sellerInfo[id] = {
-              sellerId: null,
-              sellerName: "Unknown Seller",
-              productType: "unknown"
-            };
-          }
-        }
-      }
+  //         if (oldeeSnap.exists()) {
+  //           // Product is from oldee collection
+  //           const oldeeData = oldeeSnap.data();
+  //           sellerInfo[id] = {
+  //             sellerId: oldeeData.sellerId || oldeeData.seller?.uid || null,
+  //             sellerName: oldeeData.seller?.displayName || "Unknown Seller",
+  //             sellerEmail: oldeeData.seller?.email || "",
+  //             sellerPhone: oldeeData.seller?.contactNumber || oldeeData.contactNumber || "",
+  //             productType: "old"
+  //           };
+  //         } else {
+  //           console.warn(`Product not found for ID: ${id} in either collection`);
+  //           sellerInfo[id] = {
+  //             sellerId: null,
+  //             sellerName: "Unknown Seller",
+  //             productType: "unknown"
+  //           };
+  //         }
+  //       }
+  //     }
 
-      setProductSellerInfo(sellerInfo);
-      console.log("✅ Seller info fetched:", sellerInfo);
-    } catch (error) {
-      console.error("❌ Error fetching seller IDs:", error);
-    }
-  };
+  //     setProductSellerInfo(sellerInfo);
+  //     console.log("✅ Seller info fetched:", sellerInfo);
+  //   } catch (error) {
+  //     console.error("❌ Error fetching seller IDs:", error);
+  //   }
+  // };
 
   // Check cart status
   useEffect(() => {
@@ -1439,23 +1439,48 @@ const Checkout = () => {
                 <div key={item.id} className="border p-3 rounded-lg bg-gray-50">
                   <div className="flex justify-between items-start mb-2">
                     <div className="flex items-start gap-3">
-                      <div className="relative">
-                        {loadingImages[item.id] && (
-                          <div className="absolute inset-0 flex items-center justify-center bg-gray-100 rounded">
-                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-purple-600"></div>
-                          </div>
-                        )}
-                        
-                      </div>
-                      <div>
-                        <p className="font-semibold">{item.name}</p>
-                        <p className="text-gray-600 text-sm">Qty: {item.quantity}</p>
-                        {/* 🔥 SHOW PRODUCT TYPE BADGE */}
-                        {item.isOldee && (
-                          <span className="inline-block bg-orange-100 text-orange-800 text-xs px-2 py-0.5 rounded-full mt-1">
-                            Second-hand
-                          </span>
-                        )}
+                    <div className="flex items-start gap-3">
+  {/* PRODUCT IMAGE */}
+  <div className="relative w-16 h-16 rounded-md overflow-hidden border bg-white flex-shrink-0">
+    {loadingImages[item.id] && (
+      <div className="absolute inset-0 flex items-center justify-center bg-gray-100">
+        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-purple-600"></div>
+      </div>
+    )}
+
+    <img
+      src={
+        item.image ||
+        (Array.isArray(item.imageURLs) && item.imageURLs[0]) ||
+        "https://placehold.co/100x100?text=No+Image"
+      }
+      alt={item.name}
+      className="w-full h-full object-contain"
+      onLoad={() =>
+        setLoadingImages((prev) => ({
+          ...prev,
+          [item.id]: false,
+        }))
+      }
+      onError={(e) => {
+        e.currentTarget.src = "https://placehold.co/100x100?text=No+Image";
+      }}
+    />
+  </div>
+
+  {/* PRODUCT DETAILS */}
+  <div>
+    <p className="font-semibold">{item.name}</p>
+    <p className="text-gray-600 text-sm">Qty: {item.quantity}</p>
+
+    {item.isOldee && (
+      <span className="inline-block bg-orange-100 text-orange-800 text-xs px-2 py-0.5 rounded-full mt-1">
+        Second-hand
+      </span>
+    )}
+  </div>
+
+
                         {/* Show original price if offer price was used */}
                         {isBuyNow && buyNowItem.offerPrice && buyNowItem.offerPrice !== buyNowItem.price && (
                             <p className="text-xs text-red-500 line-through">
