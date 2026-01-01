@@ -2053,7 +2053,7 @@ const ProductDetail = ({ product: propProduct }) => {
         grid-cols-4
         gap-3
         w-full
-        max-w-[360px]
+        max-w-[420px]
         mx-auto
         lg:ml-[62px]
       "

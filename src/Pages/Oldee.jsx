@@ -1074,15 +1074,7 @@ const ProductsViewer = ({ user, isAdmin, onClose, onEdit, isUserViewer = false }
                     )}
                   </div>
 
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => onEdit(p)}
-                      className="flex-1 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium transition-colors"
-                    >
-                      Edit
-                    </button>
-                  </div>
-
+                
                   {isAdmin && !isUserViewer && (
                     <div className="mt-3 pt-3 border-t border-gray-100">
                       <button
