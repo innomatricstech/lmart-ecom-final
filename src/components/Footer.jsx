@@ -1,7 +1,9 @@
 import React from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import logo from '../assets/printo.png'
-import { FaTwitter, FaPinterestP, FaInstagram } from 'react-icons/fa' // Importing icons for social media
+import { FaInstagram, FaFacebookF, FaYoutube } from "react-icons/fa";
+import { FaXTwitter } from "react-icons/fa6";
+ // Importing icons for social media
 
 const Footer = () => {
   // Function to scroll to top when clicking on footer links
@@ -36,26 +38,47 @@ const Footer = () => {
               We provide high-quality services to help your business grow.
             </p>
             <div className="flex space-x-4 mt-4">
-  <a
-    href="#"
-    aria-label="Twitter"
-    className="text-gray-400 hover:text-white transition transform hover:scale-125 duration-300"
+<a
+    href="https://x.com/your_username"
+    target="_blank"
+    rel="noopener noreferrer"
+    aria-label="X"
+    className="text-gray-400 hover:text-black transition transform hover:scale-125 duration-300"
   >
-    <FaTwitter className="w-6 h-6" />
+    <FaXTwitter className="w-6 h-6" />
   </a>
+
+  {/* Instagram */}
   <a
-    href="#"
-    aria-label="Pinterest"
-    className="text-gray-400 hover:text-white transition transform hover:scale-125 duration-300"
-  >
-    <FaPinterestP className="w-6 h-6" />
-  </a>
-  <a
-    href="#"
+    href="https://www.instagram.com/your_username"
+    target="_blank"
+    rel="noopener noreferrer"
     aria-label="Instagram"
-    className="text-gray-400 hover:text-white transition transform hover:scale-125 duration-300"
+    className="text-gray-400 hover:text-pink-500 transition transform hover:scale-125 duration-300"
   >
     <FaInstagram className="w-6 h-6" />
+  </a>
+
+  {/* Facebook */}
+  <a
+    href="https://www.facebook.com/your_page"
+    target="_blank"
+    rel="noopener noreferrer"
+    aria-label="Facebook"
+    className="text-gray-400 hover:text-blue-600 transition transform hover:scale-125 duration-300"
+  >
+    <FaFacebookF className="w-6 h-6" />
+  </a>
+
+  {/* YouTube */}
+  <a
+    href="https://www.youtube.com/@your_channel"
+    target="_blank"
+    rel="noopener noreferrer"
+    aria-label="YouTube"
+    className="text-gray-400 hover:text-red-600 transition transform hover:scale-125 duration-300"
+  >
+    <FaYoutube className="w-6 h-6" />
   </a>
 </div>
 
