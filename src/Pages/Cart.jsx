@@ -253,7 +253,7 @@ const Cart = () => {
                         <img
                           src={item.image || "https://via.placeholder.com/80"}
                           alt={item.name}
-                          className="w-20 h-20 object-cover rounded-lg border shadow-sm"
+                          className="w-20 h-20 object-fit rounded-lg border shadow-sm"
                         />
                         <div className="flex-1 min-w-0">
                           <h3 className="font-semibold text-gray-900 text-lg mb-1">

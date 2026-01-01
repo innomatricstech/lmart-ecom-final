@@ -1445,17 +1445,7 @@ const Checkout = () => {
                             <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-purple-600"></div>
                           </div>
                         )}
-                        <img
-                          src={getProductImage(item)}
-                          alt={item.name}
-                          className={`w-16 h-16 object-cover rounded ${loadingImages[item.id] ? 'opacity-0' : 'opacity-100'}`}
-                          onLoad={() => setLoadingImages(prev => ({ ...prev, [item.id]: false }))}
-                          onError={(e) => {
-                            e.target.onerror = null;
-                            e.target.src = "https://via.placeholder.com/150?text=No+Image";
-                            setLoadingImages(prev => ({ ...prev, [item.id]: false }));
-                          }}
-                        />
+                        
                       </div>
                       <div>
                         <p className="font-semibold">{item.name}</p>

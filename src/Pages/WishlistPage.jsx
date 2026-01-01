@@ -1,174 +1,473 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useWishlist } from "../context/WishlistContext";
 import { useCart } from "../context/CartContext";
+import { db } from "../../firebase";
+import { doc, getDoc, collection, getDocs, query, where } from "firebase/firestore";
 
 const PLACEHOLDER_IMAGE = "https://placehold.co/400x300?text=No+Image";
 
-/* ⭐ STAR RATING */
+// ⭐ STAR RATING COMPONENT
 const StarRating = ({ rating = 0, size = "w-4 h-4" }) => {
   const fullStars = Math.floor(rating);
+  const hasHalfStar = rating % 1 >= 0.5;
 
   return (
     <div className="flex items-center">
-      {[...Array(5)].map((_, i) => (
-        <svg
-          key={i}
-          className={`${size} ${i < fullStars ? "text-yellow-400" : "text-gray-300"}`}
-          fill="currentColor"
-          viewBox="0 0 20 20"
-        >
-          <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-        </svg>
-      ))}
+      {[...Array(5)].map((_, i) => {
+        const starValue = i + 1;
+        return (
+          <div key={i} className="relative">
+            {/* Gray background star */}
+            <svg
+              className={`${size} text-gray-300`}
+              fill="currentColor"
+              viewBox="0 0 20 20"
+            >
+              <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+            </svg>
+
+            {/* Colored star overlay */}
+            {(starValue <= fullStars ||
+              (starValue === fullStars + 1 && hasHalfStar)) && (
+              <svg
+                className={`${size} text-yellow-400 absolute inset-0`}
+                fill="currentColor"
+                viewBox="0 0 20 20"
+              >
+                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+              </svg>
+            )}
+          </div>
+        );
+      })}
     </div>
   );
 };
 
-/* 🛒 PRODUCT CARD */
+// ⭐ FETCH REVIEW STATS FROM FIREBASE
+const fetchReviewStats = async (productId) => {
+  try {
+    const q = query(
+      collection(db, "reviews"),
+      where("productId", "==", productId)
+    );
+
+    const snap = await getDocs(q);
+
+    let total = 0;
+    let count = 0;
+
+    snap.forEach((doc) => {
+      const data = doc.data();
+      if (typeof data.rating === "number") {
+        total += data.rating;
+        count++;
+      }
+    });
+
+    return {
+      rating: count > 0 ? Number((total / count).toFixed(1)) : 0,
+      reviewCount: count,
+    };
+  } catch (error) {
+    console.error(`Error fetching review stats for ${productId}:`, error);
+    return {
+      rating: 0,
+      reviewCount: 0,
+    };
+  }
+};
+
+// ⭐ PRICE HELPER FUNCTION
+const getVariantPrice = (product) => {
+  if (!Array.isArray(product?.variants)) {
+    return {
+      finalPrice: product.price || 0,
+      originalPrice: product.originalPrice || 0,
+    };
+  }
+
+  const variant =
+    product.variants.find((v) => v.offerPrice || v.price) ||
+    product.variants[0];
+
+  if (!variant) {
+    return { finalPrice: 0, originalPrice: 0 };
+  }
+
+  const price = Number(variant.price || 0);
+  const offer = Number(variant.offerPrice || 0);
+
+  if (offer > 0 && offer < price) {
+    return {
+      finalPrice: offer,
+      originalPrice: price,
+    };
+  }
+
+  return {
+    finalPrice: price,
+    originalPrice: 0,
+  };
+};
+
+// ⭐ UNIFIED PRODUCT FETCH FUNCTION
+const fetchProductDetails = async (productId) => {
+  try {
+    // Try different collections in order
+    const collections = ["products", "localmarket", "printing", "e-store"];
+    
+    for (const collectionName of collections) {
+      try {
+        const productRef = doc(db, collectionName, productId);
+        const productSnap = await getDoc(productRef);
+        
+        if (productSnap.exists()) {
+          const productData = productSnap.data();
+          
+          // Fetch reviews for this product
+          const reviewStats = await fetchReviewStats(productId);
+          
+          // Determine image URL
+          const image = 
+            productData.imageUrls?.find((i) => i.isMain)?.url ||
+            productData.imageUrls?.[0]?.url ||
+            productData.mainImageUrl || 
+            productData.image || 
+            PLACEHOLDER_IMAGE;
+          
+          // Determine productTag from collection or data
+          const productTag = productData.productTag || collectionName;
+          
+          return {
+            id: productSnap.id,
+            ...productData,
+            rating: reviewStats.rating,
+            reviewCount: reviewStats.reviewCount,
+            image,
+            productTag,
+          };
+        }
+      } catch (error) {
+        console.log(`Not found in ${collectionName}:`, error.message);
+        continue;
+      }
+    }
+    
+    return null;
+  } catch (error) {
+    console.error("Error fetching product details:", error);
+    return null;
+  }
+};
+
+/* 🛒 PRODUCT CARD COMPONENT */
 const WishlistProductCard = ({ product }) => {
   const navigate = useNavigate();
-  const { wishlist, toggleWishlist } = useWishlist();
+  const { toggleWishlist } = useWishlist();
   const { addToCart, items } = useCart();
+  const [productDetails, setProductDetails] = useState(null);
+  const [loading, setLoading] = useState(true);
 
-  const rating = product.rating || 4.3;
-  const reviewCount = product.reviewCount || 0;
-  const finalPrice = product.price;
-  const original = product.originalPrice || 0;
-  const discount = product.discount || 0;
+  // Fetch product details on component mount
+  useEffect(() => {
+    const loadProductDetails = async () => {
+      setLoading(true);
+      try {
+        const details = await fetchProductDetails(product.id);
+        if (details) {
+          setProductDetails(details);
+        } else {
+          // If not found in Firebase, use the basic product data from wishlist context
+          setProductDetails({
+            ...product,
+            rating: product.rating || 4.3,
+            reviewCount: product.reviewCount || 0,
+            image: product.image || PLACEHOLDER_IMAGE,
+            productTag: product.productTag || "products",
+          });
+        }
+      } catch (error) {
+        console.error("Error loading product details:", error);
+        setProductDetails({
+          ...product,
+          rating: product.rating || 4.3,
+          reviewCount: product.reviewCount || 0,
+          image: product.image || PLACEHOLDER_IMAGE,
+          productTag: product.productTag || "products",
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadProductDetails();
+  }, [product]);
+
+  // Get price using helper function
+  const displayProduct = productDetails || product;
+  const { finalPrice, originalPrice } = getVariantPrice(displayProduct);
+  const discount = originalPrice > 0 
+    ? Math.round(((originalPrice - finalPrice) / originalPrice) * 100) 
+    : 0;
 
   const qty = items.find((i) => i.id === product.id)?.quantity || 0;
 
-  // ✅ FIXED
-  const inWishlist = wishlist.some((item) => item.id === product.id);
-
   const handleAddToCart = (e) => {
     e.stopPropagation();
-    addToCart({ ...product, quantity: 1 });
+    addToCart({ 
+      ...displayProduct, 
+      quantity: 1,
+      price: finalPrice,
+      originalPrice: originalPrice
+    });
+  };
+
+  const handleViewCart = (e) => {
+    e.stopPropagation();
+    navigate("/cart");
   };
 
   const handleWishlistToggle = (e) => {
     e.stopPropagation();
-    toggleWishlist(product);
+    toggleWishlist(displayProduct);
   };
+
+  const handleProductClick = () => {
+    navigate(`/product/${product.id}`, { 
+      state: { 
+        product: displayProduct, 
+        source: displayProduct.productTag || "products" 
+      } 
+    });
+  };
+
+  if (loading) {
+    return (
+      <div className="bg-white rounded-lg border shadow-sm flex flex-col w-full max-w-[250px] mx-auto animate-pulse">
+        <div className="h-48 bg-gray-300"></div>
+        <div className="p-4">
+          <div className="h-4 bg-gray-300 rounded mb-2"></div>
+          <div className="h-4 bg-gray-300 rounded mb-4 w-3/4"></div>
+          <div className="h-6 bg-gray-300 rounded mb-2 w-1/2"></div>
+        </div>
+      </div>
+    );
+  }
+
+  const rating = displayProduct.rating || 4.3;
+  const reviewCount = displayProduct.reviewCount || 0;
+  const productImage = displayProduct.image || PLACEHOLDER_IMAGE;
 
   return (
     <div
-  className="bg-white rounded-lg border shadow-sm hover:shadow-md transition
-             cursor-pointer flex flex-col  w-[250px]"
-  onClick={() => navigate(`/product/${product.id}`, { state: { product } })}
->
-  {/* IMAGE */}
-  <div className="relative flex items-center justify-center bg-white p-3 h-48 sm:h-56">
-    <img
-      src={product.image || PLACEHOLDER_IMAGE}
-      alt={product.name}
-      className="object-contain w-full h-full scale-110 sm:scale-100"
-      onError={(e) => (e.target.src = PLACEHOLDER_IMAGE)}
-    />
-
-    {/* ❤️ WISHLIST */}
-    <button
-      onClick={(e) => {
-        e.stopPropagation();
-        handleWishlistToggle(e);
-      }}
-      className={`absolute top-3 right-3 p-2 bg-white rounded-full shadow-md
-        hover:scale-110 transition
-        ${inWishlist ? "text-red-600" : "text-red-400"}`}
+      className="bg-white rounded-lg border shadow-sm hover:shadow-md transition cursor-pointer flex flex-col w-full max-w-[250px] mx-auto"
+      onClick={handleProductClick}
     >
-      X
-    </button>
+      {/* IMAGE */}
+      <div className="relative flex items-center justify-center bg-white p-3 h-48 sm:h-56">
+        <img
+          src={productImage}
+          alt={displayProduct.name}
+          className="object-contain w-full h-full"
+          onError={(e) => (e.target.src = PLACEHOLDER_IMAGE)}
+        />
 
-    {/* DISCOUNT */}
-    {discount > 0 && (
-      <span className="absolute top-3 left-3 bg-red-600 text-white text-xs px-2 py-1 rounded">
-        -{discount}%
-      </span>
-    )}
-  </div>
+        {/* ❤️ WISHLIST - Heart icon */}
+        <button
+          onClick={handleWishlistToggle}
+          className="absolute top-3 right-3 p-2 bg-white rounded-full shadow-md hover:scale-110 transition z-10 text-red-600"
+          aria-label="Remove from wishlist"
+        >
+X        </button>
 
-  {/* CONTENT */}
-  <div className="px-2 sm:px-4 pb-3 flex flex-col">
-    <h3 className="font-medium text-xs sm:text-base leading-tight line-clamp-2">
-      {product.name}
-    </h3>
-
-    {/* RATING */}
-    <div className="flex items-center mt-0.5">
-      <span className="text-[11px] sm:text-sm font-medium text-yellow-500 mr-1">
-        {rating.toFixed(1)}
-      </span>
-      <StarRating rating={rating} size="w-3 h-3 sm:w-4 sm:h-4" />
-      <span className="text-[11px] text-gray-500 ml-1">
-        ({reviewCount})
-      </span>
-    </div>
-
-    {/* PRICE */}
-    <div className="flex items-center gap-1 mt-0.5">
-      {original > finalPrice ? (
-        <>
-          <span className="text-red-600 font-semibold text-sm sm:text-lg">
-            ₹ {finalPrice}
+        {/* DISCOUNT */}
+        {discount > 0 && (
+          <span className="absolute top-3 left-3 bg-red-600 text-white text-xs px-2 py-1 rounded">
+            -{discount}%
           </span>
-          <span className="line-through text-gray-500 text-xs sm:text-base">
-            ₹ {original}
+        )}
+      </div>
+
+      {/* CONTENT */}
+      <div className="px-2 sm:px-4 pb-3 flex flex-col flex-grow">
+        <h3 className="font-medium text-xs sm:text-base leading-tight line-clamp-2 min-h-[2.5rem]">
+          {displayProduct.name || "Product Name"}
+        </h3>
+
+        {/* RATING */}
+        <div className="flex items-center -mt-3">
+          <span className="text-[11px] sm:text-sm font-medium text-yellow-500 mr-1">
+            {rating.toFixed(1)}
           </span>
-        </>
-      ) : (
-        <span className="text-gray-900 font-bold text-sm sm:text-lg">
-          ₹ {finalPrice}
-        </span>
-      )}
+          <StarRating rating={rating} size="w-3 h-3 sm:w-4 sm:h-4" />
+          <span className="text-[11px] text-gray-500 ml-1">
+            ({reviewCount})
+          </span>
+        </div>
+
+        {/* PRICE */}
+        <div className="flex items-center gap-1 mt-0.5">
+          {originalPrice > finalPrice ? (
+            <>
+              <span className="text-red-600 font-semibold text-sm sm:text-lg">
+                ₹ {finalPrice.toLocaleString()}
+              </span>
+              <span className="line-through text-gray-500 text-xs sm:text-base">
+                ₹ {originalPrice.toLocaleString()}
+              </span>
+            </>
+          ) : (
+            <span className="text-gray-900 font-bold text-sm sm:text-lg">
+              ₹ {finalPrice.toLocaleString()}
+            </span>
+          )}
+        </div>
+
+        {/* ADD TO CART / VIEW CART BUTTON */}
+        {qty > 0 ? (
+          <button
+            onClick={handleViewCart}
+            className="w-full bg-green-600 hover:bg-green-700 text-white py-1.5 sm:py-2 rounded-md font-medium text-xs sm:text-base mt-2 transition-all"
+          >
+            View Cart
+          </button>
+        ) : (
+          <button
+            onClick={handleAddToCart}
+            className="w-full bg-blue-600 hover:bg-blue-700 text-white py-1.5 sm:py-2 rounded-md font-medium text-xs sm:text-base mt-2 transition-all"
+          >
+            Add to Cart
+          </button>
+        )}
+      </div>
     </div>
-
-    {/* ADD TO CART */}
-    <button
-      onClick={(e) => {
-        e.stopPropagation();
-        handleAddToCart(e);
-      }}
-      className="w-full bg-blue-600 hover:bg-blue-700 text-white
-                 py-1.5 sm:py-2 rounded-md font-medium
-                 text-xs sm:text-base mt-2"
-    >
-      Add to Cart
-    </button>
-
-    {/* BUY NOW */}
-     
-  </div>
-</div>
-
   );
 };
 
-/* 📦 MAIN PAGE */
+/* 📦 MAIN WISHLIST PAGE */
 const WishlistPage = () => {
   const { wishlist } = useWishlist();
   const navigate = useNavigate();
+  const [enhancedWishlist, setEnhancedWishlist] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  // Enhance wishlist items with additional details
+  useEffect(() => {
+    const enhanceWishlistItems = async () => {
+      if (wishlist.length === 0) {
+        setEnhancedWishlist([]);
+        setLoading(false);
+        return;
+      }
+
+      setLoading(true);
+      try {
+        const enhancedItems = await Promise.all(
+          wishlist.map(async (item) => {
+            try {
+              const details = await fetchProductDetails(item.id);
+              if (details) {
+                return {
+                  ...item,
+                  ...details,
+                  rating: details.rating || item.rating || 4.3,
+                  reviewCount: details.reviewCount || item.reviewCount || 0,
+                  image: details.image || item.image || PLACEHOLDER_IMAGE,
+                  productTag: details.productTag || item.productTag || "products",
+                };
+              }
+              return item;
+            } catch (error) {
+              console.error(`Error enhancing item ${item.id}:`, error);
+              return item;
+            }
+          })
+        );
+        
+        setEnhancedWishlist(enhancedItems.filter(Boolean));
+      } catch (error) {
+        console.error("Error enhancing wishlist:", error);
+        setEnhancedWishlist(wishlist);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    enhanceWishlistItems();
+  }, [wishlist]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 px-2 sm:px-4 py-4">
+        <div className="mb-6">
+          <h1 className="text-2xl font-bold text-gray-800">My Wishlist</h1>
+          <div className="h-4 bg-gray-200 rounded w-48 mt-2 animate-pulse"></div>
+        </div>
+        
+        <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 sm:gap-6">
+          {[...Array(6)].map((_, index) => (
+            <div key={index} className="bg-white rounded-lg border shadow-sm flex flex-col w-full max-w-[250px] mx-auto animate-pulse">
+              <div className="h-48 bg-gray-300"></div>
+              <div className="p-4">
+                <div className="h-4 bg-gray-300 rounded mb-2"></div>
+                <div className="h-4 bg-gray-300 rounded mb-4 w-3/4"></div>
+                <div className="h-6 bg-gray-300 rounded mb-2 w-1/2"></div>
+                <div className="h-10 bg-gray-300 rounded"></div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 px-2 sm:px-4 py-4">
-      {wishlist.length === 0 ? (
-        <div className="bg-white border rounded-lg shadow-sm text-center py-10 text-gray-500 max-w-md mx-auto">
-          Your wishlist is empty
-          <div className="mt-4">
-            <button
-              onClick={() => navigate("/e-market")}
-              className="px-5 py-2 bg-blue-600 text-white rounded-lg"
-            >
-              Start Shopping
-            </button>
-          </div>
+      {/* Page Header */}
+      <div className="mb-6">
+         
+        
+      </div>
+
+      {enhancedWishlist.length === 0 ? (
+        <div className="bg-white border rounded-lg shadow-sm text-center py-12 text-gray-500 max-w-md mx-auto">
+          <svg
+            className="w-20 h-20 text-gray-300 mx-auto mb-4"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={1.5}
+              d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
+            />
+          </svg>
+          <p className="text-xl font-medium mb-2">Your wishlist is empty</p>
+          <p className="text-sm text-gray-400 mb-6">
+            Save items you love for later by clicking the heart icon
+          </p>
+          <button
+            onClick={() => navigate("/e-market")}
+            className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+          >
+            Start Shopping
+          </button>
         </div>
       ) : (
-        <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-6 gap-4 sm:gap-6">
-          {wishlist.map((product) => (
-            <WishlistProductCard key={product.id} product={product} />
-          ))}
-        </div>
+        <>
+          {/* Optional: Clear All Button */}
+           
+          {/* Products Grid */}
+          <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 sm:gap-6">
+            {enhancedWishlist.map((product) => (
+              <WishlistProductCard key={product.id} product={product} />
+            ))}
+          </div>
+        </>
       )}
     </div>
   );

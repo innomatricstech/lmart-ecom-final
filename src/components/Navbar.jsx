@@ -1540,7 +1540,7 @@ const UploadProgress = () => {
                             <img
                               src={item.image}
                               alt={item.name}
-                              className="h-full w-full object-cover object-center"
+                              className="h-[100px] w-[290px] object-contain object-center"
                             />
                           </div>
 

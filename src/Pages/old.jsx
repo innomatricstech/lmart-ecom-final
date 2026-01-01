@@ -19,10 +19,6 @@ import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { db, storage, auth } from "../../firebase";
 import { onAuthStateChanged } from "firebase/auth";
 import OldeeProductDetails from "./OldeeProductDetails";
-import UserLogin from "../Pages/UserLogin";
-import { useNavigate } from "react-router-dom";
-
-
 
 const MAX_FILES = 5;
 const MAX_MB = 5;
@@ -73,11 +69,14 @@ const SellProductForm = ({
   useEffect(() => {
     const fetchCategories = async () => {
       try {
+        // Get all documents from the categories collection
         const categoriesCollection = collection(db, CATEGORIES_COLLECTION);
         const categoriesSnapshot = await getDocs(categoriesCollection);
         
+        // Start with empty array
         const categoryNames = [];
         
+        // Extract only the "name" field from each document
         categoriesSnapshot.forEach((doc) => {
           const data = doc.data();
           if (data.name && typeof data.name === 'string') {
@@ -85,9 +84,11 @@ const SellProductForm = ({
           }
         });
         
+        // Remove duplicates and sort alphabetically
         const uniqueSortedNames = [...new Set(categoryNames)].sort();
         setCategories(uniqueSortedNames);
         
+        // Set default category if not set
         if (!formData.category && uniqueSortedNames.length > 0) {
           setFormData(prev => ({
             ...prev,
@@ -96,6 +97,7 @@ const SellProductForm = ({
         }
       } catch (error) {
         console.error("Error fetching categories:", error);
+        // Fallback
         setCategories([
           "Electronics",
           "Furniture",
@@ -185,6 +187,7 @@ const SellProductForm = ({
     }
   };
 
+  // ✅ EXACT REAL LOCATION FETCH FUNCTION
   const handleGetLiveLocation = () => {
     if (!navigator.geolocation) {
       alert("Geolocation is not supported by your browser");
@@ -260,6 +263,7 @@ const SellProductForm = ({
     e.preventDefault();
 
     if (step < 2) {
+      // Page 1 validations
       if (!formData.name || !formData.price || !formData.description || !formData.category) {
         alert("Please fill Product Name, Price, Category and Description.");
         return;
@@ -275,6 +279,7 @@ const SellProductForm = ({
       return;
     }
 
+    // Page 2 validations
     if (existingImages.length + images.length === 0) {
       alert("Please keep or upload at least one image.");
       return;
@@ -453,9 +458,8 @@ const SellProductForm = ({
           </div>
           {steps.map((s) => (
             <div key={s.number} className="flex flex-col items-center">
-              <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
-                step >= s.number ? "bg-blue-500 text-white" : "bg-gray-200 text-gray-500"
-              }`}>
+              <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${step >= s.number ? "bg-blue-500 text-white" : "bg-gray-200 text-gray-500"
+                }`}>
                 {s.number}
               </div>
               <span className="text-xs mt-2 text-gray-600">{s.title}</span>
@@ -467,6 +471,7 @@ const SellProductForm = ({
           <AnimatePresence mode="wait">
             {step === 1 && (
               <motion.div key="step1" initial={{ x: 50, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: -50, opacity: 0 }} className="space-y-6">
+                {/* Product Name and Category on same line */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-left text-sm font-semibold text-gray-800 mb-1">Product Name *</label>
@@ -498,6 +503,7 @@ const SellProductForm = ({
                   </div>
                 </div>
 
+                {/* Price and Offer Price on same line */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-left text-sm font-semibold text-gray-800 mb-1">Price (₹) *</label>
@@ -535,13 +541,14 @@ const SellProductForm = ({
                       />
                     </div>
                     {hasDiscount && (
-                      <p className="mt-1 text-xs text-danger">
+                      <p className="mt-1 text-xs text-emerald-600">
                         Discount: ₹{priceNum - offerPriceNum} ({discountPct}%)
                       </p>
                     )}
                   </div>
                 </div>
 
+                {/* Description */}
                 <div>
                   <label className="block text-left text-sm font-semibold text-gray-800 mb-1">Description *</label>
                   <textarea
@@ -555,10 +562,12 @@ const SellProductForm = ({
                   />
                 </div>
                 <div className="flex gap-4">
-                  <div className="w-1/2 p-6 rounded-xl border flex flex-col justify-between">
+                  {/* Featured Product */}
+                  <div className="w-1/2 p-6   rounded-xl border   flex flex-col justify-between">
                     <p className="text-sm font-semibold text-gray-800 mb-3">
                       Featured Product?
                     </p>
+
                     <div className="flex gap-2 mt-auto">
                       <button
                         type="button"
@@ -571,6 +580,7 @@ const SellProductForm = ({
                       >
                         Yes
                       </button>
+
                       <button
                         type="button"
                         onClick={() => setFormData({ ...formData, featured: false })}
@@ -585,10 +595,12 @@ const SellProductForm = ({
                     </div>
                   </div>
 
-                  <div className="w-1/2 p-6 rounded-xl border flex flex-col justify-between">
+                  {/* Contact Number */}
+                  <div className="w-1/2 p-6   rounded-xl border  flex flex-col justify-between">
                     <label className="text-sm font-semibold text-gray-800 mb-3">
                       Contact Number *
                     </label>
+
                     <input
                       name="contactNumber"
                       type="tel"
@@ -602,6 +614,7 @@ const SellProductForm = ({
                   </div>
                 </div>
 
+                {/* Price Negotiation */}
                 <div>
                   <label className="block text-left text-sm font-semibold text-gray-800 mb-1">Price Negotiation</label>
                   <div className="flex space-x-2">
@@ -610,9 +623,8 @@ const SellProductForm = ({
                         key={option}
                         type="button"
                         onClick={() => setFormData((p) => ({ ...p, negotiation: option }))}
-                        className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-colors duration-200 ${
-                          formData.negotiation === option ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                        }`}
+                        className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-colors duration-200 ${formData.negotiation === option ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                          }`}
                       >
                         {option.charAt(0).toUpperCase() + option.slice(1)}
                       </button>
@@ -624,6 +636,7 @@ const SellProductForm = ({
 
             {step === 2 && (
               <motion.div key="step2" initial={{ x: 50, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: -50, opacity: 0 }} className="space-y-6">
+                {/* Images Section */}
                 <div>
                   <label className="block text-left text-sm font-semibold text-gray-800 mb-1">
                     Images (Max {MAX_FILES})
@@ -641,26 +654,24 @@ const SellProductForm = ({
                             initial={{ scale: 0.8, opacity: 0 }}
                             animate={{ scale: 1, opacity: 1 }}
                             exit={{ scale: 0.8, opacity: 0 }}
-                            className="relative rounded-lg overflow-hidden border-2 bg-gray-50"
+                            className="relative rounded-lg overflow-hidden border-2"
                             style={{ borderColor: img.isPrimary ? '#3b82f6' : '#e5e7eb' }}
                           >
-                            <div className="w-full h-20 flex items-center justify-center bg-gray-50">
-                              <img
-                                src={img.url}
-                                alt={`Product ${idx + 1}`}
-                                className="max-w-full max-h-full object-contain"
-                              />
-                            </div>
+                            <img
+                              src={img.url}
+                              alt={`Product ${idx + 1}`}
+                              className="w-full h-20 object-contain rounded-md"
+                            />
 
                             {img.isPrimary ? (
-                              <div className="absolute top-0 left-0 bg-blue-500 text-white text-xs font-bold px-2 py-0.5 rounded-br-lg z-10">
+                              <div className="absolute top-0 left-0 bg-blue-500 text-white text-xs font-bold px-2 py-0.5 rounded-br-lg">
                                 Primary
                               </div>
                             ) : showPrimaryButton ? (
                               <button
                                 type="button"
                                 onClick={() => setAsPrimary(img.url, img.isExisting)}
-                                className="absolute top-0 left-0 bg-black/50 text-white text-xs font-bold px-2 py-0.5 hover:bg-black/70 transition-colors z-10"
+                                className="absolute top-0 left-0 bg-black/50 text-white text-xs font-bold px-2 py-0.5 hover:bg-black/70 transition-colors"
                                 title="Set as cover image"
                               >
                                 Set Primary
@@ -669,10 +680,8 @@ const SellProductForm = ({
 
                             <button
                               type="button"
-                              onClick={() => img.isExisting ? removeExistingImage(img.url) : removeNewImage(
-                                images.findIndex(i => i.preview === img.url)
-                              )}
-                              className="absolute -top-1 -right-1 w-6 h-6 bg-red-500 text-white rounded-full text-xs font-bold flex items-center justify-center shadow-md hover:bg-red-600 z-20"
+                              onClick={() => img.isExisting ? removeExistingImage(img.url) : removeNewImage(images.findIndex(i => i.preview === img.url))}
+                              className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full text-xs font-bold flex items-center justify-center shadow-md hover:bg-red-600"
                               title="Remove"
                             >
                               ×
@@ -710,6 +719,7 @@ const SellProductForm = ({
                   )}
                 </div>
 
+                {/* Contact Information */}
                 <div className="space-y-4">
                   <div>
                     <div className="flex justify-between items-center mb-1">
@@ -810,6 +820,7 @@ const ProductsViewer = ({ user, isAdmin, onClose, onEdit, isUserViewer = false }
   const [error, setError] = useState(null);
   const [categories, setCategories] = useState([]);
 
+  // Fetch categories from Firebase for ProductsViewer
   useEffect(() => {
     const fetchCategories = async () => {
       try {
@@ -919,7 +930,7 @@ const ProductsViewer = ({ user, isAdmin, onClose, onEdit, isUserViewer = false }
       <div className="max-w-7xl mx-auto">
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h3 className="text-2xl font-bold">
+            <h3 className="text-2xl font-bold text-gray-900">
               {isUserViewer ? "My Products" : "All Products (Admin View)"}
             </h3>
           </div>
@@ -935,7 +946,7 @@ const ProductsViewer = ({ user, isAdmin, onClose, onEdit, isUserViewer = false }
             </button>
             <button 
               onClick={onClose} 
-              className="px-4 py-2 rounded-lg bg-black text-white hover:bg-gray-800"
+              className="px-4 py-2 rounded-lg bg-gray-800 hover:bg-black text-white transition-colors"
             >
               Close
             </button>
@@ -992,21 +1003,29 @@ const ProductsViewer = ({ user, isAdmin, onClose, onEdit, isUserViewer = false }
           </div>
         ) : (
           <div>
-            <div className="mb-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            <div className="mb-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
               {items.map((p) => (
-                <div
-                  key={p.id}
-                  className="border border-gray-200 rounded-xl p-4 bg-white shadow-sm hover:shadow-md transition-all duration-300"
-                >
+                <div key={p.id} className="border border-gray-200 rounded-xl p-4 bg-white shadow-sm hover:shadow-md transition-all duration-300">
                   {Array.isArray(p.imageURLs) && p.imageURLs[0] && (
-                    <div className="relative h-48 mb-4 rounded-lg overflow-hidden flex items-center justify-center bg-gray-50">
-                      <img
-                        src={p.imageURLs[0]}
-                        alt={p.name}
-                        className="max-w-full max-h-full object-contain"
+                    <div className="relative h-56 mb-2 rounded-lg overflow-hidden">
+                      <img 
+                        src={p.imageURLs[0]} 
+                        alt={p.name} 
+                        className="w-full h-full object-contain mx-auto" 
                       />
-
                       <div className="absolute top-2 left-2 flex flex-col gap-1">
+                        {/* Status Badge */}
+                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                          p.status === 'active' 
+                            ? 'bg-green-100 text-green-700'
+                            : p.status === 'pending'
+                            ? 'bg-yellow-100 text-yellow-700'
+                            : 'bg-gray-100 text-gray-700'
+                        }`}>
+                          {p.status || 'pending'}
+                        </span>
+                        
+                        {/* Featured Badge */}
                         {p.featured && (
                           <span className="px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-700">
                             Featured
@@ -1015,88 +1034,92 @@ const ProductsViewer = ({ user, isAdmin, onClose, onEdit, isUserViewer = false }
                       </div>
                     </div>
                   )}
-
+                  
                   <div className="mb-3">
-                    <h4 className="font-semibold text-gray-900 text-sm mb-1">
-                      {p.name}
-                    </h4>
+                    <h4 className="font-semibold text-gray-900 text-sm mb-1">{p.name}</h4>
                     <div className="flex items-center justify-between">
                       <span className="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded">
                         {p.category || "Uncategorized"}
                       </span>
+                      {p.approved ? (
+                        <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded">Approved</span>
+                      ) : (
+                        <span className="text-xs bg-yellow-100 text-yellow-700 px-2 py-1 rounded">Pending</span>
+                      )}
                     </div>
                     <div className="text-sm mt-2">
                       {p.offerPrice != null ? (
                         <div className="flex items-center gap-2">
-                          <span className="font-bold text-red-600">
-                            ₹{p.offerPrice}
-                          </span>
-                          <span className="line-through text-gray-400 text-xs">
-                            ₹{p.price}
-                          </span>
-                          <span className="text-xs bg-emerald-50 text-red-600 px-1.5 py-0.5 rounded">
-                            {Math.round(
-                              ((p.price - p.offerPrice) / p.price) * 100
-                            )}
-                            % OFF
+                          <span className="font-bold text-emerald-700">₹{p.offerPrice}</span>
+                          <span className="line-through text-gray-400 text-xs">₹{p.price}</span>
+                          <span className="text-xs bg-emerald-50 text-emerald-600 px-1.5 py-0.5 rounded">
+                            {Math.round(((p.price - p.offerPrice) / p.price) * 100)}% OFF
                           </span>
                         </div>
                       ) : (
-                        <span className="font-bold text-gray-900">
-                          ₹{p.price}
-                        </span>
+                        <span className="font-bold text-gray-900">₹{p.price}</span>
                       )}
                     </div>
-                    <p className="text-xs text-gray-600 mt-2 line-clamp-2">
-                      {p.description}
-                    </p>
+                    <p className="text-xs text-gray-600 mt-2 line-clamp-2">{p.description}</p>
                   </div>
 
                   <div className="flex items-center justify-between mb-3">
-                    <span
-                      className={`px-2 py-1 text-xs rounded-full ${
-                        p.negotiation === "fixed"
-                          ? "bg-blue-100 text-blue-700"
-                          : p.negotiation === "flexible"
-                          ? "bg-orange-100 text-orange-700"
-                          : "bg-purple-100 text-purple-700"
-                      }`}
-                    >
+                    <span className={`px-2 py-1 text-xs rounded-full ${
+                      p.negotiation === 'fixed' 
+                        ? 'bg-blue-100 text-blue-700'
+                        : p.negotiation === 'flexible'
+                        ? 'bg-orange-100 text-orange-700'
+                        : 'bg-purple-100 text-purple-700'
+                    }`}>
                       {p.negotiation}
                     </span>
                     {!isUserViewer && p.seller && (
                       <span className="text-xs text-gray-500 truncate ml-2">
-                        by{" "}
-                        {p.seller.displayName ||
-                          p.seller.email?.split("@")[0] ||
-                          "User"}
+                        by {p.seller.displayName || p.seller.email?.split('@')[0] || 'User'}
                       </span>
                     )}
                   </div>
 
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => onEdit(p)}
-                      className="flex-1 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium transition-colors"
-                    >
-                      Edit
-                    </button>
+                  {/* Action buttons section - EDIT BUTTON REMOVED */}
+                  <div className="pt-3 border-t border-gray-100">
+                    {isAdmin && !isUserViewer && (
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => approveItem(p.id, !p.approved)}
+                          className={`flex-1 py-2 text-xs rounded-lg font-medium ${
+                            p.approved 
+                              ? 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                              : 'bg-green-100 text-green-700 hover:bg-green-200'
+                          }`}
+                        >
+                          {p.approved ? 'Unapprove' : 'Approve'}
+                        </button>
+                        <button
+                          onClick={() => removeItem(p.id)}
+                          className="px-3 py-2 text-xs rounded-lg font-medium bg-red-100 text-red-700 hover:bg-red-200"
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    )}
+                    
+                    {isUserViewer && (
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs text-gray-500">
+                          {p.createdAt?.toDate?.() 
+                            ? new Date(p.createdAt.toDate()).toLocaleDateString()
+                            : 'Recently added'
+                          }
+                        </span>
+                        <button
+                          onClick={() => removeItem(p.id)}
+                          className="px-3 py-1 text-xs rounded-lg font-medium bg-red-50 text-red-600 hover:bg-red-100"
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    )}
                   </div>
-
-                  {isAdmin && !isUserViewer && (
-                    <div className="mt-3 pt-3 border-t border-gray-100">
-                      <button
-                        onClick={() => approveItem(p.id, !p.approved)}
-                        className={`w-full py-1.5 text-xs rounded-lg font-medium ${
-                          p.approved
-                            ? "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                            : "bg-green-100 text-green-700 hover:bg-green-200"
-                        }`}
-                      >
-                        {p.approved ? "Unapprove" : "Approve"}
-                      </button>
-                    </div>
-                  )}
                 </div>
               ))}
             </div>
@@ -1110,7 +1133,6 @@ const ProductsViewer = ({ user, isAdmin, onClose, onEdit, isUserViewer = false }
 const Oldee = () => {
   const [currentUser, setCurrentUser] = useState(null);
   const [loadingAuth, setLoadingAuth] = useState(true);
-  const navigate = useNavigate(); 
   const [showUpload, setShowUpload] = useState(false);
   const [showViewer, setShowViewer] = useState(false);
   const [editingDoc, setEditingDoc] = useState(null);
@@ -1146,14 +1168,20 @@ const Oldee = () => {
     }
   };
 
+  // Fetch categories from Firebase - Simple fetch without orderBy
   const fetchCategories = async () => {
     try {
+      // Get all documents from the categories collection
       const categoriesCollection = collection(db, CATEGORIES_COLLECTION);
       const categoriesSnapshot = await getDocs(categoriesCollection);
       
+      // Start with "All Products"
       const fetchedCategories = ["All Products"];
+      
+      // Array to store all category names
       const categoryNames = [];
       
+      // Extract only the "name" field from each document
       categoriesSnapshot.forEach((doc) => {
         const data = doc.data();
         if (data.name && typeof data.name === 'string') {
@@ -1161,11 +1189,15 @@ const Oldee = () => {
         }
       });
       
+      // Remove duplicates and sort alphabetically
       const uniqueSortedNames = [...new Set(categoryNames)].sort();
+      
+      // Add to fetched categories (excluding "All Products" which is already added)
       setCategories(["All Products", ...uniqueSortedNames]);
       
     } catch (error) {
       console.error("Error fetching categories:", error);
+      // Fallback categories
       setCategories([
         "All Products",
         "Electronics",
@@ -1195,7 +1227,7 @@ const Oldee = () => {
     });
     return () => unsub();
   }, []);
-  
+
   useEffect(() => {
     fetchAdminUsers();
     fetchCategories();
@@ -1211,6 +1243,7 @@ const Oldee = () => {
       const snap = await getDocs(qRef);
       let items = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
       
+      // Sort by featured first, then by date
       items.sort((a, b) => {
         if (a.featured && !b.featured) return -1;
         if (!a.featured && b.featured) return 1;
@@ -1235,13 +1268,16 @@ const Oldee = () => {
     loadApproved();
   }, [currentUser]);
 
+  // Filter products based on selected category and search query
   const filteredProducts = useMemo(() => {
     let filtered = approvedItems;
     
+    // Filter by category
     if (selectedCategory !== "All Products") {
       filtered = filtered.filter(item => item.category === selectedCategory);
     }
     
+    // Filter by search query
     if (searchQuery.trim() !== "") {
       const query = searchQuery.toLowerCase();
       filtered = filtered.filter(item => 
@@ -1254,26 +1290,23 @@ const Oldee = () => {
     return filtered;
   }, [approvedItems, selectedCategory, searchQuery]);
 
-const openCreate = () => {
-  if (!currentUser) {
-    navigate("/login"); // 🔥 FULL PAGE LOGIN
-    return;
-  }
-
-  setEditingDoc(null);
-  setSelectedProduct(null);
-  setShowUpload(true);
-};
+  const openCreate = () => {
+    if (!currentUser) {
+      alert("Please login to upload products");
+      return;
+    }
+    setEditingDoc(null);
+    setSelectedProduct(null);
+    setShowUpload(true);
+  };
 
   const openUserViewer = () => {
     if (!currentUser) {
       alert("Please login to view your listings");
       return;
     }
-    setShowUpload(false);
-    setEditingDoc(null);
-    setSelectedProduct(null);
     setIsUserViewer(true);
+    setSelectedProduct(null);
     setShowViewer(true);
   };
 
@@ -1339,8 +1372,10 @@ const openCreate = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      {/* Categories Section at the top like navbar */}
       <div className="bg-white border-b shadow-sm">
         <div className="w-full px-6 py-2">
+          {/* Categories Filter */}
           <div className="mb-0.5">
             <div className="flex flex-wrap gap-2">
               {categories.map((category) => (
@@ -1361,7 +1396,9 @@ const openCreate = () => {
         </div>
       </div>
 
+      {/* Main Content with Header Actions */}
       <div className="w-full px-8 py-8">
+        {/* Header with Actions - Now below categories */}
         <div className="mb-8 flex items-center justify-between">
           <h1 className=" "> </h1>
           
@@ -1380,7 +1417,7 @@ const openCreate = () => {
                 <div className="flex items-center gap-2 mr-2">
                   <button
                     onClick={openUserViewer}
-                    className="px-4 py-2 rounded-lg bg-purple-600 text-white font-medium text-sm transition-colors flex items-center gap-2"
+                    className="px-4 py-2 rounded-lg bg-purple-600 text-white  font-medium text-sm transition-colors flex items-center gap-2"
                   >
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
@@ -1467,6 +1504,8 @@ const openCreate = () => {
           </div>
         ) : (
           <>
+            {/* Filter info */}
+            
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6">
               {filteredProducts.map((p) => (
                 <div
@@ -1476,20 +1515,22 @@ const openCreate = () => {
                 >
                   <div className="relative h-56 overflow-hidden">
                     {Array.isArray(p.imageURLs) && p.imageURLs[0] && (
-                      <img
-                        src={p.imageURLs[0]}
-                        alt={p.name}
-                        className="w-full h-full object-contain mx-auto"
+                      <img 
+                        src={p.imageURLs[0]} 
+                        alt={p.name} 
+                        className="w-md h-full object-contain group-hover:scale-105 transition-transform duration-300"
                       />
                     )}
                     <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent"></div>
                     <div className="absolute top-3 left-3 flex flex-col gap-1">
+                      {/* Featured Badge - No SALE badge */}
                       {p.featured && (
                         <span className="text-xs bg-blue-600 text-white px-2 py-1 rounded font-bold">
                           FEATURED
                         </span>
                       )}
                     </div>
+                    {/* REMOVED SALE BADGE */}
                   </div>
                   
                   <div className="p-4">
@@ -1497,9 +1538,9 @@ const openCreate = () => {
                     <div className="mb-2">
                       {p.offerPrice != null ? (
                         <div className="flex items-center gap-2">
-                          <span className="font-bold text-lg text-red-600">₹{p.offerPrice}</span>
+                          <span className="font-bold text-lgt">₹{p.offerPrice}</span>
                           <span className="line-through text-gray-400 text-sm">₹{p.price}</span>
-                          <span className="text-xs bg-emerald-50 text-red-600 px-1.5 py-0.5 rounded">
+                          <span className="text-xs bg-emerald-50 text-emerald-600 px-1.5 py-0.5 rounded">
                             {Math.round(((p.price - p.offerPrice) / p.price) * 100)}% OFF
                           </span>
                         </div>
@@ -1528,29 +1569,30 @@ const openCreate = () => {
         )}
       </div>
 
+      {/* Upload Form Modal */}
       <AnimatePresence>
-  {showUpload && currentUser && (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      className="fixed inset-0 bg-white/95 backdrop-blur-sm z-50 overflow-auto p-4 md:p-8"
-    >
-      <SellProductForm
-        user={currentUser}
-        onCancel={() => {
-          setShowUpload(false);
-          setEditingDoc(null);
-        }}
-        onSave={handleSave}
-        initialSummaryOpen={!!editingDoc}
-        editDoc={editingDoc}
-      />
-    </motion.div>
-  )}
-</AnimatePresence>
+        {showUpload && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-white/95 backdrop-blur-sm z-50 overflow-auto p-4 md:p-8"
+          >
+            <SellProductForm
+              user={currentUser}
+              onCancel={() => {
+                setShowUpload(false);
+                setEditingDoc(null);
+              }}
+              onSave={handleSave}
+              initialSummaryOpen={!!editingDoc}
+              editDoc={editingDoc}
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
 
-
+      {/* Products Viewer Modal */}
       <AnimatePresence>
         {showViewer && (
           <ProductsViewer
