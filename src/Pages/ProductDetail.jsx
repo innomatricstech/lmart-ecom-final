@@ -10,11 +10,11 @@ import {
   getDocs,
   addDoc,
   serverTimestamp,
+  updateDoc,
   runTransaction,
 } from "firebase/firestore";
 import { getStorage, ref, getDownloadURL } from "firebase/storage";
 import { useCart } from "../context/CartContext";
-
 
 // ⭐ Star Rating Component
 const StarRating = ({
@@ -35,7 +35,6 @@ const StarRating = ({
 
           return (
             <div key={i} className="relative">
-              {/* Gray background star */}
               <svg
                 className={`${size} text-gray-300`}
                 fill="currentColor"
@@ -44,7 +43,6 @@ const StarRating = ({
                 <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
               </svg>
 
-              {/* Colored star overlay */}
               {(starValue <= fullStars ||
                 (starValue === fullStars + 1 && hasHalfStar)) && (
                 <svg
@@ -120,7 +118,6 @@ const WriteReviewModal = ({
 
   const handleClose = () => {
     onClose();
-    // Clear the state to prevent reopening on refresh
     if (window.history.state?.state?.showReviewModal) {
       navigate(`/product/${productId}`, { replace: true });
     }
@@ -145,7 +142,6 @@ const WriteReviewModal = ({
           </div>
         )}
 
-        {/* User Info Display - Guest or User */}
         <div className="mb-4 p-3 bg-blue-50 rounded-lg">
           <p className="text-sm text-gray-700">
             <span className="font-semibold">Reviewing as:</span>
@@ -287,7 +283,7 @@ const fetchReviewStats = async (productId) => {
   };
 };
 
-// ⭐ PRICE HELPER (DO NOT CHANGE ANY OTHER LOGIC)
+// ⭐ PRICE HELPER
 const getVariantPrice = (product) => {
   if (!Array.isArray(product?.variants)) {
     return {
@@ -320,12 +316,11 @@ const getVariantPrice = (product) => {
   };
 };
 
-// 🛒 FIXED Related Products Component
+// 🛒 Related Products Component - REMOVED storeLabel from props
 const RelatedProducts = ({
   categoryId,
   currentProductId,
   source,
-  storeLabel,
 }) => {
   const navigate = useNavigate();
   const [relatedProducts, setRelatedProducts] = useState([]);
@@ -337,7 +332,6 @@ const RelatedProducts = ({
 
       setLoading(true);
       try {
-        // 🔄 Identify collection
         let collectionName = "products";
         if (source === "local-market") collectionName = "localmarket";
         if (source === "printing") collectionName = "printing";
@@ -347,7 +341,6 @@ const RelatedProducts = ({
 
         const products = [];
 
-        // ✅ ONLY THIS LOOP — NO forEach
         for (const docSnap of querySnapshot.docs) {
           const data = docSnap.data();
 
@@ -362,7 +355,6 @@ const RelatedProducts = ({
             productCategory === categoryToCompare &&
             docSnap.id !== currentProductId
           ) {
-            // ⭐ FETCH REVIEWS
             const reviewStats = await fetchReviewStats(docSnap.id);
 
             const { finalPrice, originalPrice } = getVariantPrice(data);
@@ -371,7 +363,7 @@ const RelatedProducts = ({
               id: docSnap.id,
               ...data,
               image: data.imageUrls?.[0]?.url || "",
-              price: finalPrice, // ✅ UI already uses product.price
+              price: finalPrice,
               originalPrice: originalPrice,
               name: data.name,
               rating: reviewStats.rating,
@@ -380,7 +372,6 @@ const RelatedProducts = ({
           }
         }
 
-        // 🔥 Randomize & limit
         const selectedProducts = products
           .sort(() => 0.5 - Math.random())
           .slice(0, 4);
@@ -397,7 +388,6 @@ const RelatedProducts = ({
     fetchRelatedProducts();
   }, [categoryId, currentProductId, source]);
 
-  // 🔄 Loading state
   if (loading) {
     return (
       <div className="mt-12">
@@ -424,7 +414,6 @@ const RelatedProducts = ({
     );
   }
 
-  // 🔄 Don't show anything if no related products
   if (relatedProducts.length === 0) {
     console.log("No related products found");
     return null;
@@ -451,7 +440,6 @@ const RelatedProducts = ({
 
             navigate(storePath);
 
-            // 🔝 NAVIGATION KAPRAM SCROLL TOP
             setTimeout(() => {
               window.scrollTo({ top: 0, behavior: "smooth" });
             }, 0);
@@ -489,8 +477,7 @@ const RelatedProducts = ({
               })
             }
           >
-            {/* PRODUCT IMAGE */}
-            <div className="relative h-40 bg-gray-100 flex items-center justify-center overflow-hidden ">
+            <div className="relative h-40 bg-gray-100 flex items-center justify-center overflow-hidden">
               {product.image ? (
                 <img
                   src={product.image}
@@ -519,13 +506,11 @@ const RelatedProducts = ({
               )}
             </div>
 
-            {/* PRODUCT INFO */}
             <div className="p-3">
               <h3 className="font-medium text-xs sm:text-base leading-tight line-clamp-2">
                 {product.name}
               </h3>
 
-              {/* RATING */}
               <div className="flex items-center gap-1 mt-0.5">
                 <span className="text-sm font-medium text-yellow-600">
                   {(product.rating ?? 0).toFixed(1)}
@@ -542,7 +527,6 @@ const RelatedProducts = ({
                 </span>
               </div>
 
-              {/* PRICE */}
               <div className="flex items-center gap-1 mt-0.5">
                 <span className="text-base font-bold text-gray-900">
                   ₹
@@ -559,28 +543,10 @@ const RelatedProducts = ({
                   )}
               </div>
 
-              {/* STOCK / VIEW */}
               <div className="mt-1">
-                {product.stock > 0 ? (
-                  <span className="inline-flex items-center text-xs text-green-600 bg-green-50 px-2 py-0.5 rounded">
-                    <svg
-                      className="w-3 h-3 mr-1"
-                      fill="currentColor"
-                      viewBox="0 0 20 20"
-                    >
-                      <path
-                        fillRule="evenodd"
-                        d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-                        clipRule="evenodd"
-                      />
-                    </svg>
-                    In Stock
-                  </span>
-                ) : (
-                  <span className="inline-flex w-full items-center justify-center text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 px-3 py-1.5 rounded transition">
-                    View
-                  </span>
-                )}
+                <span className="inline-flex w-full items-center justify-center text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 px-3 py-1.5 rounded transition">
+                  View
+                </span>
               </div>
             </div>
           </div>
@@ -590,11 +556,145 @@ const RelatedProducts = ({
   );
 };
 
+// ⭐ Stock Management Modal Component
+const StockManagementModal = ({
+  product,
+  variant,
+  onClose,
+  onStockUpdate
+}) => {
+  const [stock, setStock] = useState(variant?.stock || 0);
+  const [maxStock, setMaxStock] = useState(variant?.maxStock || 100);
+  const [loading, setLoading] = useState(false);
+
+  const handleUpdate = async () => {
+    setLoading(true);
+    try {
+      await onStockUpdate(stock, maxStock);
+      onClose();
+    } catch (error) {
+      console.error("Error updating stock:", error);
+      alert("Failed to update stock");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50 backdrop-blur-sm">
+      <div className="bg-white rounded-xl shadow-2xl p-6 w-full max-w-md m-4">
+        <div className="flex justify-between items-center mb-6">
+          <h2 className="font-bold text-xl">Manage Stock</h2>
+          <button
+            onClick={onClose}
+            className="text-gray-500 hover:text-black transition-colors p-1 hover:bg-gray-100 rounded-full w-8 h-8 flex items-center justify-center"
+          >
+            ✕
+          </button>
+        </div>
+
+        <div className="space-y-6">
+          <div>
+            <h3 className="font-semibold text-lg mb-2">Product Details</h3>
+            <p className="text-gray-700"><strong>Name:</strong> {product?.name}</p>
+            <p className="text-gray-700"><strong>Variant:</strong> {variant?.color} {variant?.size ? `- ${variant.size}` : ''}</p>
+            <p className="text-gray-700"><strong>Variant ID:</strong> {variant?.variantId || variant?.variant_id || 'N/A'}</p>
+          </div>
+
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Current Stock
+              </label>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => setStock(prev => Math.max(0, prev - 1))}
+                  className="w-10 h-10 rounded-lg bg-red-100 text-red-600 hover:bg-red-200 flex items-center justify-center text-lg font-bold"
+                >
+                  -
+                </button>
+                <input
+                  type="number"
+                  value={stock}
+                  onChange={(e) => setStock(parseInt(e.target.value) || 0)}
+                  className="w-24 text-center py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  min="0"
+                />
+                <button
+                  onClick={() => setStock(prev => prev + 1)}
+                  className="w-10 h-10 rounded-lg bg-green-100 text-green-600 hover:bg-green-200 flex items-center justify-center text-lg font-bold"
+                >
+                  +
+                </button>
+                <span className="text-gray-600 ml-2">units</span>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Max Stock Capacity
+              </label>
+              <input
+                type="number"
+                value={maxStock}
+                onChange={(e) => setMaxStock(parseInt(e.target.value) || 0)}
+                className="w-full py-2 px-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                min="0"
+                placeholder="Maximum stock capacity"
+              />
+              <p className="text-sm text-gray-500 mt-1">Set the maximum stock this variant can hold</p>
+            </div>
+
+            <div className="p-4 bg-blue-50 rounded-lg">
+              <h4 className="font-semibold text-blue-800 mb-2">Stock Status</h4>
+              <div className="space-y-2">
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Current:</span>
+                  <span className={`font-bold ${stock === 0 ? 'text-red-600' : stock < 10 ? 'text-yellow-600' : 'text-green-600'}`}>
+                    {stock} units
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Capacity:</span>
+                  <span className="font-bold text-blue-600">{maxStock} units</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Available:</span>
+                  <span className="font-bold text-gray-800">{maxStock - stock} units</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex gap-3 pt-4">
+            <button
+              onClick={onClose}
+              className="flex-1 py-3 rounded-lg text-gray-700 font-semibold border border-gray-300 hover:bg-gray-50 transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleUpdate}
+              disabled={loading}
+              className={`flex-1 py-3 rounded-lg text-white font-semibold transition-all ${
+                loading
+                  ? "bg-gray-400 cursor-not-allowed"
+                  : "bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 shadow-md hover:shadow-lg"
+              }`}
+            >
+              {loading ? "Updating..." : "Update Stock"}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 // Helper function to check if URL is a video
 const isVideoUrl = (url) => {
   if (!url) return false;
 
-  // Check by file extension
   const videoExtensions = [
     ".mp4",
     ".webm",
@@ -607,7 +707,6 @@ const isVideoUrl = (url) => {
   ];
   const urlLower = url.toLowerCase();
 
-  // Check if URL contains video patterns
   return (
     videoExtensions.some((ext) => urlLower.includes(ext)) ||
     urlLower.includes("video") ||
@@ -646,7 +745,7 @@ const ProductDetail = ({ product: propProduct }) => {
     dist: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 },
   });
   const [showReviewModal, setShowReviewModal] = useState(false);
-  const [toasts, setToasts] = useState([]);
+  const [showStockModal, setShowStockModal] = useState(false);
   const [imageLoading, setImageLoading] = useState(true);
   const [addingToCart, setAddingToCart] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
@@ -654,14 +753,14 @@ const ProductDetail = ({ product: propProduct }) => {
   const [availableSizes, setAvailableSizes] = useState([]);
   const [colorImageMap, setColorImageMap] = useState({});
   const [showAllReviews, setShowAllReviews] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
 
-  // FIXED: Get store info from location state or prop
   const productTag = location.state?.source || product?.productTag || null;
   const source = location.state?.source || "e-market";
 
-  // 🔙 BACK BUTTON HANDLER - FIXED according to image
+  // 🔙 BACK BUTTON HANDLER
   const handleBack = () => {
-    let path = "/e-market"; // default
+    let path = "/e-market";
 
     if (productTag === "local-market") path = "/local-market";
     if (productTag === "printing") path = "/printing";
@@ -669,26 +768,46 @@ const ProductDetail = ({ product: propProduct }) => {
 
     navigate(path);
 
-    // 🔝 scroll to top
     setTimeout(() => {
       window.scrollTo({ top: 0, behavior: "smooth" });
     }, 0);
   };
 
-  // Default to e-market
-  const { storePath, storeLabel } = useMemo(() => {
-    if (source === "local-market") {
-      return { storePath: "/local-market", storeLabel: "Local Market" };
-    }
-    if (source === "printing") {
-      return { storePath: "/printing", storeLabel: "Printing" };
-    }
-    if (source === "e-market") {
-      return { storePath: "/e-market", storeLabel: "E-store" };
-    }
-    // Default fallback
-    return { storePath: "/e-market", storeLabel: "E-store" };
-  }, [source]);
+  // Check if user is admin
+  useEffect(() => {
+    const checkAdminStatus = () => {
+      const userDataStr = localStorage.getItem("userData");
+      const userStr = localStorage.getItem("user");
+
+      try {
+        let userData = null;
+        if (userDataStr) userData = JSON.parse(userDataStr);
+        else if (userStr) userData = JSON.parse(userStr);
+
+        if (userData) {
+          const isAdminUser =
+            userData.role === "admin" ||
+            userData.role === "superadmin" ||
+            (userData.email && userData.email.includes("admin")) ||
+            userData.isAdmin === true;
+
+          setIsAdmin(isAdminUser);
+        }
+      } catch (error) {
+        console.error("Error checking admin status:", error);
+        setIsAdmin(false);
+      }
+    };
+
+    checkAdminStatus();
+
+    const handleStorageChange = () => {
+      checkAdminStatus();
+    };
+
+    window.addEventListener("storage", handleStorageChange);
+    return () => window.removeEventListener("storage", handleStorageChange);
+  }, []);
 
   // 🔝 AUTO SCROLL TO TOP
   useEffect(() => {
@@ -706,7 +825,6 @@ const ProductDetail = ({ product: propProduct }) => {
         if (token) {
           let userData = null;
 
-          // Try to parse user data from localStorage
           if (userDataStr) {
             try {
               userData = JSON.parse(userDataStr);
@@ -715,7 +833,6 @@ const ProductDetail = ({ product: propProduct }) => {
             }
           }
 
-          // If no userData, try the 'user' key
           if (!userData && userStr) {
             try {
               userData = JSON.parse(userStr);
@@ -738,7 +855,6 @@ const ProductDetail = ({ product: propProduct }) => {
               photoURL: userData.photoURL || "",
             });
           } else {
-            // Try to fetch from Firestore using token as userId
             try {
               const userRef = doc(db, "users", token);
               const userSnap = await getDoc(userRef);
@@ -772,7 +888,6 @@ const ProductDetail = ({ product: propProduct }) => {
 
     getUserData();
 
-    // Listen for storage changes
     const handleStorageChange = (e) => {
       if (
         e.key === "token" ||
@@ -786,11 +901,8 @@ const ProductDetail = ({ product: propProduct }) => {
 
     window.addEventListener("storage", handleStorageChange);
 
-    // Poll for changes
     const storagePollInterval = setInterval(() => {
       const token = localStorage.getItem("token");
-      const isLoggedIn = localStorage.getItem("isLoggedIn") === "true";
-
       if ((token && !currentUser) || (!token && currentUser)) {
         getUserData();
       }
@@ -806,13 +918,11 @@ const ProductDetail = ({ product: propProduct }) => {
   useEffect(() => {
     const { state } = location;
 
-    // Check if we're returning from login with review redirect
     if (state?.showReviewModal && currentUser) {
       setTimeout(() => {
         setShowReviewModal(true);
       }, 300);
 
-      // Clear the state after opening modal
       setTimeout(() => {
         if (location.state?.showReviewModal) {
           navigate(`/product/${productId}`, { replace: true });
@@ -821,43 +931,27 @@ const ProductDetail = ({ product: propProduct }) => {
     }
   }, [location.state, currentUser, navigate, productId]);
 
-  // ✨ Toast notification system
-  const addToast = useCallback(
-    (product, variant, quantity) => {
-      const toastId = Date.now();
-      const variantType = Math.floor(Math.random() * 3);
+  // Debug: Log variant data when it changes
+  useEffect(() => {
+    if (variant) {
+      console.log("Current variant updated:", variant);
+      console.log("Variant stock:", variant.stock);
+      console.log("Type of stock:", typeof variant.stock);
+      console.log("Current quantity:", quantity);
+    }
+  }, [variant, quantity]);
 
-      const newToast = {
-        id: toastId,
-        productName: product.name,
-        productImage: currentImg || product.imageUrls?.[0]?.url || "",
-        price: variant?.offerPrice ?? variant?.price ?? product.price ?? 0,
-        quantity: quantity,
-        variant: `${selectedColor}${selectedSize ? ` - ${selectedSize}` : ""}`,
-        time: new Date().toLocaleTimeString([], {
-          hour: "2-digit",
-          minute: "2-digit",
-        }),
-        variantType,
-      };
-
-      setToasts((prev) => [newToast, ...prev.slice(0, 3)]);
-
-      // Play success sound (optional)
-      if (typeof window !== "undefined") {
-        const audio = new Audio(
-          "https://assets.mixkit.co/sfx/preview/mixkit-correct-answer-tone-2870.mp3"
-        );
-        audio.volume = 0.2;
-        audio.play().catch((e) => console.log("Audio play failed:", e));
-      }
-
-      setTimeout(() => {
-        setToasts((prev) => prev.filter((toast) => toast.id !== toastId));
-      }, 4000);
-    },
-    [currentImg, selectedColor, selectedSize]
-  );
+  // Helper function to get available stock
+  const getAvailableStock = useCallback(() => {
+    if (!variant || variant.stock === undefined || variant.stock === null) {
+      return 9999; // Unlimited stock if not specified
+    }
+    
+    // Ensure it's a number
+    const stock = Number(variant.stock);
+    console.log("getAvailableStock - Raw stock:", variant.stock, "Parsed:", stock);
+    return isNaN(stock) ? 9999 : stock;
+  }, [variant]);
 
   // 📝 FETCH REVIEWS FROM FIRESTORE
   const fetchReviews = useCallback(async () => {
@@ -981,7 +1075,6 @@ const ProductDetail = ({ product: propProduct }) => {
   // 🔄 LOAD PRODUCT DATA
   useEffect(() => {
     const loadProduct = async () => {
-      // If product is passed as prop, use it
       if (propProduct) {
         setProduct(propProduct);
         processProductData(propProduct);
@@ -990,18 +1083,15 @@ const ProductDetail = ({ product: propProduct }) => {
         return;
       }
 
-      // Otherwise fetch from Firestore
       setLoading(true);
       setImageLoading(true);
 
       try {
         let productData = null;
 
-        // Check if product data is passed via state
         if (productState && productState.id === productId) {
           productData = productState;
         } else {
-          // Fetch from Firestore
           const productRef = doc(db, "products", productId);
           const productSnap = await getDoc(productRef);
 
@@ -1029,7 +1119,6 @@ const ProductDetail = ({ product: propProduct }) => {
     };
 
     const processProductData = (productData) => {
-      // Process images
       const imageUrls = productData.imageUrls || [];
       const urls = imageUrls
         .filter((img) => {
@@ -1042,10 +1131,8 @@ const ProductDetail = ({ product: propProduct }) => {
 
       setImages(urls);
 
-      // Fetch video URLs
       let videoUrls = [];
 
-      // Check if product has video URLs stored in Firestore
       if (productData.videoUrls && Array.isArray(productData.videoUrls)) {
         videoUrls = productData.videoUrls
           .map((video) => {
@@ -1056,7 +1143,6 @@ const ProductDetail = ({ product: propProduct }) => {
           .filter(Boolean);
       }
 
-      // If video URLs are stored as storage paths, fetch them from Firebase Storage
       if (
         productData.videoStoragePaths &&
         Array.isArray(productData.videoStoragePaths)
@@ -1089,28 +1175,25 @@ const ProductDetail = ({ product: propProduct }) => {
         setVideos(videoUrls);
       }
 
-      // Check for single videoUrl field
       if (productData.videoUrl && !videoUrls.includes(productData.videoUrl)) {
         setVideos((prev) => [...prev, productData.videoUrl]);
       }
 
       const variants = productData.variants || [];
 
-      // Get unique colors from variants that have stock > 0
       const colors = [
         ...new Set(
           variants
-            .filter((v) => v.color && (v.stock === undefined || v.stock > 0))
+            .filter((v) => v.color)
             .map((v) => v.color)
             .filter(Boolean)
         ),
       ];
 
-      // Get unique sizes from variants that have stock > 0
       const sizes = [
         ...new Set(
           variants
-            .filter((v) => v.size && (v.stock === undefined || v.stock > 0))
+            .filter((v) => v.size)
             .map((v) => v.size)
             .filter(Boolean)
         ),
@@ -1119,11 +1202,9 @@ const ProductDetail = ({ product: propProduct }) => {
       setAvailableColors(colors);
       setAvailableSizes(sizes);
 
-      // Create color-image mapping
       if (productData.colorImageMap) {
         setColorImageMap(productData.colorImageMap);
       } else {
-        // Create default mapping
         const defaultMap = {};
         colors.forEach((color, index) => {
           if (urls[index]) {
@@ -1135,14 +1216,11 @@ const ProductDetail = ({ product: propProduct }) => {
         setColorImageMap(defaultMap);
       }
 
-      // Combine images and videos for display
       const allMedia = [...urls, ...videoUrls];
 
-      // Set current image
       if (allMedia.length > 0) {
         let nextImg = null;
 
-        // First load
         if (!currentImg) {
           if (
             colors.length > 0 &&
@@ -1154,11 +1232,9 @@ const ProductDetail = ({ product: propProduct }) => {
             nextImg = allMedia[0];
           }
         }
-        // Preserve existing image
         else if (allMedia.includes(currentImg)) {
           nextImg = currentImg;
         }
-        // If current image deleted
         else {
           nextImg = allMedia[0];
         }
@@ -1172,7 +1248,6 @@ const ProductDetail = ({ product: propProduct }) => {
         setImageLoading(false);
       }
 
-      // Set default selections
       if (colors.length > 0) {
         setSelectedColor(colors[0]);
       }
@@ -1180,32 +1255,20 @@ const ProductDetail = ({ product: propProduct }) => {
         setSelectedSize(sizes[0]);
       }
 
-      // Find initial variant
       let initialVariant = null;
 
-      // First try to find variant with both color and size
       if (colors.length > 0 && sizes.length > 0) {
         initialVariant = variants.find(
-          (v) =>
-            v.color === colors[0] &&
-            v.size === sizes[0] &&
-            (v.stock === undefined || v.stock > 0)
+          (v) => v.color === colors[0] && v.size === sizes[0]
         );
       }
 
-      // If not found, try to find variant with just color
       if (!initialVariant && colors.length > 0) {
-        initialVariant = variants.find(
-          (v) => v.color === colors[0] && (v.stock === undefined || v.stock > 0)
-        );
+        initialVariant = variants.find((v) => v.color === colors[0]);
       }
 
-      // If still not found, take the first variant with stock
       if (!initialVariant) {
-        initialVariant =
-          variants.find((v) => v.stock === undefined || v.stock > 0) ||
-          variants[0] ||
-          null;
+        initialVariant = variants[0] || null;
       }
 
       setVariant(initialVariant);
@@ -1221,28 +1284,18 @@ const ProductDetail = ({ product: propProduct }) => {
     const variants = product.variants || [];
     let selectedVariant = null;
 
-    // If both color and size are selected, try to find exact match
     if (selectedColor && selectedSize) {
       selectedVariant = variants.find(
-        (v) =>
-          v.color === selectedColor &&
-          v.size === selectedSize &&
-          (v.stock === undefined || v.stock > 0)
+        (v) => v.color === selectedColor && v.size === selectedSize
       );
     }
 
-    // If not found or only color is selected, try to find by color
     if (!selectedVariant && selectedColor) {
-      selectedVariant = variants.find(
-        (v) =>
-          v.color === selectedColor && (v.stock === undefined || v.stock > 0)
-      );
+      selectedVariant = variants.find((v) => v.color === selectedColor);
     }
 
-    // If still not found, take the first available variant
     if (!selectedVariant) {
-      selectedVariant =
-        variants.find((v) => v.stock === undefined || v.stock > 0) || null;
+      selectedVariant = variants[0] || null;
     }
 
     setVariant(selectedVariant);
@@ -1255,12 +1308,7 @@ const ProductDetail = ({ product: propProduct }) => {
     return [
       ...new Set(
         product.variants
-          .filter(
-            (v) =>
-              v.color === selectedColor &&
-              v.size &&
-              (v.stock === undefined || v.stock > 0)
-          )
+          .filter((v) => v.color === selectedColor && v.size)
           .map((v) => v.size)
           .filter(Boolean)
       ),
@@ -1270,16 +1318,13 @@ const ProductDetail = ({ product: propProduct }) => {
   // 🎨 Handle color selection - updates image based on color
   const handleColorSelect = (color) => {
     setSelectedColor(color);
-    // Reset size when color changes
     setSelectedSize("");
 
-    // Update image based on selected color
     if (colorImageMap[color] !== undefined && images[colorImageMap[color]]) {
       setCurrentImg(images[colorImageMap[color]]);
       setCurrentIsVideo(false);
       setImageLoading(true);
     } else {
-      // Fallback to first image if no mapping found
       if (images.length > 0) {
         setCurrentImg(images[0]);
         setCurrentIsVideo(false);
@@ -1293,11 +1338,9 @@ const ProductDetail = ({ product: propProduct }) => {
     setCurrentImg(media);
     setImageLoading(true);
 
-    // Check if it's a video
     const isVideo = isVideoUrl(media);
     setCurrentIsVideo(isVideo);
 
-    // Update color selection if image is associated with a color
     if (!isVideo && colorImageMap) {
       for (const [color, imgIndex] of Object.entries(colorImageMap)) {
         if (imgIndex === index) {
@@ -1308,10 +1351,26 @@ const ProductDetail = ({ product: propProduct }) => {
     }
   };
 
-  // ➕➖ Quantity handlers
+  // ➕➖ Quantity handlers with stock limits - UPDATED
   const increment = () => {
-    const max = variant?.stock ?? 99;
-    setQuantity((prev) => Math.min(prev + 1, max));
+    const maxAvailable = getAvailableStock();
+    
+    console.log("increment - Max available:", maxAvailable, "Current quantity:", quantity);
+    
+    if (maxAvailable === 0) {
+      alert("Product is sold out!");
+      return;
+    }
+    
+    // If we're already at or above the max available stock
+    if (quantity >= maxAvailable) {
+      console.log("Stock limit reached!");
+      alert(`Only ${maxAvailable} units available in stock!`);
+      return;
+    }
+    
+    // Only increment if we haven't reached the limit
+    setQuantity((prev) => Math.min(prev + 1, maxAvailable));
   };
 
   const decrement = () => {
@@ -1320,20 +1379,33 @@ const ProductDetail = ({ product: propProduct }) => {
 
   const handleQuantityChange = (e) => {
     const value = parseInt(e.target.value) || 1;
-    const max = variant?.stock ?? 99;
-    setQuantity(Math.max(1, Math.min(value, max)));
+    const maxAvailable = getAvailableStock();
+    
+    console.log("handleQuantityChange - Value:", value, "Max available:", maxAvailable);
+    
+    if (maxAvailable === 0) {
+      alert("Product is sold out!");
+      setQuantity(1);
+      return;
+    }
+    
+    if (value > maxAvailable) {
+      console.log("Input exceeds stock limit!");
+      alert(`Maximum ${maxAvailable} units available!`);
+      setQuantity(maxAvailable);
+      return;
+    }
+    
+    setQuantity(Math.max(1, Math.min(value, maxAvailable)));
   };
 
   // ⭐ Handle review button click - check login status
   const handleReviewButtonClick = () => {
-    // Check localStorage directly for immediate login status
     const token = localStorage.getItem("token");
     const isLoggedIn = token && localStorage.getItem("isLoggedIn") === "true";
 
     if (isLoggedIn) {
-      // User is logged in, show review modal directly
       if (!currentUser) {
-        // Make sure currentUser state is up to date
         const userDataStr = localStorage.getItem("userData");
         if (userDataStr) {
           try {
@@ -1352,7 +1424,6 @@ const ProductDetail = ({ product: propProduct }) => {
 
       setShowReviewModal(true);
     } else {
-      // User is not logged in, redirect to login page
       navigate("/login", {
         state: {
           reviewRedirect: true,
@@ -1364,7 +1435,7 @@ const ProductDetail = ({ product: propProduct }) => {
     }
   };
 
-  // 🛒 Add to cart
+  // 🛒 Add to cart with stock check - UPDATED
   const onAddToCart = async (e) => {
     e.preventDefault();
 
@@ -1373,8 +1444,15 @@ const ProductDetail = ({ product: propProduct }) => {
       return;
     }
 
-    if (variant.stock !== undefined && variant.stock < quantity) {
-      alert(`Only ${variant.stock} units available`);
+    const maxAvailable = getAvailableStock();
+    
+    if (maxAvailable === 0) {
+      alert("This product is sold out!");
+      return;
+    }
+
+    if (maxAvailable < quantity) {
+      alert(`Only ${maxAvailable} units available in stock!`);
       return;
     }
 
@@ -1393,15 +1471,15 @@ const ProductDetail = ({ product: propProduct }) => {
       image: !currentIsVideo
         ? currentImg
         : images[0] || product.imageUrls?.[0]?.url || "",
-      stock: variant.stock ?? 0,
+      stock: maxAvailable,
       colors: availableColors || [],
       sizes: availableSizes || [],
       brand: product.brand || "",
     };
 
     addToCart(item);
+    alert(`${quantity} × ${product.name} added to cart!`);
 
-    // Button click animation
     const button = e.currentTarget;
     button.classList.add("clicked");
     setTimeout(() => {
@@ -1413,20 +1491,13 @@ const ProductDetail = ({ product: propProduct }) => {
     }, 300);
   };
 
-  // 🔄 Stock update function for Buy Now
-  const updateStockInFirestore = async (
-    productId,
-    variantId,
-    quantityToDeduct
-  ) => {
-    if (!variantId || !productId) {
-      console.error("Missing productId or variantId for stock update.");
-      return false;
-    }
-
-    const productRef = doc(db, "products", productId);
+  // 📊 Update stock in Firestore
+  const updateStockInFirestore = async (stockValue, maxStockValue) => {
+    if (!product || !variant) return;
 
     try {
+      const productRef = doc(db, "products", product.id);
+
       await runTransaction(db, async (transaction) => {
         const productDoc = await transaction.get(productRef);
         if (!productDoc.exists()) {
@@ -1435,52 +1506,57 @@ const ProductDetail = ({ product: propProduct }) => {
 
         const productData = productDoc.data();
         const variants = productData.variants || [];
+
         let variantIndex = -1;
 
-        // Find the index of the specific variant
-        variantIndex = variants.findIndex(
-          (v) => (v.variantId ?? v.variant_id) === variantId
-        );
+        if (variant.variantId || variant.variant_id) {
+          variantIndex = variants.findIndex(
+            (v) => (v.variantId || v.variant_id) === (variant.variantId || variant.variant_id)
+          );
+        }
 
-        if (variantIndex === -1) {
-          // Fallback for older data without variantId, matching by color/size
+        if (variantIndex === -1 && selectedColor) {
           variantIndex = variants.findIndex(
             (v) => v.color === selectedColor && v.size === selectedSize
           );
         }
 
         if (variantIndex === -1) {
-          throw new Error("Variant not found in product data!");
+          variantIndex = 0;
         }
 
-        const currentStock = variants[variantIndex].stock || 0;
-        const newStock = currentStock - quantityToDeduct;
+        if (variantIndex !== -1 && variants[variantIndex]) {
+          variants[variantIndex] = {
+            ...variants[variantIndex],
+            stock: stockValue,
+            maxStock: maxStockValue
+          };
 
-        if (newStock < 0) {
-          throw new Error(
-            `Insufficient stock: Only ${currentStock} units available.`
-          );
+          transaction.update(productRef, { variants: variants });
+
+          setVariant({
+            ...variant,
+            stock: stockValue,
+            maxStock: maxStockValue
+          });
+
+          setProduct(prev => ({
+            ...prev,
+            variants: variants
+          }));
         }
-
-        // Update the stock field
-        variants[variantIndex].stock = newStock;
-
-        // Update the document in the transaction
-        transaction.update(productRef, { variants: variants });
       });
 
-      console.log(
-        `Stock successfully reduced by ${quantityToDeduct} for variant: ${variantId}`
-      );
+      alert(`Stock updated to ${stockValue} units`);
       return true;
-    } catch (e) {
-      console.error("Stock update transaction failed: ", e);
-      alert(`Failed to confirm purchase. ${e.message}`);
+    } catch (error) {
+      console.error("Error updating stock:", error);
+      alert(`Failed to update stock: ${error.message}`);
       return false;
     }
   };
 
-  // 💳 Buy Now handler
+  // 💳 Buy Now handler with stock check - UPDATED
   const onBuyNow = async (e) => {
     e.preventDefault();
 
@@ -1489,8 +1565,15 @@ const ProductDetail = ({ product: propProduct }) => {
       return;
     }
 
-    if (variant.stock !== undefined && variant.stock < quantity) {
-      alert(`Only ${variant.stock} units available`);
+    const maxAvailable = getAvailableStock();
+    
+    if (maxAvailable === 0) {
+      alert("This product is sold out!");
+      return;
+    }
+
+    if (maxAvailable < quantity) {
+      alert(`Only ${maxAvailable} units available in stock!`);
       return;
     }
 
@@ -1507,27 +1590,14 @@ const ProductDetail = ({ product: propProduct }) => {
       image: !currentIsVideo
         ? currentImg
         : images[0] || product.imageUrls?.[0]?.url || "",
-      stock: variant.stock ?? 0,
+      stock: maxAvailable,
       brand: product.brand || "",
     };
 
-    // Update stock in Firestore
-    const stockUpdateSuccess = await updateStockInFirestore(
-      product.id,
-      item.variantId,
-      item.quantity
-    );
-
-    if (!stockUpdateSuccess) {
-      return;
-    }
-
-    // Prepare for checkout
     sessionStorage.removeItem("selectedCartItems");
     sessionStorage.setItem("buyNowItem", JSON.stringify(item));
     sessionStorage.setItem("buyNowFlag", "true");
 
-    // Navigate to checkout
     navigate("/checkout", {
       state: {
         item: item,
@@ -1536,14 +1606,12 @@ const ProductDetail = ({ product: propProduct }) => {
       },
     });
 
-    // Button click animation
     const button = e.currentTarget;
     button.classList.add("clicked");
     setTimeout(() => {
       button.classList.remove("clicked");
     }, 300);
 
-    // Scroll to top
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
@@ -1593,7 +1661,6 @@ const ProductDetail = ({ product: propProduct }) => {
 
       await fetchReviews();
 
-      // ✅ Removed the toast notification for review submission
       return true;
     } catch (error) {
       console.error("Error submitting review:", error);
@@ -1651,7 +1718,6 @@ const ProductDetail = ({ product: propProduct }) => {
   }
 
   // 📊 Product data calculations
-  const isInStock = variant?.stock === undefined ? true : variant.stock > 0;
   const displayPrice =
     variant?.offerPrice ?? variant?.price ?? product.price ?? 0;
   const originalPrice = variant?.price ?? product.price ?? 0;
@@ -1660,178 +1726,16 @@ const ProductDetail = ({ product: propProduct }) => {
       ? Math.round(((originalPrice - displayPrice) / originalPrice) * 100)
       : 0;
 
-  // Combine images and videos for thumbnail display
+  const availableStock = getAvailableStock();
+  const isInStock = availableStock > 0;
+  const stockLevel = availableStock;
+  const maxStock = variant?.maxStock || 100;
+  const stockPercentage = (stockLevel / maxStock) * 100;
+
   const allMedia = [...images, ...videos];
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 py-6 relative">
-      {/* Toast Notifications Container */}
-      <div className="fixed top-6 right-6 z-50 space-y-3 max-w-sm toast-container">
-        {toasts.map((toast, index) => (
-          <div
-            key={toast.id}
-            className={`relative overflow-hidden rounded-2xl shadow-2xl border-l-4 transform transition-all duration-300 hover:scale-105 hover:shadow-3xl ${
-              toast.type === "error"
-                ? "bg-gradient-to-r from-red-50 to-orange-50 border-red-500"
-                : toast.variantType === 0
-                ? "bg-gradient-to-r from-green-50 to-emerald-50 border-emerald-500"
-                : toast.variantType === 1
-                ? "bg-gradient-to-r from-blue-50 to-cyan-50 border-blue-500"
-                : "bg-gradient-to-r from-purple-50 to-pink-50 border-purple-500"
-            }`}
-            style={{
-              animation: `toastSlideIn 0.5s cubic-bezier(0.68, -0.55, 0.27, 1.55) ${
-                index * 0.1
-              }s both, toastFloat 3s ease-in-out ${
-                index * 0.1
-              }s infinite alternate`,
-            }}
-          >
-            {/* Animated Background Effects */}
-            <div className="absolute inset-0 overflow-hidden">
-              <div className="absolute -top-10 -right-10 w-20 h-20 rounded-full bg-gradient-to-br from-white/30 to-transparent"></div>
-              <div className="absolute -bottom-10 -left-10 w-24 h-24 rounded-full bg-gradient-to-tr from-white/20 to-transparent"></div>
-            </div>
-
-            {/* Content */}
-            <div className="relative p-4">
-              <div className="flex items-start space-x-4">
-                {/* Icon/Image */}
-                {toast.type === "error" ? (
-                  <div className="w-12 h-12 bg-red-100 rounded-xl flex items-center justify-center flex-shrink-0">
-                    <svg
-                      className="w-6 h-6 text-red-500"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                      />
-                    </svg>
-                  </div>
-                ) : toast.productImage ? (
-                  <div className="relative flex-shrink-0">
-                    <div
-                      className={`absolute inset-0 rounded-xl blur-md ${
-                        toast.variantType === 0
-                          ? "bg-emerald-200"
-                          : toast.variantType === 1
-                          ? "bg-blue-200"
-                          : "bg-purple-200"
-                      }`}
-                    ></div>
-                    <img
-                      src={toast.productImage}
-                      alt={toast.productName}
-                      className="w-12 h-12 object-cover rounded-xl border-2 border-white shadow-lg relative"
-                      onError={(e) => {
-                        e.target.onerror = null;
-                        e.target.src = "https://placehold.co/64x64?text=🎁";
-                      }}
-                    />
-                    {toast.type !== "error" && (
-                      <div className="absolute -top-1 -right-1 w-5 h-5 bg-green-500 rounded-full flex items-center justify-center">
-                        <svg
-                          className="w-3 h-3 text-white"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={3}
-                            d="M5 13l4 4L19 7"
-                          />
-                        </svg>
-                      </div>
-                    )}
-                  </div>
-                ) : (
-                  <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center flex-shrink-0">
-                    <svg
-                      className="w-6 h-6 text-green-500"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M5 13l4 4L19 7"
-                      />
-                    </svg>
-                  </div>
-                )}
-
-                {/* Text Content */}
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between mb-1">
-                    <h4 className="font-bold text-gray-900 text-sm">
-                      {toast.message || "Added to Cart!"}
-                    </h4>
-                    <span className="text-xs text-gray-500 bg-white/50 px-2 py-1 rounded-full">
-                      {toast.time}
-                    </span>
-                  </div>
-
-                  {!toast.message && (
-                    <>
-                      <p className="font-semibold text-gray-800 text-sm truncate mb-1">
-                        {toast.productName}
-                      </p>
-                      {toast.variant && (
-                        <div className="flex items-center space-x-2 mb-2">
-                          <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded">
-                            {toast.variant}
-                          </span>
-                          <span className="text-xs bg-orange-100 text-orange-600 px-2 py-1 rounded">
-                            Qty: {toast.quantity}
-                          </span>
-                        </div>
-                      )}
-                      <div className="flex items-center justify-between">
-                        <span
-                          className={`text-lg font-bold ${
-                            toast.variantType === 0
-                              ? "text-emerald-600"
-                              : toast.variantType === 1
-                              ? "text-blue-600"
-                              : "text-purple-600"
-                          }`}
-                        >
-                          ₹{toast.price}
-                        </span>
-                      </div>
-                    </>
-                  )}
-                </div>
-              </div>
-
-              {/* Progress Bar */}
-              <div className="mt-3 h-1 bg-gray-200 rounded-full overflow-hidden">
-                <div
-                  className={`h-full rounded-full animate-progress-bar ${
-                    toast.type === "error"
-                      ? "bg-gradient-to-r from-red-400 to-orange-500"
-                      : toast.variantType === 0
-                      ? "bg-gradient-to-r from-emerald-400 to-green-500"
-                      : toast.variantType === 1
-                      ? "bg-gradient-to-r from-blue-400 to-cyan-500"
-                      : "bg-gradient-to-r from-purple-400 to-pink-500"
-                  }`}
-                ></div>
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
-
       {/* Review Modal */}
       {showReviewModal && (
         <WriteReviewModal
@@ -1844,12 +1748,20 @@ const ProductDetail = ({ product: propProduct }) => {
         />
       )}
 
+      {/* Stock Management Modal */}
+      {showStockModal && isAdmin && (
+        <StockManagementModal
+          product={product}
+          variant={variant}
+          onClose={() => setShowStockModal(false)}
+          onStockUpdate={updateStockInFirestore}
+        />
+      )}
+
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* 🔙 FIXED: Back Button and Breadcrumb Layout - Matching Image */}
+        {/* 🔙 Back Button and Breadcrumb Layout */}
         <div className="flex justify-between items-center mb-6">
-          {/* Breadcrumb Navigation - Right side like in image */}
           <nav className="text-sm text-gray-600 flex items-center space-x-2 bg-white px-4 py-2 rounded-lg shadow-sm">
-            {/* Home */}
             <button
               onClick={() => navigate("/")}
               className="hover:text-gray-800 hover:underline transition-colors"
@@ -1857,7 +1769,6 @@ const ProductDetail = ({ product: propProduct }) => {
               Home
             </button>
 
-            {/* Store/ProductTag */}
             {productTag && (
               <>
                 <svg
@@ -1884,7 +1795,6 @@ const ProductDetail = ({ product: propProduct }) => {
 
                     navigate(path);
 
-                    // 🔝 navigation apram scroll top
                     setTimeout(() => {
                       window.scrollTo({ top: 0, behavior: "smooth" });
                     }, 0);
@@ -1896,7 +1806,6 @@ const ProductDetail = ({ product: propProduct }) => {
               </>
             )}
 
-            {/* Product name */}
             <svg
               className="w-3 h-3 text-gray-400"
               fill="none"
@@ -1915,7 +1824,7 @@ const ProductDetail = ({ product: propProduct }) => {
               {product.name}
             </span>
           </nav>
-          {/* Back Button - Left side like in image */}
+
           <button
             onClick={handleBack}
             className="flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors py-2 px-4 hover:bg-gray-100 rounded-lg"
@@ -1936,171 +1845,123 @@ const ProductDetail = ({ product: propProduct }) => {
             Back
           </button>
         </div>
-        <div className="bg-white rounded-lg shadow-md overflow-hidden ">
+
+        <div className="bg-white rounded-lg shadow-md overflow-hidden">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-1 p-3 md:p-4">
             {/* LEFT SIDE — MEDIA */}
-           <div className="space-y-3">
-  {/* MAIN IMAGE / VIDEO */}
-  <div
-    className="
-      relative
-      w-full
-      max-w-[450px]
-      h-[280px]
-      sm:h-[360px]
-      md:h-[420px]
-      lg:h-[500px]
-      mx-auto
-      lg:ml-12
-      rounded-lg
-      overflow-hidden
-      flex
-      items-center
-      justify-center
-    "
-  >
-    {currentImg ? (
-      <>
-        {imageLoading && (
-          <div className="absolute inset-0 flex items-center justify-center">
-            <div className="animate-spin h-14 w-14 rounded-full border-b-2 border-purple-600"></div>
-          </div>
-        )}
+            <div className="space-y-3">
+              <div className="relative w-full max-w-[450px] h-[280px] sm:h-[360px] md:h-[420px] lg:h-[500px] mx-auto lg:ml-12 rounded-lg overflow-hidden flex items-center justify-center">
+                {currentImg ? (
+                  <>
+                    {imageLoading && (
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <div className="animate-spin h-14 w-14 rounded-full border-b-2 border-purple-600"></div>
+                      </div>
+                    )}
 
-        {/* VIDEO */}
-        {currentIsVideo || isVideoUrl(currentImg) ? (
-          <div className="w-full h-full flex items-center justify-center">
-            <video
-              src={currentImg}
-              controls
-              controlsList="nodownload"
-              className="w-full h-full object-contain transition-opacity duration-300 rounded-xl"
-              onLoadedData={() => setImageLoading(false)}
-              onError={() => {
-                setImageLoading(false);
-                if (images.length > 0) {
-                  setCurrentImg(images[0]);
-                  setCurrentIsVideo(false);
-                }
-              }}
-              poster={
-                images[0] ||
-                "https://placehold.co/600x400?text=Video+Loading"
-              }
-              playsInline
-            />
+                    {currentIsVideo || isVideoUrl(currentImg) ? (
+                      <div className="w-full h-full flex items-center justify-center">
+                        <video
+                          src={currentImg}
+                          controls
+                          controlsList="nodownload"
+                          className="w-full h-full object-contain transition-opacity duration-300 rounded-xl"
+                          onLoadedData={() => setImageLoading(false)}
+                          onError={() => {
+                            setImageLoading(false);
+                            if (images.length > 0) {
+                              setCurrentImg(images[0]);
+                              setCurrentIsVideo(false);
+                            }
+                          }}
+                          poster={
+                            images[0] ||
+                            "https://placehold.co/600x400?text=Video+Loading"
+                          }
+                          playsInline
+                        />
 
-            {/* Video Badge */}
-            <div className="absolute top-3 right-3 bg-black/70 text-white px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1">
-              VIDEO
-            </div>
-          </div>
-        ) : (
-          <img
-            src={currentImg}
-            alt={product.name}
-            className={`
-              w-full
-              h-full
-              object-contain
-              transition-opacity
-              duration-300
-              ${imageLoading ? "opacity-0" : "opacity-100"}
-            `}
-            onLoad={() => setImageLoading(false)}
-            loading="lazy"
-          />
-        )}
-      </>
-    ) : images.length > 0 ? (
-      <>
-        {imageLoading && (
-          <div className="absolute inset-0 flex items-center justify-center">
-            <div className="animate-spin h-12 w-12 rounded-full border-b-2 border-purple-600"></div>
-          </div>
-        )}
+                        <div className="absolute top-3 right-3 bg-black/70 text-white px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1">
+                          VIDEO
+                        </div>
+                      </div>
+                    ) : (
+                      <img
+                        src={currentImg}
+                        alt={product.name}
+                        className={`w-full h-full object-contain transition-opacity duration-300 ${
+                          imageLoading ? "opacity-0" : "opacity-100"
+                        }`}
+                        onLoad={() => setImageLoading(false)}
+                        loading="lazy"
+                      />
+                    )}
+                  </>
+                ) : images.length > 0 ? (
+                  <>
+                    {imageLoading && (
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <div className="animate-spin h-12 w-12 rounded-full border-b-2 border-purple-600"></div>
+                      </div>
+                    )}
 
-        <img
-          src={images[0]}
-          alt={product.name}
-          className="
-            w-full
-            h-full
-            object-contain
-            transition-opacity
-            duration-300
-          "
-          onLoad={() => setImageLoading(false)}
-          onError={(e) => {
-            e.target.src = "https://placehold.co/500x300?text=No+Image";
-            setImageLoading(false);
-          }}
-          loading="lazy"
-        />
-      </>
-    ) : (
-      <div className="text-center p-8">
-        <p className="text-gray-500">No image available</p>
-      </div>
-    )}
-  </div>
-
-  {/* THUMBNAILS */}
-  {allMedia.length > 1 && (
-    <div
-      className="
-        grid
-        grid-cols-4
-        gap-3
-        w-full
-        max-w-[420px]
-        mx-auto
-        lg:ml-[62px]
-      "
-    >
-      {allMedia.map((media, i) => {
-        const isVideo = isVideoUrl(media);
-
-        return (
-          <button
-            key={i}
-            onClick={() => onThumbnailClick(media, i)}
-            className={`rounded-xl overflow-hidden border-2 transition-all duration-200 ${
-              currentImg === media
-                ? "border-purple-500 ring-2 ring-purple-200"
-                : "border-gray-300 hover:border-gray-400"
-            }`}
-          >
-            {isVideo ? (
-              <div className="relative h-20 sm:h-24 w-full bg-gradient-to-br from-gray-800 to-gray-900 flex items-center justify-center">
-                <span className="text-white text-xs font-semibold">VIDEO</span>
+                    <img
+                      src={images[0]}
+                      alt={product.name}
+                      className="w-full h-full object-contain transition-opacity duration-300"
+                      onLoad={() => setImageLoading(false)}
+                      onError={(e) => {
+                        e.target.src = "https://placehold.co/500x300?text=No+Image";
+                        setImageLoading(false);
+                      }}
+                      loading="lazy"
+                    />
+                  </>
+                ) : (
+                  <div className="text-center p-8">
+                    <p className="text-gray-500">No image available</p>
+                  </div>
+                )}
               </div>
-            ) : (
-              <img
-                src={media}
-                alt={`Thumbnail ${i + 1}`}
-                className="
-                  h-20
-                  sm:h-24
-                  w-full
-                  object-contain
-                  bg-white
-                  transition-opacity
-                "
-                loading="lazy"
-                onError={(e) => {
-                  e.target.src =
-                    "https://placehold.co/150x100?text=Image";
-                }}
-              />
-            )}
-          </button>
-        );
-      })}
-    </div>
-  )}
-</div>
 
+              {/* THUMBNAILS */}
+              {allMedia.length > 1 && (
+                <div className="grid grid-cols-4 gap-3 w-full max-w-[420px] mx-auto lg:ml-[62px]">
+                  {allMedia.map((media, i) => {
+                    const isVideo = isVideoUrl(media);
+
+                    return (
+                      <button
+                        key={i}
+                        onClick={() => onThumbnailClick(media, i)}
+                        className={`rounded-xl overflow-hidden border-2 transition-all duration-200 ${
+                          currentImg === media
+                            ? "border-purple-500 ring-2 ring-purple-200"
+                            : "border-gray-300 hover:border-gray-400"
+                        }`}
+                      >
+                        {isVideo ? (
+                          <div className="relative h-20 sm:h-24 w-full bg-gradient-to-br from-gray-800 to-gray-900 flex items-center justify-center">
+                            <span className="text-white text-xs font-semibold">VIDEO</span>
+                          </div>
+                        ) : (
+                          <img
+                            src={media}
+                            alt={`Thumbnail ${i + 1}`}
+                            className="h-20 sm:h-24 w-full object-contain bg-white transition-opacity"
+                            loading="lazy"
+                            onError={(e) => {
+                              e.target.src =
+                                "https://placehold.co/150x100?text=Image";
+                            }}
+                          />
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
 
             {/* RIGHT SIDE — DETAILS */}
             <div className="-ml-20">
@@ -2116,7 +1977,7 @@ const ProductDetail = ({ product: propProduct }) => {
               </div>
 
               {/* ⭐ Rating */}
-              <div className="flex items-center space-x-4 ">
+              <div className="flex items-center space-x-4">
                 {stats.avg > 0 && (
                   <div className="flex items-center px-0.5 py-1.5 rounded-full">
                     <span className="font-bold text-lg">
@@ -2155,9 +2016,9 @@ const ProductDetail = ({ product: propProduct }) => {
                 )}
               </div>
 
-              {/* ⭐ FIXED: Color Selection with Image Change */}
+              {/* ⭐ Color Selection */}
               {availableColors.length > 0 && (
-                <div className="space-y-3">
+                <div className="space-y-3 mt-4">
                   <h3 className="font-semibold text-gray-700">
                     Color:{" "}
                     <span className="font-normal text-gray-900">
@@ -2182,9 +2043,9 @@ const ProductDetail = ({ product: propProduct }) => {
                 </div>
               )}
 
-              {/* ⭐ FIXED: Size Selection */}
+              {/* ⭐ Size Selection */}
               {getAvailableSizesForColor.length > 0 && (
-                <div className="space-y-3">
+                <div className="space-y-3 mt-4">
                   <h3 className="font-semibold text-gray-700">
                     Size:{" "}
                     <span className="font-normal text-gray-900">
@@ -2196,36 +2057,18 @@ const ProductDetail = ({ product: propProduct }) => {
                   </h3>
                   <div className="flex gap-2 flex-wrap">
                     {getAvailableSizesForColor.map((size) => {
-                      // Find variant for this color and size to check stock
-                      const sizeVariant = product.variants?.find(
-                        (v) => v.color === selectedColor && v.size === size
-                      );
-                      const isOutOfStock =
-                        sizeVariant?.stock !== undefined &&
-                        sizeVariant.stock <= 0;
-
                       return (
                         <button
                           key={`${selectedColor}-${size}`}
                           onClick={() => setSelectedSize(size)}
-                          disabled={isOutOfStock}
-                          className={`px-3 py-1.5 text-sm rounded-md border transition-all duration-200 font-medium relative ${
+                          className={`px-3 py-1.5 text-sm rounded-md border transition-all duration-200 font-medium ${
                             selectedSize === size
                               ? "border-purple-600 bg-gradient-to-r from-purple-50 to-pink-50 text-purple-700 shadow-md"
-                              : isOutOfStock
-                              ? "border-gray-200 bg-gray-100 text-gray-400 cursor-not-allowed"
                               : "border-gray-300 hover:border-gray-400 hover:bg-gray-50"
                           }`}
-                          title={
-                            isOutOfStock
-                              ? "Out of stock"
-                              : `Select size ${size}`
-                          }
+                          title={`Select size ${size}`}
                         >
                           {size}
-                          {isOutOfStock && (
-                            <div className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full"></div>
-                          )}
                         </button>
                       );
                     })}
@@ -2235,7 +2078,7 @@ const ProductDetail = ({ product: propProduct }) => {
 
               {/* Description */}
               {product.description && (
-                <div className="pt-4 border-t">
+                <div className="pt-4 border-t mt-4">
                   <h3 className="font-semibold text-gray-700 mb-3 text-lg">
                     Description
                   </h3>
@@ -2245,72 +2088,106 @@ const ProductDetail = ({ product: propProduct }) => {
                 </div>
               )}
 
-              {/* Quantity */}
-             <div className="space-y-2 pt-3 border-t">
-  <h3 className="font-semibold text-sm text-gray-700">Quantity</h3>
+              {/* Quantity with Stock Management */}
+              <div className="space-y-2 pt-4 border-t mt-4">
+                <div className="flex justify-between items-center">
+                  <h3 className="font-semibold text-sm text-gray-700">Quantity</h3>
+                  {isAdmin && (
+                    <button
+                      onClick={() => setShowStockModal(true)}
+                      className="text-xs bg-purple-100 text-purple-700 hover:bg-purple-200 px-2 py-1 rounded transition-colors flex items-center gap-1"
+                      title="Manage stock for admin"
+                    >
+                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                      </svg>
+                      Manage Stock
+                    </button>
+                  )}
+                </div>
 
-  <div className="flex items-center">
-    <div className="flex items-center border border-gray-300 rounded-md overflow-hidden">
-      <button
-        onClick={decrement}
-        disabled={quantity <= 1}
-        className="px-3 py-2 text-gray-700 text-sm hover:bg-gray-50 disabled:text-gray-400 disabled:hover:bg-white transition-colors"
-      >
-        −
-      </button>
+                <div className="flex items-center gap-4">
+                  <div className="flex items-center border border-gray-300 rounded-md overflow-hidden">
+                    <button
+                      onClick={decrement}
+                      disabled={quantity <= 1}
+                      className="px-3 py-2 text-gray-700 text-sm hover:bg-gray-50 disabled:text-gray-400 disabled:hover:bg-white transition-colors"
+                    >
+                      −
+                    </button>
 
-      <input
-        type="number"
-        value={quantity}
-        onChange={handleQuantityChange}
-        className="w-12 text-center py-2 text-sm border-x border-gray-300 focus:outline-none focus:ring-1 focus:ring-purple-500 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
-        min="1"
-        max={variant?.stock ?? 99}
-      />
+                    <input
+                      type="number"
+                      value={quantity}
+                      onChange={handleQuantityChange}
+                      className="w-12 text-center py-2 text-sm border-x border-gray-300 focus:outline-none focus:ring-1 focus:ring-purple-500 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                      min="1"
+                      max={availableStock}
+                    />
 
-      <button
-        onClick={increment}
-        disabled={
-          variant?.stock !== undefined &&
-          quantity >= variant.stock
-        }
-        className="px-3 py-2 text-gray-700 text-sm hover:bg-gray-50 disabled:text-gray-400 disabled:hover:bg-white transition-colors"
-      >
-        +
-      </button>
-    </div>
-  </div>
-</div>
+                    <button
+                      onClick={increment}
+                      disabled={availableStock !== undefined && (quantity >= availableStock || availableStock === 0)}
+                      className="px-3 py-2 text-gray-700 text-sm hover:bg-gray-50 disabled:text-gray-400 disabled:hover:bg-white transition-colors"
+                      title={availableStock !== undefined && quantity >= availableStock ? "Max stock reached" : ""}
+                    >
+                      +
+                    </button>
+                  </div>
 
+                  <div className="text-sm text-gray-600">
+                    {availableStock !== undefined ? (
+                      <span>
+                        {availableStock === 0 ? (
+                          <span className="text-red-600 font-semibold">Sold Out</span>
+                        ) : (
+                          <span>
+                            Available: <span className="font-semibold">{availableStock}</span> units
+                          </span>
+                        )}
+                      </span>
+                    ) : (
+                      <span className="text-green-600">In Stock</span>
+                    )}
+                  </div>
+                </div>
+
+                {/* Debug info - remove in production */}
+                <div className="text-xs text-gray-400 mt-1">
+                  Debug: Available Stock: {availableStock}, Quantity: {quantity}
+                </div>
+              </div>
 
               {/* Buttons */}
               <div className="flex gap-4 pt-6">
                 <button
                   onClick={onAddToCart}
-                  disabled={!isInStock || addingToCart || !selectedColor}
+                  disabled={!isInStock || addingToCart || !selectedColor || availableStock === 0}
                   className={`flex-1 py-4 rounded-xl text-white font-semibold transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-1 active:translate-y-0 ${
-                    isInStock && !addingToCart && selectedColor
+                    isInStock && !addingToCart && selectedColor && availableStock !== 0
                       ? "bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
                       : "bg-gray-400 cursor-not-allowed"
                   }`}
                 >
                   {addingToCart
                     ? "Adding..."
-                    : isInStock
-                    ? "Add to Cart"
-                    : "Out of Stock"}
+                    : availableStock === 0
+                      ? "Sold Out"
+                      : !isInStock
+                        ? "Out of Stock"
+                        : "Add to Cart"}
                 </button>
 
                 <button
                   onClick={onBuyNow}
-                  disabled={!isInStock || !selectedColor}
+                  disabled={!isInStock || !selectedColor || availableStock === 0}
                   className={`flex-1 py-4 rounded-xl text-white font-semibold transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-1 active:translate-y-0 ${
-                    isInStock && selectedColor
+                    isInStock && selectedColor && availableStock !== 0
                       ? "bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700"
                       : "bg-gray-400 cursor-not-allowed"
                   }`}
                 >
-                  Buy Now
+                  {availableStock === 0 ? "Sold Out" : "Buy Now"}
                 </button>
               </div>
             </div>
@@ -2393,15 +2270,14 @@ const ProductDetail = ({ product: propProduct }) => {
                         const displayName = isGuest
                           ? "Guest User"
                           : usersMap[r.userId]?.displayName ||
-                            r.userName ||
-                            "Anonymous";
+                          r.userName ||
+                          "Anonymous";
 
                         return (
                           <div
                             key={r.id}
                             className="border rounded-xl p-5 bg-white shadow-sm hover:shadow-md transition"
                           >
-                            {/* TOP */}
                             <div className="flex items-center justify-between mb-3">
                               <div className="flex items-center gap-3">
                                 <StarRating rating={r.rating} size="w-5 h-5" />
@@ -2415,7 +2291,6 @@ const ProductDetail = ({ product: propProduct }) => {
                               </span>
                             </div>
 
-                            {/* USER */}
                             <div className="flex items-center gap-3 mb-3">
                               <div className="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center font-bold text-purple-700">
                                 {isGuest
@@ -2432,12 +2307,10 @@ const ProductDetail = ({ product: propProduct }) => {
                               </div>
                             </div>
 
-                            {/* CONTENT */}
                             <p className="text-gray-700 leading-relaxed mb-3">
                               {r.content}
                             </p>
 
-                            {/* VERIFIED */}
                             {r.verifiedPurchase && (
                               <div className="inline-flex items-center gap-1 bg-green-100 text-green-800 text-xs px-2 py-1 rounded">
                                 ✔ Verified Purchase
@@ -2462,8 +2335,6 @@ const ProductDetail = ({ product: propProduct }) => {
                           <button
                             onClick={() => {
                               setShowAllReviews(false);
-
-                              // 🔝 SCROLL BACK TO REVIEWS TOP
                               setTimeout(() => {
                                 const reviewsSection =
                                   document.getElementById("reviews-section");
@@ -2505,12 +2376,11 @@ const ProductDetail = ({ product: propProduct }) => {
           </div>
         </div>
 
-        {/* 🛒 FIXED RELATED PRODUCTS SECTION */}
+        {/* RELATED PRODUCTS SECTION - FIXED: Removed storeLabel prop */}
         <RelatedProducts
           categoryId={product.category || product.categoryId}
           currentProductId={productId}
           source={source}
-          storeLabel={storeLabel}
         />
       </div>
 
@@ -2523,51 +2393,7 @@ const ProductDetail = ({ product: propProduct }) => {
         ↑
       </button>
 
-      {/* Add Enhanced CSS Animations */}
       <style jsx="true">{`
-        @keyframes toastSlideIn {
-          0% {
-            transform: translateX(100%) rotate(5deg);
-            opacity: 0;
-          }
-          70% {
-            transform: translateX(-10%) rotate(-2deg);
-            opacity: 1;
-          }
-          100% {
-            transform: translateX(0) rotate(0);
-            opacity: 1;
-          }
-        }
-
-        @keyframes toastFloat {
-          0%,
-          100% {
-            transform: translateY(0);
-          }
-          50% {
-            transform: translateY(-3px);
-          }
-        }
-
-        @keyframes progressBar {
-          from {
-            width: 100%;
-          }
-          to {
-            width: 0%;
-          }
-        }
-
-        .animate-progress-bar {
-          animation: progressBar 4s linear forwards;
-        }
-
-        /* Button click animation */
-        .clicked {
-          animation: buttonClick 0.3s ease-out;
-        }
-
         @keyframes buttonClick {
           0% {
             transform: scale(1);
@@ -2580,12 +2406,10 @@ const ProductDetail = ({ product: propProduct }) => {
           }
         }
 
-        /* Smooth scroll behavior */
         html {
           scroll-behavior: smooth;
         }
 
-        /* Custom scrollbar */
         ::-webkit-scrollbar {
           width: 8px;
         }
@@ -2603,7 +2427,6 @@ const ProductDetail = ({ product: propProduct }) => {
           background: linear-gradient(to bottom, #7c3aed, #db2777);
         }
 
-        /* Line clamp styles for related products */
         .line-clamp-1 {
           overflow: hidden;
           display: -webkit-box;
@@ -2616,6 +2439,15 @@ const ProductDetail = ({ product: propProduct }) => {
           display: -webkit-box;
           -webkit-box-orient: vertical;
           -webkit-line-clamp: 2;
+        }
+
+        button:disabled {
+          cursor: not-allowed;
+          opacity: 0.5;
+        }
+        
+        button:disabled:hover {
+          background-color: white !important;
         }
       `}</style>
     </div>
