@@ -138,10 +138,10 @@
     );
 
     const shipping = subtotal > 499 ? 0 : 40;
-    const tax = subtotal * 0.18;
-    const total = subtotal + shipping + tax;
+   
+    const total = subtotal + shipping;
 
-    return { subtotal, shipping, tax, total };
+    return { subtotal, shipping,  total };
   };
 
 
@@ -558,12 +558,12 @@
                     </span>
                   </div>
 
-                  <div className="flex justify-between text-gray-600">
+                  {/* <div className="flex justify-between text-gray-600">
                     <span>Tax (18%)</span>
                     <span className="font-semibold">
                       ₹{cartSummary.tax.toFixed(2)}
                     </span>
-                  </div>
+                  </div> */}
 
 
                   <div className="flex justify-between text-lg font-bold text-gray-900 pt-3 border-t">

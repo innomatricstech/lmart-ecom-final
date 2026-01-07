@@ -81,9 +81,12 @@ const App = () => {
                     <Navbar />
                     <CartNotification />
                     <LoginModal isOpen={showLoginModal} onClose={handleCloseModal} />
+                   
+
 
                     <main className="flex-1">
                       <Routes>
+                  
                         <Route path="/" element={<Home />} />
                         <Route path="/printing" element={<Printing />} />
                         <Route path="/e-market" element={<EMarket />} />

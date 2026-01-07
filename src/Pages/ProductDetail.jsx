@@ -777,6 +777,7 @@ const ProductDetail = ({ product: propProduct }) => {
   const [showStockModal, setShowStockModal] = useState(false);
   const [imageLoading, setImageLoading] = useState(true);
   const [addingToCart, setAddingToCart] = useState(false);
+  const [buyNowLoading, setBuyNowLoading] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
   const [availableColors, setAvailableColors] = useState([]);
   const [availableSizes, setAvailableSizes] = useState([]);
@@ -1481,23 +1482,24 @@ if (maxAvailable < quantity) {
     setAddingToCart(true);
 
     const price = variant.offerPrice ?? variant.price ?? product.price ?? 0;
-    const item = {
-      id: product.id,
-      name: product.name,
-      price,
-      originalPrice: variant.price ?? product.price ?? 0,
-      quantity,
-      variantId: variant.variantId ?? variant.variant_id ?? variant.id,
-      selectedColor,
-      selectedSize,
-      image: !currentIsVideo
-        ? currentImg
-        : images[0] || product.imageUrls?.[0]?.url || "",
-      stock: maxAvailable,
-      colors: availableColors || [],
-      sizes: availableSizes || [],
-      brand: product.brand || "",
-    };
+   const item = {
+  id: `${product.id}_${variant.variantId ?? variant.variant_id}`, // cart line ID
+  productId: product.id,   // 🔥 REQUIRED
+  name: product.name,
+  price,
+  originalPrice: variant.price ?? product.price ?? 0,
+  quantity,
+  variantId: variant.variantId ?? variant.variant_id ?? variant.id,
+  selectedColor,
+  selectedSize,
+  image: !currentIsVideo
+    ? currentImg
+    : images[0] || product.imageUrls?.[0]?.url || "",
+  stock: maxAvailable,
+  colors: availableColors || [],
+  sizes: availableSizes || [],
+  brand: product.brand || "",
+};
 
     addToCart(item);
     
@@ -1577,30 +1579,35 @@ if (maxAvailable < quantity) {
       return false;
     }
   };
+const onBuyNow = async (e) => {
+  e.preventDefault();
 
-  // 💳 Buy Now handler with stock check - UPDATED
-  const onBuyNow = async (e) => {
-    e.preventDefault();
+  if (buyNowLoading) return; // 🔒 prevent double click
 
-    if (!product || !variant) {
-      alert("Please select a variant");
-      return;
-    }
+  if (!product || !variant) {
+    showPopup("Please select a variant", "error");
+    return;
+  }
 
-    const maxAvailable = getAvailableStock();
-    
-   if (maxAvailable === 0) {
-  showPopup("This product is sold out!", "error");
-  return;
-}
+  const maxAvailable = getAvailableStock();
 
-if (maxAvailable < quantity) {
-  showPopup(`Only ${maxAvailable} units available`);
-  return;
-}
+  if (maxAvailable === 0) {
+    showPopup("This product is sold out!", "error");
+    return;
+  }
+
+  if (quantity > maxAvailable) {
+    showPopup(`Only ${maxAvailable} units available`);
+    return;
+  }
+
+  try {
+    setBuyNowLoading(true); // ✅ START LOADING
 
     const price = variant.offerPrice ?? variant.price ?? product.price ?? 0;
-    const item = {
+
+    const buyNowItem = {
+      productId: product.id,
       id: product.id,
       name: product.name,
       price,
@@ -1616,26 +1623,17 @@ if (maxAvailable < quantity) {
       brand: product.brand || "",
     };
 
-    sessionStorage.removeItem("selectedCartItems");
-    sessionStorage.setItem("buyNowItem", JSON.stringify(item));
-    sessionStorage.setItem("buyNowFlag", "true");
+    // store only Buy Now item
+    sessionStorage.setItem("buyNowItem", JSON.stringify(buyNowItem));
 
-    navigate("/checkout", {
-      state: {
-        item: item,
-        buyNow: true,
-        skipToPayment: true,
-      },
-    });
-
-    const button = e.currentTarget;
-    button.classList.add("clicked");
-    setTimeout(() => {
-      button.classList.remove("clicked");
-    }, 300);
-
+    navigate("/cart");
     window.scrollTo({ top: 0, behavior: "smooth" });
-  };
+
+  } finally {
+    setBuyNowLoading(false); // ✅ STOP LOADING (safety)
+  }
+};
+
 
   // ⭐ Submit review to Firestore - Guest or User
   const submitReview = async ({ rating, title, content }) => {
@@ -2028,7 +2026,8 @@ if (maxAvailable < quantity) {
             </div>
 
             {/* RIGHT SIDE — DETAILS */}
-            <div className="-ml-20">
+            <div className="ml-0 lg:-ml-20">
+
               <div>
                 {product.brand && (
                   <p className="text-purple-600 font-semibold uppercase tracking-wider text-sm mb-2">
@@ -2221,16 +2220,28 @@ if (maxAvailable < quantity) {
     </button>
 
     <button
-      onClick={onBuyNow}
-      disabled={!selectedColor}
-      className={`flex-1 py-4 rounded-xl text-white font-semibold transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-1 active:translate-y-0 ${
-        selectedColor
-          ? "bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700"
-          : "bg-gray-400 cursor-not-allowed"
-      }`}
-    >
-      Buy Now
-    </button>
+  onClick={onBuyNow}
+  disabled={
+    !selectedColor ||        // variant not selected
+    availableStock === 0 ||  // out of stock
+    buyNowLoading            // processing
+  }
+  className={`flex-1 py-4 rounded-xl text-white font-semibold
+    transition-all duration-300 shadow-lg
+    transform active:translate-y-0
+    ${
+      !selectedColor || availableStock === 0 || buyNowLoading
+        ? "bg-gray-400 cursor-not-allowed"
+        : "bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 hover:-translate-y-1"
+    }`}
+>
+  {buyNowLoading
+    ? "Processing..."
+    : availableStock === 0
+    ? "Out of Stock"
+    : "Buy Now"}
+</button>
+
   </div>
 ) : (
   <div className="pt-6">

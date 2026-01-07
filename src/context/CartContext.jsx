@@ -28,7 +28,8 @@
         ].filter(Boolean);
         
         // Create a unique key using the base product ID and its customizations
-        return `${item.id}_${customFields.join("_")}`;
+        return `${item.productId || item.id}_${customFields.join("_")}`;
+
     };
 
     // REDUCER
@@ -209,17 +210,25 @@
         } 
     };
 
-    // Sanitize item before adding to ensure required fields are present and valid
-  const sanitizeItem = (raw) => {
+const sanitizeItem = (raw) => {
   const sanitized = {
-    id: raw.id,
+    id: raw.id,                 // cart line id
+    productId: raw.productId || raw.id, // 🔥 REQUIRED
     name: raw.name,
     price: Number(raw.price) || 0,
-    stock: Number(raw.stock) || 0, // ✅ ADD THIS
+    stock: Number(raw.stock) || 0,
     quantity: Math.max(1, Number(raw.quantity) || 1),
     selected: true,
     image: raw.image,
     description: raw.description,
+
+    // keep variant info
+    variantId: raw.variantId,
+    selectedColor: raw.selectedColor,
+    selectedSize: raw.selectedSize,
+    selectedMaterial: raw.selectedMaterial,
+    selectedRam: raw.selectedRam,
+    brand: raw.brand,
   };
 
   sanitized.lineItemKey = getLineItemKey(sanitized);

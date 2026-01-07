@@ -23,6 +23,7 @@ import UserLogin from "../Pages/UserLogin";
 import { useNavigate } from "react-router-dom";
 
 
+const ADMIN_PHONE = "918762978777"; // 🔁 replace with real admin number
 
 const MAX_FILES = 5;
 const MAX_MB = 5;
@@ -908,6 +909,13 @@ const ProductsViewer = ({ user, isAdmin, onClose, onEdit, isUserViewer = false }
       alert("Failed to delete: " + e.message);
     }
   };
+const handleContactAdmin = () => {
+  const message = encodeURIComponent(
+    "Hello Admin, I want to edit product details. Please assist."
+  );
+
+  window.open(`https://wa.me/${ADMIN_PHONE}?text=${message}`, "_blank");
+};
 
   return (
     <motion.div
@@ -1050,6 +1058,7 @@ const ProductsViewer = ({ user, isAdmin, onClose, onEdit, isUserViewer = false }
                     <p className="text-xs text-gray-600 mt-2 line-clamp-2">
                       {p.description}
                     </p>
+                    
                   </div>
 
                   <div className="flex items-center justify-between mb-3">
@@ -1071,7 +1080,22 @@ const ProductsViewer = ({ user, isAdmin, onClose, onEdit, isUserViewer = false }
                           p.seller.email?.split("@")[0] ||
                           "User"}
                       </span>
+                      
                     )}
+                    {/* 📞 Edit – Contact Admin (WhatsApp) */}
+{isUserViewer && (
+  <div className="mt-0">
+    <button
+      onClick={() => handleContactAdmin(p)}
+      className="w-full flex items-center justify-center gap-2 p-4 text-xs font-semibold
+        rounded-lg bg-green-600 text-white hover:bg-green-700 transition"
+    >
+    
+      Edit – Contact Admin
+    </button>
+  </div>
+)}
+
                   </div>
 
                 
