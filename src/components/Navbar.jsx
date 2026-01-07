@@ -37,16 +37,17 @@ const Navbar = () => {
   const dropdownRef = useRef(null);
   const searchRef = useRef(null);
     
-  const {
-    getCartItemsCount,
-    items,
-    removeFromCart,
-    updateQuantity,
-    clearCart,
-    toggleSelect,
-    getSelectedItems,
-  } = useCart();
-  
+const {
+  getCartItemsCount,
+  items,
+  removeFromCart,
+  updateQuantity,
+  clearCart,
+  toggleSelect,
+  getSelectedItems,
+  notification, // ✅ MOVE HERE
+} = useCart();
+
   const cartItemsCount = getCartItemsCount();
 
   // Search Auto Complete States
@@ -207,9 +208,13 @@ const Navbar = () => {
     }
   };
 
-  const handleSidebarQuantityIncrease = (item) => {
-    updateQuantity(item.lineItemKey || item.id, item.quantity + 1);
-  };
+const handleSidebarQuantityIncrease = (item) => {
+  if (item.quantity >= item.stock) {
+
+    return;
+  }
+  updateQuantity(item.lineItemKey || item.id, item.quantity + 1);
+};
 
   // Handle item removal from sidebar
   const handleSidebarRemoveItem = (itemId, itemName) => {
@@ -528,6 +533,7 @@ const UploadProgress = () => {
         </span>
       </div>
       
+ 
       <div className="mb-2">
         <div className="flex justify-between text-sm mb-1">
           <span>Overall Progress</span>
@@ -581,6 +587,19 @@ const UploadProgress = () => {
     <div className="bg-white sticky top-0 z-40 shadow-md">
       {/* Upload Progress Overlay */}
       <UploadProgress />
+      {/* Toast Notification */}
+{notification?.show && (
+  <div className="fixed top-24 right-5 z-[9999] animate-fade-in">
+    <div
+      className={`px-4 py-2 rounded-lg shadow-lg text-sm font-medium text-white
+        ${notification.type === "error" ? "bg-red-600" : "bg-green-600"}
+      `}
+    >
+      {notification.message}
+    </div>
+  </div>
+)}
+
       
       {/* Top Header - HEIGHT REDUCED */}
       <div className=" bg-gradient-to-r from-blue-900 to-purple-600 text-white">

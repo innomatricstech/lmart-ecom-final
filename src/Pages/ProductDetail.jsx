@@ -17,6 +17,7 @@ import { getStorage, ref, getDownloadURL } from "firebase/storage";
 import { useCart } from "../context/CartContext";
 
 // ⭐ Star Rating Component
+
 const StarRating = ({
   rating = 0,
   size = "w-4 h-4",
@@ -659,8 +660,7 @@ const StockManagementModal = ({
                   <span className="font-bold text-blue-600">{maxStock} units</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-600">Available:</span>
-                  <span className="font-bold text-gray-800">{maxStock - stock} units</span>
+                  
                 </div>
               </div>
             </div>
@@ -717,6 +717,8 @@ const isVideoUrl = (url) => {
   );
 };
 
+
+
 // ⭐ Main Product Detail Component
 const ProductDetail = ({ product: propProduct }) => {
   const { productId } = useParams();
@@ -724,6 +726,20 @@ const ProductDetail = ({ product: propProduct }) => {
   const location = useLocation();
   const storage = getStorage();
   const { addToCart } = useCart();
+
+  const [popup, setPopup] = useState({
+  show: false,
+  message: "",
+  type: "warning",
+});
+
+  const showPopup = (message, type = "warning") => {
+  setPopup({ show: true, message, type });
+
+  setTimeout(() => {
+    setPopup({ show: false, message: "", type });
+  }, 2500);
+};
 
   const productState = useMemo(() => location.state?.product, [location.state]);
 
@@ -1352,52 +1368,44 @@ const ProductDetail = ({ product: propProduct }) => {
   };
 
   // ➕➖ Quantity handlers with stock limits - UPDATED
-  const increment = () => {
-    const maxAvailable = getAvailableStock();
-    
-    console.log("increment - Max available:", maxAvailable, "Current quantity:", quantity);
-    
-    if (maxAvailable === 0) {
-      alert("Product is sold out!");
-      return;
-    }
-    
-    // If we're already at or above the max available stock
-    if (quantity >= maxAvailable) {
-      console.log("Stock limit reached!");
-      alert(`Only ${maxAvailable} units available in stock!`);
-      return;
-    }
-    
-    // Only increment if we haven't reached the limit
-    setQuantity((prev) => Math.min(prev + 1, maxAvailable));
-  };
+const increment = () => {
+  const maxAvailable = getAvailableStock();
+
+  if (maxAvailable === 0) {
+    showPopup("Product is sold out!", "error");
+    return;
+  }
+
+  if (quantity >= maxAvailable) {
+    showPopup(`Only ${maxAvailable} units available in stock`);
+    return;
+  }
+
+  setQuantity((prev) => Math.min(prev + 1, maxAvailable));
+};
 
   const decrement = () => {
     setQuantity((prev) => Math.max(1, prev - 1));
   };
 
-  const handleQuantityChange = (e) => {
-    const value = parseInt(e.target.value) || 1;
-    const maxAvailable = getAvailableStock();
-    
-    console.log("handleQuantityChange - Value:", value, "Max available:", maxAvailable);
-    
-    if (maxAvailable === 0) {
-      alert("Product is sold out!");
-      setQuantity(1);
-      return;
-    }
-    
-    if (value > maxAvailable) {
-      console.log("Input exceeds stock limit!");
-      alert(`Maximum ${maxAvailable} units available!`);
-      setQuantity(maxAvailable);
-      return;
-    }
-    
-    setQuantity(Math.max(1, Math.min(value, maxAvailable)));
-  };
+const handleQuantityChange = (e) => {
+  const value = parseInt(e.target.value) || 1;
+  const maxAvailable = getAvailableStock();
+
+  if (maxAvailable === 0) {
+    showPopup("Product is sold out!", "error");
+    setQuantity(1);
+    return;
+  }
+
+  if (value > maxAvailable) {
+    showPopup(`Maximum ${maxAvailable} units available`);
+    setQuantity(maxAvailable);
+    return;
+  }
+
+  setQuantity(Math.max(1, value));
+};
 
   // ⭐ Handle review button click - check login status
   const handleReviewButtonClick = () => {
@@ -1446,15 +1454,16 @@ const ProductDetail = ({ product: propProduct }) => {
 
     const maxAvailable = getAvailableStock();
     
-    if (maxAvailable === 0) {
-      alert("This product is sold out!");
-      return;
-    }
+   if (maxAvailable === 0) {
+  showPopup("This product is sold out!", "error");
+  return;
+}
 
-    if (maxAvailable < quantity) {
-      alert(`Only ${maxAvailable} units available in stock!`);
-      return;
-    }
+if (maxAvailable < quantity) {
+  showPopup(`Only ${maxAvailable} units available`);
+  return;
+}
+
 
     setAddingToCart(true);
 
@@ -1478,7 +1487,7 @@ const ProductDetail = ({ product: propProduct }) => {
     };
 
     addToCart(item);
-    alert(`${quantity} × ${product.name} added to cart!`);
+    
 
     const button = e.currentTarget;
     button.classList.add("clicked");
@@ -1567,15 +1576,15 @@ const ProductDetail = ({ product: propProduct }) => {
 
     const maxAvailable = getAvailableStock();
     
-    if (maxAvailable === 0) {
-      alert("This product is sold out!");
-      return;
-    }
+   if (maxAvailable === 0) {
+  showPopup("This product is sold out!", "error");
+  return;
+}
 
-    if (maxAvailable < quantity) {
-      alert(`Only ${maxAvailable} units available in stock!`);
-      return;
-    }
+if (maxAvailable < quantity) {
+  showPopup(`Only ${maxAvailable} units available`);
+  return;
+}
 
     const price = variant.offerPrice ?? variant.price ?? product.price ?? 0;
     const item = {
@@ -1735,8 +1744,34 @@ const ProductDetail = ({ product: propProduct }) => {
   const allMedia = [...images, ...videos];
 
   return (
+    
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 py-6 relative">
       {/* Review Modal */}
+      {popup.show && (
+  <div
+    className={`fixed top-6 right-6 z-50 flex items-start gap-3 px-5 py-4 rounded-xl shadow-2xl text-white font-semibold
+      animate-slide-in
+      ${popup.type === "error"
+        ? "bg-red-600"
+        : popup.type === "success"
+        ? "bg-green-600"
+        : "bg-yellow-500"
+      }`}
+  >
+    {/* Icon */}
+    <span className="text-xl">
+      {popup.type === "error" && "❌"}
+      {popup.type === "success" && "✅"}
+      {popup.type === "warning" && "⚠️"}
+    </span>
+
+    {/* Message */}
+    <span className="max-w-xs leading-snug">
+      {popup.message}
+    </span>
+  </div>
+)}
+
       {showReviewModal && (
         <WriteReviewModal
           onClose={() => setShowReviewModal(false)}
@@ -2125,37 +2160,20 @@ const ProductDetail = ({ product: propProduct }) => {
                       max={availableStock}
                     />
 
-                    <button
-                      onClick={increment}
-                      disabled={availableStock !== undefined && (quantity >= availableStock || availableStock === 0)}
-                      className="px-3 py-2 text-gray-700 text-sm hover:bg-gray-50 disabled:text-gray-400 disabled:hover:bg-white transition-colors"
-                      title={availableStock !== undefined && quantity >= availableStock ? "Max stock reached" : ""}
-                    >
-                      +
-                    </button>
+                   <button
+  onClick={increment}
+  className="px-3 py-2 text-gray-700 hover:bg-gray-50 transition-colors"
+>
+  +
+</button>
+
                   </div>
 
-                  <div className="text-sm text-gray-600">
-                    {availableStock !== undefined ? (
-                      <span>
-                        {availableStock === 0 ? (
-                          <span className="text-red-600 font-semibold">Sold Out</span>
-                        ) : (
-                          <span>
-                            Available: <span className="font-semibold">{availableStock}</span> units
-                          </span>
-                        )}
-                      </span>
-                    ) : (
-                      <span className="text-green-600">In Stock</span>
-                    )}
-                  </div>
+                  
                 </div>
 
                 {/* Debug info - remove in production */}
-                <div className="text-xs text-gray-400 mt-1">
-                  Debug: Available Stock: {availableStock}, Quantity: {quantity}
-                </div>
+                
               </div>
 
               {/* Buttons */}

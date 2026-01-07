@@ -5,12 +5,74 @@ import { db, storage } from '../../firebase';
 import { collection, addDoc, doc, getDoc, updateDoc, serverTimestamp } from "firebase/firestore"; // Added updateDoc
 import { ref, getDownloadURL } from "firebase/storage";
 import emailjs from '@emailjs/browser';
+import { runTransaction } from "firebase/firestore";
 
 // 🔑 EMAIL.JS CONFIGURATION
 const EMAILJS_SERVICE_ID = "service_yg9pb3f"; 
 const EMAILJS_PUBLIC_KEY = "av8_Oe-8pG16qxp2M"; 
 const EMAILJS_AUTO_REPLY_TEMPLATE_ID = "template_mbbvaa1"; 
-const ADMIN_EMAIL = "your.shop.admin@example.com";''
+const ADMIN_EMAIL = "your.shop.admin@example.com";
+
+
+const decreaseStockAfterOrder = async (items) => {
+  for (const item of items) {
+    const productRef = doc(db, "products", item.id);
+
+    await runTransaction(db, async (transaction) => {
+      const snap = await transaction.get(productRef);
+
+      if (!snap.exists()) {
+        console.error("❌ Product not found:", item.id);
+        return;
+      }
+
+      const data = snap.data();
+      const variants = Array.isArray(data.variants) ? [...data.variants] : [];
+
+      if (variants.length === 0) {
+        console.warn("⚠️ No variants found for product:", item.name);
+        return;
+      }
+
+      // ✅ Match variant
+      const variantIndex = variants.findIndex(v =>
+        // 1️⃣ Prefer variantId match
+        (item.variantId && v.variantId === item.variantId) ||
+
+        // 2️⃣ Fallback to color + size match
+        (
+          !item.variantId &&
+          v.color === item.selectedColor &&
+          v.size === item.selectedSize
+        )
+      );
+
+      if (variantIndex === -1) {
+        console.error("❌ Variant not matched", {
+          product: item.name,
+          selectedColor: item.selectedColor,
+          selectedSize: item.selectedSize,
+          availableVariants: variants
+        });
+        return;
+      }
+
+      const currentStock = Number(variants[variantIndex].stock ?? 0);
+
+      if (currentStock < item.quantity) {
+        throw new Error(`Insufficient stock for ${item.name}`);
+      }
+
+      variants[variantIndex].stock = currentStock - item.quantity;
+
+      transaction.update(productRef, { variants });
+
+      console.log(
+        `✅ Stock updated → ${item.name} (${variants[variantIndex].size}) : ${currentStock} → ${variants[variantIndex].stock}`
+      );
+    });
+  }
+};
 
 
 // 📧 AUTO REPLY FUNCTION
@@ -880,6 +942,9 @@ const Checkout = () => {
                   return; 
               }
 
+              // 🔥 DECREASE STOCK AFTER SUCCESSFUL PAYMENT & ORDER SAVE
+await decreaseStockAfterOrder(checkoutItems);
+
               sessionStorage.setItem("orderSuccessData", JSON.stringify(orderData));
 
               clearCart();
@@ -975,11 +1040,11 @@ const Checkout = () => {
           createdAt: new Date().toISOString()
         };
 
-        const saved = await saveOrderToFirebase(orderData, currentUserId);
-        if (!saved) {
-            setProcessingPayment(false);
-            return;
-        }
+       const saved = await saveOrderToFirebase(orderData, currentUserId);
+if (!saved) return;
+
+// 🔥 REQUIRED FOR COD
+await decreaseStockAfterOrder(checkoutItems);
 
         sessionStorage.setItem("orderSuccessData", JSON.stringify(orderData));
 
