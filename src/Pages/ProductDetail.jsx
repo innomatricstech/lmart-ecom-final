@@ -18,6 +18,8 @@ import { useCart } from "../context/CartContext";
 
 // ⭐ Star Rating Component
 
+
+
 const StarRating = ({
   rating = 0,
   size = "w-4 h-4",
@@ -721,6 +723,17 @@ const isVideoUrl = (url) => {
 
 // ⭐ Main Product Detail Component
 const ProductDetail = ({ product: propProduct }) => {
+  const handleNotifyMe = () => {
+  const phoneNumber = "918762978777"; // 🔁 replace with YOUR WhatsApp number (with country code)
+
+  const message = encodeURIComponent(
+    `Hello, I want to be notified when this product is back in stock.\n\nProduct: ${product.name}`
+  );
+
+  const whatsappUrl = `https://wa.me/${phoneNumber}?text=${message}`;
+
+  window.open(whatsappUrl, "_blank");
+};
   const { productId } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
@@ -1886,6 +1899,22 @@ if (maxAvailable < quantity) {
             {/* LEFT SIDE — MEDIA */}
             <div className="space-y-3">
               <div className="relative w-full max-w-[450px] h-[280px] sm:h-[360px] md:h-[420px] lg:h-[500px] mx-auto lg:ml-12 rounded-lg overflow-hidden flex items-center justify-center">
+                {/* SOLD OUT OVERLAY */}
+{availableStock === 0 && (
+  <>
+    {/* Dark overlay */}
+    <div className="absolute inset-0 bg-black/50 z-20"></div>
+
+    {/* OUT OF STOCK ribbon */}
+    <div className="absolute top-4 right-[-60px] z-30 rotate-45 mt-10">
+      <span className="block bg-red-600 text-white text-sm font-bold px-16 py-2 shadow-xl tracking-widest">
+        OUT OF STOCK
+      </span>
+    </div>
+  </>
+)}
+
+
                 {currentImg ? (
                   <>
                     {imageLoading && (
@@ -2177,37 +2206,50 @@ if (maxAvailable < quantity) {
               </div>
 
               {/* Buttons */}
-              <div className="flex gap-4 pt-6">
-                <button
-                  onClick={onAddToCart}
-                  disabled={!isInStock || addingToCart || !selectedColor || availableStock === 0}
-                  className={`flex-1 py-4 rounded-xl text-white font-semibold transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-1 active:translate-y-0 ${
-                    isInStock && !addingToCart && selectedColor && availableStock !== 0
-                      ? "bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
-                      : "bg-gray-400 cursor-not-allowed"
-                  }`}
-                >
-                  {addingToCart
-                    ? "Adding..."
-                    : availableStock === 0
-                      ? "Sold Out"
-                      : !isInStock
-                        ? "Out of Stock"
-                        : "Add to Cart"}
-                </button>
+{availableStock > 0 ? (
+  <div className="flex gap-4 pt-6">
+    <button
+      onClick={onAddToCart}
+      disabled={addingToCart || !selectedColor}
+      className={`flex-1 py-4 rounded-xl text-white font-semibold transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-1 active:translate-y-0 ${
+        !addingToCart && selectedColor
+          ? "bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
+          : "bg-gray-400 cursor-not-allowed"
+      }`}
+    >
+      {addingToCart ? "Adding..." : "Add to Cart"}
+    </button>
 
-                <button
-                  onClick={onBuyNow}
-                  disabled={!isInStock || !selectedColor || availableStock === 0}
-                  className={`flex-1 py-4 rounded-xl text-white font-semibold transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-1 active:translate-y-0 ${
-                    isInStock && selectedColor && availableStock !== 0
-                      ? "bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700"
-                      : "bg-gray-400 cursor-not-allowed"
-                  }`}
-                >
-                  {availableStock === 0 ? "Sold Out" : "Buy Now"}
-                </button>
-              </div>
+    <button
+      onClick={onBuyNow}
+      disabled={!selectedColor}
+      className={`flex-1 py-4 rounded-xl text-white font-semibold transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-1 active:translate-y-0 ${
+        selectedColor
+          ? "bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700"
+          : "bg-gray-400 cursor-not-allowed"
+      }`}
+    >
+      Buy Now
+    </button>
+  </div>
+) : (
+  <div className="pt-6">
+    <button
+      onClick={handleNotifyMe}
+      className="w-full py-4 rounded-xl bg-green-600 hover:bg-green-700 text-white font-semibold shadow-lg transition-all duration-300 flex items-center justify-center gap-3"
+    >
+      <svg
+        className="w-6 h-6"
+        fill="currentColor"
+        viewBox="0 0 24 24"
+      >
+        <path d="M20.52 3.48A11.85 11.85 0 0012 0C5.37 0 .03 5.34 0 11.94c0 2.1.54 4.16 1.57 5.97L0 24l6.25-1.64a11.9 11.9 0 005.75 1.47h.01c6.63 0 12-5.34 12-11.94 0-3.19-1.24-6.18-3.49-8.41z"/>
+      </svg>
+      Notify Me on WhatsApp
+    </button>
+  </div>
+)}
+
             </div>
           </div>
         </div>
