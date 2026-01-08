@@ -128,8 +128,7 @@ const Checkout = () => {
     country: ""
   });
   
-  // 🔥 NEW STATE FOR SELLER INFORMATION
-  const [productSellerInfo, setProductSellerInfo] = useState({});
+ 
 
   // 🔑 Fetch User Data from Firebase
   useEffect(() => {
@@ -416,10 +415,7 @@ const Checkout = () => {
       setIsCartEmpty(false);
 
       // 🔥 FETCH SELLER INFO FOR ALL PRODUCTS
-      const productIds = enhancedItems.map(item => item.id);
-      if (productIds.length > 0) {
-        fetchSellerIdsForProducts(productIds);
-      }
+    
     };
 
     loadCheckoutItems();
@@ -712,6 +708,39 @@ const Checkout = () => {
       // Don't throw error here, just log it
     }
   };
+  const fetchSellerInfoForItem = async (item) => {
+  try {
+    // 1️⃣ Try products collection
+    const productRef = doc(db, "products", item.productId || item.id);
+    const productSnap = await getDoc(productRef);
+
+    if (productSnap.exists()) {
+      const data = productSnap.data();
+      return {
+        sellerId: data.sellerId || data.sellerID || null,
+        sellerName: data.sellerName || "Unknown Seller",
+      };
+    }
+
+    // 2️⃣ Fallback: oldee collection
+    const oldeeRef = doc(db, "oldee", item.productId || item.id);
+    const oldeeSnap = await getDoc(oldeeRef);
+
+    if (oldeeSnap.exists()) {
+      const data = oldeeSnap.data();
+      return {
+        sellerId: data.sellerId || data.seller?.uid || null,
+        sellerName: data.seller?.displayName || "Unknown Seller",
+      };
+    }
+
+    return { sellerId: null, sellerName: "Unknown Seller" };
+  } catch (err) {
+    console.error("Failed to fetch seller info:", err);
+    return { sellerId: null, sellerName: "Unknown Seller" };
+  }
+};
+
 
   // 🔥 UPDATED: Save Order to Firebase with Seller Info
   const saveOrderToFirebase = async (data, userId) => {
@@ -723,32 +752,30 @@ const Checkout = () => {
       
       const ordersCollectionRef = collection(db, "users", userId, "orders"); 
       
-      // 🔥 BUILD ORDER ITEMS WITH SELLER INFO
-      const orderItems = checkoutItems.map(item => {
-        const sellerInfo = productSellerInfo[item.id] || {
-          sellerId: null,
-          sellerName: "Unknown Seller",
-          productType: "unknown"
-        };
+     const orderItems = await Promise.all(
+  checkoutItems.map(async (item) => {
+    const sellerInfo = await fetchSellerInfoForItem(item);
+    const itemImage = getProductImage(item);
 
-        // Get the correct image URL
-        const itemImage = getProductImage(item);
+    return {
+      id: item.id,
+      name: item.name,
+      price: item.price,
+      quantity: item.quantity || 1,
+      image: itemImage,
+      selectedColor: item.selectedColor || "",
+      selectedSize: item.selectedSize || "",
+      selectedRam: item.selectedRam || "",
 
-        return {
-          id: item.id,
-          name: item.name,
-          price: item.price,
-          quantity: item.quantity || 1,
-          image: itemImage,
-          selectedColor: item.selectedColor || "",
-          selectedSize: item.selectedSize || "",
-          selectedRam: item.selectedRam || "",
-          sellerId: sellerInfo.sellerId,
-          sellerName: sellerInfo.sellerName,
-          productType: sellerInfo.productType || "new",
-          marketplace: sellerInfo.productType === "old" ? "oldee" : "emart"
-        };
-      });
+      // 🔥 FETCHED AT CHECKOUT TIME
+      sellerId: sellerInfo.sellerId,
+      sellerName: sellerInfo.sellerName,
+
+      productType: item.isOldee ? "old" : "new",
+      marketplace: item.isOldee ? "oldee" : "emart",
+    };
+  })
+);
 
       // 🔥 COLLECT UNIQUE SELLER IDS & NAMES
       const sellerIds = [...new Set(orderItems.map(i => i.sellerId).filter(id => id))];
@@ -1543,11 +1570,12 @@ await decreaseStockAfterOrder(checkoutItems);
                   )}
                   
                   {/* 🔥 SHOW SELLER INFO */}
-                  {productSellerInfo[item.id] && (
-                    <div className="text-xs text-gray-500 mt-2">
-                      Sold by: {productSellerInfo[item.id].sellerName}
-                    </div>
-                  )}
+                 {item.sellerName && (
+  <div className="text-xs text-gray-500 mt-2">
+    Sold by: {item.sellerName}
+  </div>
+)}
+
                 </div>
               ))}
             </div>

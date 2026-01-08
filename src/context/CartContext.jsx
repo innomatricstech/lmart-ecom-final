@@ -212,8 +212,8 @@
 
 const sanitizeItem = (raw) => {
   const sanitized = {
-    id: raw.id,                 // cart line id
-    productId: raw.productId || raw.id, // 🔥 REQUIRED
+    id: raw.id,
+    productId: raw.productId || raw.id,
     name: raw.name,
     price: Number(raw.price) || 0,
     stock: Number(raw.stock) || 0,
@@ -222,7 +222,10 @@ const sanitizeItem = (raw) => {
     image: raw.image,
     description: raw.description,
 
-    // keep variant info
+    // 🔥 ADD THESE TWO LINES (FIX)
+    sellerId: raw.sellerId || raw.seller?.uid || null,
+    sellerName: raw.sellerName || raw.seller?.displayName || "Unknown Seller",
+
     variantId: raw.variantId,
     selectedColor: raw.selectedColor,
     selectedSize: raw.selectedSize,
@@ -234,6 +237,7 @@ const sanitizeItem = (raw) => {
   sanitized.lineItemKey = getLineItemKey(sanitized);
   return sanitized;
 };
+
 
        
     // PROVIDER
