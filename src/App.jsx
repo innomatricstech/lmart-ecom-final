@@ -4,6 +4,7 @@ import { CartProvider } from './context/CartContext';
 import { OrderProvider } from './context/OrderContext';
 import { WishlistProvider } from './context/WishlistContext';
 import WhatsAppChatWidget from './components/WhatsAppChatWidget';
+import BuyNow from './Pages/BuyNow';
 
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
@@ -86,7 +87,8 @@ const App = () => {
 
                     <main className="flex-1">
                       <Routes>
-                  
+                  <Route path="/buy-now" element={<BuyNow />} />
+
                         <Route path="/" element={<Home />} />
                         <Route path="/printing" element={<Printing />} />
                         <Route path="/e-market" element={<EMarket />} />

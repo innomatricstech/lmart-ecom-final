@@ -1626,7 +1626,7 @@ const onBuyNow = async (e) => {
     // store only Buy Now item
     sessionStorage.setItem("buyNowItem", JSON.stringify(buyNowItem));
 
-    navigate("/cart");
+    navigate("/buy-now");
     window.scrollTo({ top: 0, behavior: "smooth" });
 
   } finally {

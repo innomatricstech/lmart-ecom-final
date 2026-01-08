@@ -390,13 +390,14 @@ fetchedProducts.push({
     fetchAllProducts();
   }, []);
 
-  // Select random products for display
-  const selectRandomProducts = (products) => {
-    if (products.length === 0) return [];
-    const shuffled = [...products].sort(() => Math.random() - 0.5);
-    const maxProducts = Math.min(shuffled.length, 10);
-    return shuffled.slice(0, maxProducts);
-  };
+ 
+const selectRandomProducts = (products) => {
+  if (products.length === 0) return [];
+  const shuffled = [...products].sort(() => Math.random() - 0.5);
+  const maxProducts = Math.min(shuffled.length, 15);
+  return shuffled.slice(0, maxProducts);
+};
+
 
   // Update display products when allProducts change
   useEffect(() => {
@@ -661,9 +662,9 @@ fetchedProducts.push({
                         {product.image ? (
                       <div className="relative w-full h-14 sm:h-16 md:h-20 lg:h-24 xl:h-28 flex items-center justify-center bg-white p-2">
   {/* 🔥 TRENDING BADGE */}
-  <span className="absolute top-1 left-1 z-20 bg-orange-500 text-white text-[8px] sm:text-[9px] lg:text-[10px] font-bold px-1.5 py-0.5 rounded shadow">
-    TRENDING
-  </span>
+    <span className="absolute top-1 left-1 z-20 bg-orange-500 text-white text-[8px] sm:text-[9px] lg:text-[10px] font-bold px-1.5 py-0.5 rounded shadow">
+      LATEST
+    </span>
 
   <img
     src={product.image}
