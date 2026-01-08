@@ -1348,7 +1348,7 @@ const ProductDetail = ({ product: propProduct }) => {
   // 🎨 Handle color selection - updates image based on color
   const handleColorSelect = (color) => {
     setSelectedColor(color);
-    setSelectedSize("");
+   
 
     if (colorImageMap[color] !== undefined && images[colorImageMap[color]]) {
       setCurrentImg(images[colorImageMap[color]]);
@@ -1362,6 +1362,24 @@ const ProductDetail = ({ product: propProduct }) => {
       }
     }
   };
+  useEffect(() => {
+  if (!product || !selectedColor) return;
+
+  const sizesForColor = [
+    ...new Set(
+      product.variants
+        .filter(v => v.color === selectedColor && v.size)
+        .map(v => v.size)
+    )
+  ];
+
+  if (sizesForColor.length > 0) {
+    setSelectedSize(prev =>
+      prev && sizesForColor.includes(prev) ? prev : sizesForColor[0]
+    );
+  }
+}, [selectedColor, product]);
+
 
   // 📱 Responsive image gallery handler
   const onThumbnailClick = (media, index) => {

@@ -501,23 +501,33 @@ const Invoice = () => {
               {orderData.items && orderData.items.length > 0 ? (
                 orderData.items.map((item, index) => (
                   <tr key={index} className="border-b border-gray-200">
-                    <td className="py-3 px-4">
-                      <div className="flex items-start gap-2">
-                        <span className="font-semibold">{index + 1}.</span>
-                        <div>
-                          <div className="font-medium text-gray-900">{item.name}</div>
-                          {item.selectedColor && (
-                            <div className="text-sm text-gray-600 mt-1">Color: {item.selectedColor}</div>
-                          )}
-                          {item.selectedSize && (
-                            <div className="text-sm text-gray-600">Size: {item.selectedSize}</div>
-                          )}
-                          {item.selectedRam && (
-                            <div className="text-sm text-gray-600">RAM: {item.selectedRam}</div>
-                          )}
-                        </div>
-                      </div>
-                    </td>
+                   <td className="py-3 px-4">
+  <div className="flex items-start gap-2">
+    <span className="font-semibold">{index + 1}.</span>
+
+    <div>
+      <div className="font-medium text-gray-900">
+        {item.name}
+      </div>
+
+      {/* Variants */}
+      <div className="text-sm text-gray-600 mt-1 space-y-0.5">
+        {item.selectedColor && (
+          <div>Color: <span className="font-medium">{item.selectedColor}</span></div>
+        )}
+
+        {item.selectedSize && (
+          <div>Variant: <span className="font-medium">{item.selectedSize}</span></div>
+        )}
+
+        {item.selectedVariant && (
+          <div>Variant: <span className="font-medium">{item.selectedVariant}</span></div>
+        )}
+      </div>
+    </div>
+  </div>
+</td>
+
                     <td className="py-3 px-4 text-center align-top">
                       <span className="text-sm font-medium">{item.quantity || 1}</span>
                     </td>
