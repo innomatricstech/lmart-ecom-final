@@ -15,6 +15,8 @@ import {
 } from "firebase/firestore";
 import { getStorage, ref, getDownloadURL } from "firebase/storage";
 import { useCart } from "../context/CartContext";
+import { useWishlist } from "../context/WishlistContext";
+
 
 // ⭐ Star Rating Component
 
@@ -723,17 +725,7 @@ const isVideoUrl = (url) => {
 
 // ⭐ Main Product Detail Component
 const ProductDetail = ({ product: propProduct }) => {
-  const handleNotifyMe = () => {
-  const phoneNumber = "918762978777"; // 🔁 replace with YOUR WhatsApp number (with country code)
 
-  const message = encodeURIComponent(
-    `Hello, I want to be notified when this product is back in stock.\n\nProduct: ${product.name}`
-  );
-
-  const whatsappUrl = `https://wa.me/${phoneNumber}?text=${message}`;
-
-  window.open(whatsappUrl, "_blank");
-};
   const { productId } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
@@ -757,6 +749,17 @@ const ProductDetail = ({ product: propProduct }) => {
   const productState = useMemo(() => location.state?.product, [location.state]);
 
   const [product, setProduct] = useState(propProduct || null);
+   const handleNotifyMe = () => {
+  const phoneNumber = "918762978777"; // 🔁 replace with YOUR WhatsApp number (with country code)
+
+  const message = encodeURIComponent(
+    `Hello, I want to be notified when this product is back in stock.\n\nProduct: ${product.name}`
+  );
+
+  const whatsappUrl = `https://wa.me/${phoneNumber}?text=${message}`;
+
+  window.open(whatsappUrl, "_blank");
+};
   const [loading, setLoading] = useState(!propProduct);
   const [images, setImages] = useState([]);
   const [videos, setVideos] = useState([]);
@@ -784,6 +787,33 @@ const ProductDetail = ({ product: propProduct }) => {
   const [colorImageMap, setColorImageMap] = useState({});
   const [showAllReviews, setShowAllReviews] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
+
+  const { toggleWishlist, isProductInWishlist } = useWishlist();
+
+const inWishlist = product ? isProductInWishlist(product.id) : false;
+
+const handleWishlistToggle = (e) => {
+  e.stopPropagation();
+
+  if (!product) return;
+
+  const token = localStorage.getItem("token");
+  const isLoggedIn = token && localStorage.getItem("isLoggedIn") === "true";
+
+  if (!isLoggedIn) {
+    navigate("/login", {
+      state: {
+        from: `/product/${productId}`,
+        wishlistRedirect: true,
+        productId,
+      },
+    });
+    return;
+  }
+
+  toggleWishlist(product);
+};
+
 
   const productTag = location.state?.source || product?.productTag || null;
   const source = location.state?.source || "e-market";
@@ -1916,10 +1946,43 @@ const onBuyNow = async (e) => {
             <div className="space-y-3">
               <div className="relative w-full max-w-[450px] h-[280px] sm:h-[360px] md:h-[420px] lg:h-[500px] mx-auto lg:ml-12 rounded-lg overflow-hidden flex items-center justify-center">
                 {/* SOLD OUT OVERLAY */}
+                {/* ❤️ WISHLIST BUTTON */}
+<button
+  onClick={handleWishlistToggle}
+  className="absolute top-4 right-4 z-10
+             w-11 h-11 flex items-center justify-center
+             bg-white rounded-full shadow-md
+             hover:scale-110 transition-transform
+             pointer-events-auto"
+>
+
+  <svg
+    className="w-5 h-5 text-red-500"
+    fill={inWishlist ? "#fca5a5" : "none"}
+    stroke="currentColor"
+    strokeWidth={2}
+    viewBox="0 0 26 28"
+  >
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      d="M13 25s-9.5-5.6-12-12.3C-1.4 7.9 1.6 2.4 7 2.1
+         c2.9-.1 5.1 1.8 6 3.4
+         1-1.6 3.1-3.5 6-3.4
+         5.4.3 8.4 5.8 6 10.6
+         C22.5 19.4 13 25 13 25z"
+    />
+  </svg>
+</button>
+
+
+
+                
 {availableStock === 0 && (
   <>
     {/* Dark overlay */}
-    <div className="absolute inset-0 bg-black/50 z-20"></div>
+    
+<div className="absolute inset-0 bg-black/50 z-5 pointer-events-none"></div>
 
     {/* OUT OF STOCK ribbon */}
     <div className="absolute top-4 right-[-60px] z-30 rotate-45 mt-10">
@@ -2003,6 +2066,7 @@ const onBuyNow = async (e) => {
                   </div>
                 )}
               </div>
+              
 
               {/* THUMBNAILS */}
               {allMedia.length > 1 && (
