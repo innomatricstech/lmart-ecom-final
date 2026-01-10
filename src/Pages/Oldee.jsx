@@ -1524,7 +1524,7 @@ const openCreate = () => {
                       )}
                     </div>
                     <p className="text-sm text-gray-600 line-clamp-2 mb-3">{p.description}</p>
-                    <div className="flex items-center justify-between text-xs text-gray-500">
+                    <div className="flex items-center justify-between text-xs font-bold text-gray">
                       <span>
                         {p.createdAt?.toDate?.() 
                           ? new Date(p.createdAt.toDate()).toLocaleDateString('en-US', {
