@@ -169,6 +169,8 @@ const WishlistProductCard = ({ product }) => {
   const { addToCart, items } = useCart();
   const [productDetails, setProductDetails] = useState(null);
   const [loading, setLoading] = useState(true);
+// 🔥 STOCK CHECK
+
 
   // Fetch product details on component mount
   useEffect(() => {
@@ -205,8 +207,47 @@ const WishlistProductCard = ({ product }) => {
     loadProductDetails();
   }, [product]);
 
+  
   // Get price using helper function
   const displayProduct = productDetails || product;
+ 
+
+// 🔥 STOCK CHECK
+const getAvailableStock = (product) => {
+  // ✅ CASE 1: Variant-based stock
+  if (Array.isArray(product?.variants) && product.variants.length > 0) {
+    const variant =
+      product.variants.find(v => typeof v.stock === "number") ||
+      product.variants[0];
+
+    const stock = Number(variant?.stock);
+    return isNaN(stock) ? 9999 : stock;
+  }
+
+  // ✅ CASE 2: Root-level stock
+  if (typeof product?.stock === "number") {
+    return product.stock;
+  }
+
+  // ✅ CASE 3: No stock info → assume in stock
+  return 9999;
+};
+
+const availableStock = getAvailableStock(displayProduct);
+const isOutOfStock = availableStock === 0;
+
+// 🔔 NOTIFY ME
+const handleNotifyMe = (e) => {
+  e.stopPropagation();
+
+  const phoneNumber = "918762978777";
+  const message = encodeURIComponent(
+    `Hello, please notify me when this product is back in stock.\n\nProduct: ${displayProduct.name}`
+  );
+
+  window.open(`https://wa.me/${phoneNumber}?text=${message}`, "_blank");
+};
+
   const { finalPrice, originalPrice } = getVariantPrice(displayProduct);
   const discount = originalPrice > 0 
     ? Math.round(((originalPrice - finalPrice) / originalPrice) * 100) 
@@ -265,30 +306,58 @@ const WishlistProductCard = ({ product }) => {
       className="bg-white rounded-lg border shadow-sm hover:shadow-md transition cursor-pointer flex flex-col w-full max-w-[250px] mx-auto"
       onClick={handleProductClick}
     >
-      {/* IMAGE */}
-      <div className="relative flex items-center justify-center bg-white p-3 h-48 sm:h-56">
-        <img
-          src={productImage}
-          alt={displayProduct.name}
-          className="object-contain w-full h-full"
-          onError={(e) => (e.target.src = PLACEHOLDER_IMAGE)}
-        />
+    <div className="relative flex items-center justify-center bg-white p-3 h-48 sm:h-56 overflow-hidden">
+  
+  {/* PRODUCT IMAGE */}
+  <img
+    src={productImage}
+    alt={displayProduct.name}
+    className={`object-contain w-full h-full transition-transform duration-300 ${
+      isOutOfStock ? "scale-105 blur-[1px]" : ""
+    }`}
+    onError={(e) => (e.target.src = PLACEHOLDER_IMAGE)}
+  />
 
-        {/* ❤️ WISHLIST - Heart icon */}
-        <button
-          onClick={handleWishlistToggle}
-          className="absolute top-3 right-3 p-2 bg-white rounded-full shadow-md hover:scale-110 transition z-10 text-red-600"
-          aria-label="Remove from wishlist"
-        >
-X        </button>
+  {/* ❤️ WISHLIST BUTTON */}
+  <button
+    onClick={handleWishlistToggle}
+    className="absolute top-3 right-3 z-30
+               p-2 bg-white rounded-full
+               shadow-md hover:scale-110 transition
+               text-red-600"
+    aria-label="Remove from wishlist"
+  >
+    X
+  </button>
 
-        {/* DISCOUNT */}
-        {discount > 0 && (
-          <span className="absolute top-3 left-3 bg-red-600 text-white text-xs px-2 py-1 rounded">
-            -{discount}%
-          </span>
-        )}
+  {/* 🟥 OUT OF STOCK OVERLAY (SAME AS E-MARKET) */}
+  {isOutOfStock && (
+    <>
+      {/* Dark overlay */}
+      <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-black/50 to-black/70 z-10" />
+
+      {/* Diagonal ribbon */}
+      <div className="absolute top-12 right-[-55px] rotate-45 z-20">
+        <span className="block bg-red-600 text-white
+                         text-xs sm:text-sm
+                         font-extrabold
+                         px-20 py-2
+                         shadow-2xl
+                         tracking-widest uppercase">
+          Out of Stock
+        </span>
       </div>
+    </>
+  )}
+
+  {/* DISCOUNT BADGE */}
+  {discount > 0 && !isOutOfStock && (
+    <span className="absolute top-3 left-3 bg-red-600 text-white text-xs px-2 py-1 rounded z-20">
+      -{discount}%
+    </span>
+  )}
+</div>
+
 
       {/* CONTENT */}
       <div className="px-2 sm:px-4 pb-3 flex flex-col flex-grow">
@@ -326,21 +395,41 @@ X        </button>
         </div>
 
         {/* ADD TO CART / VIEW CART BUTTON */}
-        {qty > 0 ? (
-          <button
-            onClick={handleViewCart}
-            className="w-full bg-green-600 hover:bg-green-700 text-white py-1.5 sm:py-2 rounded-md font-medium text-xs sm:text-base mt-2 transition-all"
-          >
-            View Cart
-          </button>
-        ) : (
-          <button
-            onClick={handleAddToCart}
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white py-1.5 sm:py-2 rounded-md font-medium text-xs sm:text-base mt-2 transition-all"
-          >
-            Add to Cart
-          </button>
-        )}
+        {isOutOfStock ? (
+  <button
+    onClick={handleNotifyMe}
+    className="w-full mt-2
+               bg-green-600 hover:bg-green-700
+               text-white py-1.5 sm:py-2
+               rounded-md font-medium
+               text-xs sm:text-base transition"
+  >
+    Notify Me
+  </button>
+) : qty > 0 ? (
+  <button
+    onClick={handleViewCart}
+    className="w-full mt-2
+               bg-green-600 hover:bg-green-700
+               text-white py-1.5 sm:py-2
+               rounded-md font-medium
+               text-xs sm:text-base transition"
+  >
+    View Cart
+  </button>
+) : (
+  <button
+    onClick={handleAddToCart}
+    className="w-full mt-2
+               bg-blue-600 hover:bg-blue-700
+               text-white py-1.5 sm:py-2
+               rounded-md font-medium
+               text-xs sm:text-base transition"
+  >
+    Add to Cart
+  </button>
+)}
+
       </div>
     </div>
   );
