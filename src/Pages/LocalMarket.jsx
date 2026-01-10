@@ -209,7 +209,8 @@ const isOutOfStock = availableStock === 0;
       onClick={() => navigate(`/product/${product.id}`, { state: { product } })}
     >
       {/* 🔥 UPDATED: Image container with full image display */}
-     <div className="relative flex items-center justify-center bg-white p-4 h-48 sm:h-56 overflow-hidden rounded-lg">
+<div className="relative flex items-center justify-center bg-white p-4 h-48 sm:h-56 overflow-hidden rounded-lg">
+  
   <img
     src={product.image}
     alt={product.name}
@@ -219,7 +220,36 @@ const isOutOfStock = availableStock === 0;
     onError={(e) => (e.target.src = PLACEHOLDER_IMAGE)}
   />
 
-  {/* 🔥 OUT OF STOCK OVERLAY */}
+  {/* ❤️ WISHLIST (ALWAYS VISIBLE) */}
+  <button
+    onClick={handleWishlistToggle}
+    className="absolute top-3 right-3 z-30
+               w-9 h-9 flex items-center justify-center
+               bg-white rounded-full
+               shadow-[0_4px_12px_rgba(0,0,0,0.15)]
+               hover:scale-110 transition"
+    title={inWishlist ? "Remove from Wishlist" : "Add to Wishlist"}
+  >
+    <svg
+      className="w-4 h-4 text-red-500"
+      fill={inWishlist ? "#fdd8d8ff" : "none"}
+      stroke="currentColor"
+      strokeWidth={2}
+      viewBox="0 0 26 28"
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M13 25s-9.5-5.6-12-12.3C-1.4 7.9 1.6 2.4 7 2.1
+           c2.9-.1 5.1 1.8 6 3.4
+           1-1.6 3.1-3.5 6-3.4
+           5.4.3 8.4 5.8 6 10.6
+           C22.5 19.4 13 25 13 25z"
+      />
+    </svg>
+  </button>
+
+  {/* 🟥 OUT OF STOCK OVERLAY */}
   {isOutOfStock && (
     <>
       <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-black/50 to-black/70 z-10"></div>
@@ -229,6 +259,10 @@ const isOutOfStock = availableStock === 0;
           OUT OF STOCK
         </span>
       </div>
+    </>
+  )}
+</div>
+
       <button
   onClick={handleWishlistToggle}
   className="absolute top-3 right-3 z-30
@@ -257,12 +291,9 @@ const isOutOfStock = availableStock === 0;
   </svg>
 </button>
 
-    </>
-  )}
+   
 
-  {/* Wishlist stays on top */}
  
-</div>
 
 
 <div className="px-2 pt-0 pb-1 sm:px-4 sm:pt-1 sm:pb-3 flex flex-col">
