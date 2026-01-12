@@ -1355,33 +1355,37 @@ const openCreate = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="bg-white border-b shadow-sm">
-        <div className="w-full px-6 py-2">
-          <div className="mb-0.5">
-            <div className="flex flex-wrap gap-2">
-              {categories.map((category) => (
-                <button
-                  key={category}
-                  onClick={() => setSelectedCategory(category)}
-                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                    selectedCategory === category
-                      ? "bg-blue-600 text-white"
-                      : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                  }`}
-                >
-                  {category}
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-      </div>
+     <div className="bg-white border-b shadow-sm">
+  <div className="w-full px-6 py-3">
+    <div className="flex flex-wrap items-center gap-3">
+
+     
+      {/* 📂 Category Buttons */}
+      {categories.map((category) => (
+        <button
+          key={category}
+          onClick={() => setSelectedCategory(category)}
+          className={`h-10 px-4 rounded-lg text-sm font-medium transition-colors ${
+            selectedCategory === category
+              ? "bg-blue-600 text-white"
+              : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+          }`}
+        >
+          {category}
+        </button>
+      ))}
+    </div>
+  </div>
+</div>
+
 
       <div className="w-full px-8 py-8">
-        <div className="mb-8 flex items-center justify-between">
+        <div className="mb-8 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+
           <h1 className=" "> </h1>
-          
-          <div className="flex items-center gap-3">
+          <div className="flex flex-col gap-3 w-full lg:w-auto lg:flex-row lg:items-center">
+
+
             {currentUser ? (
               <>
                 {isAdmin && (
@@ -1393,7 +1397,35 @@ const openCreate = () => {
                   </div>
                 )}
                 
-                <div className="flex items-center gap-2 mr-2">
+                <div className="flex flex-wrap items-center gap-2 w-full lg:w-auto">
+
+                   {/* 🔍 Search Box */}
+      <div className="relative w-full sm:w-64">
+
+       <input
+  type="text"
+  value={searchQuery}
+  onChange={(e) => setSearchQuery(e.target.value)}
+  placeholder="Search products…"
+  className="h-10 w-full px-4 pr-10 rounded-lg border border-gray-300 text-sm
+             focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+/>
+
+        <svg
+          className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M21 21l-4.35-4.35m1.85-5.65a7 7 0 11-14 0 7 7 0 0114 0z"
+          />
+        </svg>
+      </div>
+
                   <button
                     onClick={openUserViewer}
                     className="px-4 py-2 rounded-lg bg-purple-600 text-white font-medium text-sm transition-colors flex items-center gap-2"
