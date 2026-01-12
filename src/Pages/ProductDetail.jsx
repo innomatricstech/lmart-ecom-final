@@ -443,7 +443,14 @@ const RelatedProducts = ({
                 break;
             }
 
-            navigate(storePath);
+          navigate(
+  source === "local-market"
+    ? "/local-market"
+    : source === "printing"
+    ? "/printing"
+    : "/e-market"
+);
+
 
             setTimeout(() => {
               window.scrollTo({ top: 0, behavior: "smooth" });
@@ -477,7 +484,8 @@ const RelatedProducts = ({
               navigate(`/product/${product.id}`, {
                 state: {
                   product,
-                  source: product.productTag || source,
+                  source: source,
+
                 },
               })
             }
@@ -749,6 +757,21 @@ const ProductDetail = ({ product: propProduct }) => {
   const productState = useMemo(() => location.state?.product, [location.state]);
 
   const [product, setProduct] = useState(propProduct || null);
+  const resolvedSource = useMemo(() => {
+  const path = location.pathname;
+
+  if (path.startsWith("/local-market")) return "local-market";
+  if (path.startsWith("/printing")) return "printing";
+
+  return (
+    location.state?.source ||
+    product?.productTag ||
+    product?.source ||
+    "e-market"
+  );
+}, [location.pathname, location.state, product]);
+
+
    const handleNotifyMe = () => {
   const phoneNumber = "918762978777"; // 🔁 replace with YOUR WhatsApp number (with country code)
 
@@ -797,10 +820,8 @@ const handleWishlistToggle = (e) => {
 
   if (!product) return;
 
-  const token = localStorage.getItem("token");
-  const isLoggedIn = token && localStorage.getItem("isLoggedIn") === "true";
-
-  if (!isLoggedIn) {
+  // ✅ TRUST currentUser (already synced with login)
+  if (!currentUser) {
     navigate("/login", {
       state: {
         from: `/product/${productId}`,
@@ -815,18 +836,25 @@ const handleWishlistToggle = (e) => {
 };
 
 
-  const productTag = location.state?.source || product?.productTag || null;
-  const source = location.state?.source || "e-market";
+
+  const productTag = resolvedSource;
+const source = resolvedSource;
+
 
   // 🔙 BACK BUTTON HANDLER
   const handleBack = () => {
-    let path = "/e-market";
+ 
 
-    if (productTag === "local-market") path = "/local-market";
-    if (productTag === "printing") path = "/printing";
-    if (productTag === "e-market") path = "/e-market";
+const STORE_ROUTES = {
+  "local-market": "/local-market",
+  printing: "/printing",
+  "e-market": "/e-market",
+};
 
-    navigate(path);
+navigate(STORE_ROUTES[resolvedSource] || "/e-market");
+
+
+navigate(path);
 
     setTimeout(() => {
       window.scrollTo({ top: 0, behavior: "smooth" });
@@ -1132,6 +1160,17 @@ const handleWishlistToggle = (e) => {
     }
   }, [productId, product?.rating]);
 
+     const getCollectionName = () => {
+  if (location.state?.source === "local-market") return "localmarket";
+  if (location.state?.source === "printing") return "printing";
+
+  // 🔁 fallback: infer from productTag if exists
+  if (product?.productTag === "local-market") return "localmarket";
+  if (product?.productTag === "printing") return "printing";
+
+  return "products"; // e-market
+};
+
   // 🔄 LOAD PRODUCT DATA
   useEffect(() => {
     const loadProduct = async () => {
@@ -1152,15 +1191,24 @@ const handleWishlistToggle = (e) => {
         if (productState && productState.id === productId) {
           productData = productState;
         } else {
-          const productRef = doc(db, "products", productId);
+          const collectionName = getCollectionName();
+const productRef = doc(db, collectionName, productId);
+
           const productSnap = await getDoc(productRef);
 
-          if (productSnap.exists()) {
-            productData = {
-              id: productSnap.id,
-              ...productSnap.data(),
-            };
-          }
+         productData = {
+  id: productSnap.id,
+  ...productSnap.data(),
+  source:
+    location.state?.source ||
+    productSnap.data()?.productTag ||
+    (collectionName === "localmarket"
+      ? "local-market"
+      : collectionName === "printing"
+      ? "printing"
+      : "e-market"),
+};
+
         }
 
         if (productData) {
@@ -1335,6 +1383,7 @@ const handleWishlistToggle = (e) => {
     };
 
     loadProduct();
+ 
   }, [productId, productState, fetchReviews, propProduct]);
 
   // 🔄 Update variant when color/size changes
@@ -1568,7 +1617,15 @@ if (maxAvailable < quantity) {
     if (!product || !variant) return;
 
     try {
-      const productRef = doc(db, "products", product.id);
+     const collectionName =
+  product.source === "local-market"
+    ? "localmarket"
+    : product.source === "printing"
+    ? "printing"
+    : "products";
+
+const productRef = doc(db, collectionName, product.id);
+
 
       await runTransaction(db, async (transaction) => {
         const productDoc = await transaction.get(productRef);
@@ -1880,23 +1937,20 @@ const onBuyNow = async (e) => {
                 </svg>
 
                 <button
-                  onClick={() => {
-                    let path = "/e-market";
+  onClick={() => {
+    const STORE_ROUTES = {
+      "local-market": "/local-market",
+      printing: "/printing",
+      "e-market": "/e-market",
+    };
 
-                    if (productTag === "local-market") path = "/local-market";
-                    if (productTag === "printing") path = "/printing";
-                    if (productTag === "e-market") path = "/e-market";
+    navigate(STORE_ROUTES[resolvedSource] || "/e-market");
+  }}
+  className="capitalize text-purple-600 hover:text-purple-800 hover:underline"
+>
+  {resolvedSource.replace("-", " ")}
+</button>
 
-                    navigate(path);
-
-                    setTimeout(() => {
-                      window.scrollTo({ top: 0, behavior: "smooth" });
-                    }, 0);
-                  }}
-                  className="capitalize text-purple-600 hover:text-purple-800 hover:underline transition-colors"
-                >
-                  {productTag.replace("-", " ")}
-                </button>
               </>
             )}
 

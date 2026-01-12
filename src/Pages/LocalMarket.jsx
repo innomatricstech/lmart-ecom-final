@@ -203,11 +203,19 @@ const isOutOfStock = availableStock === 0;
 
   // 🔥 UPDATED: Image container with full image display
   return (
-        <div
-      key={product.id}
-      className="bg-white rounded-lg shadow-sm hover:shadow-md transition border cursor-pointer flex flex-col h-full"
-      onClick={() => navigate(`/product/${product.id}`, { state: { product } })}
-    >
+      <div
+  key={product.id}
+  className="bg-white rounded-lg shadow-sm hover:shadow-md transition border cursor-pointer flex flex-col h-full"
+  onClick={() =>
+    navigate(`/product/${product.id}`, {
+      state: {
+        product,
+        source: "local-market", // ✅ FIX
+      },
+    })
+  }
+>
+
       {/* 🔥 UPDATED: Image container with full image display */}
 <div className="relative flex items-center justify-center bg-white p-4 h-48 sm:h-56 overflow-hidden rounded-lg">
   
