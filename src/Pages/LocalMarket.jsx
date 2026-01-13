@@ -377,7 +377,7 @@ const LocalMarket = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { items = [], addToCart } = useCart();
-
+ 
   const [products, setProducts] = useState([]);
   const [productReviews, setProductReviews] = useState({});
   const [mainCategories, setMainCategories] = useState(["All Products"]);
@@ -395,6 +395,20 @@ const LocalMarket = () => {
   const [toastMessage, setToastMessage] = useState("");
   const [selectedRatings, setSelectedRatings] = useState([]);
 
+  useEffect(() => {
+    if (location.state?.resetFilters) {
+      setSelectedMainCategory("All Products");
+      setSelectedSubCategory("All");
+      setSelectedBrand("All Brands");
+      setSelectedRatings([]);
+      setPriceRange([0, MAX_SLIDER]);
+      setShowFilters(false);
+  
+      // clear state so it doesn’t loop
+      navigate(location.pathname, { replace: true, state: null });
+    }
+  }, [location.key]); // ✅ THIS IS THE KEY FIX
+  
   const { isLoggedIn } = useWishlist();
 
   const searchQuery = useMemo(() => {

@@ -950,19 +950,22 @@ const UploadProgress = () => {
                 )}
               </Link>
               <Link
-                to="/e-market"
-                onClick={scrollToTop}
-                className={`text-blue-700 hover:text-purple-500 font-medium relative text-m ${
-                  location.pathname === "/e-market" ? "active-nav-item" : ""
-                }`}
-              >
-                E-Store
-                {location.pathname === "/e-market" && (
-                  <span className="absolute bottom-[-6px] left-0 w-full h-[2px] bg-purple-500 rounded-full"></span>
-                )}
-              </Link>
+  to="/e-market"
+  state={{ resetFilters: true }}   // ✅ ADD THIS
+  onClick={scrollToTop}
+  className={`text-blue-700 hover:text-purple-500 font-medium relative text-m ${
+    location.pathname === "/e-market" ? "active-nav-item" : ""
+  }`}
+>
+  E-Store
+  {location.pathname === "/e-market" && (
+    <span className="absolute bottom-[-6px] left-0 w-full h-[2px] bg-purple-500 rounded-full"></span>
+  )}
+</Link>
+
               <Link
                 to="/local-market"
+                state={{ resetFilters: true }} 
                 onClick={scrollToTop}
                 className={`text-blue-700 hover:text-purple-500 font-medium relative text-m ${
                   location.pathname === "/local-market" ? "active-nav-item" : ""
@@ -974,108 +977,167 @@ const UploadProgress = () => {
                 )}
               </Link>
               <Link
-                to="/printing"
-                onClick={scrollToTop}
-                className={`text-blue-700 hover:text-purple-500 font-medium relative text-m ${
-                  location.pathname === "/printing" ? "active-nav-item" : ""
-                }`}
-              >
-                Printing
+  to="/printing"
+  state={{ resetFilters: true }}   // ✅ ADD
+  onClick={scrollToTop}
+  className={`text-blue-700 hover:text-purple-500 font-medium relative text-m ${
+    location.pathname === "/printing" ? "active-nav-item" : ""
+  }`}
+>
+  Printing
+
                 {location.pathname === "/printing" && (
                   <span className="absolute bottom-[-6px] left-0 w-full h-[2px] bg-purple-500 rounded-full"></span>
                 )}
               </Link>
               <Link
-                to="/news-today"
-                onClick={scrollToTop}
-                className={`text-blue-700 hover:text-purple-500 font-medium relative text-m ${
-                  location.pathname === "/news-today" ? "active-nav-item" : ""
-                }`}
-              >
-                Market News 
+  to="/news-today"
+  state={{ resetFilters: true }}   // ✅ ADD THIS
+  onClick={scrollToTop}
+  className={`text-blue-700 hover:text-purple-500 font-medium relative text-m ${
+    location.pathname === "/news-today" ? "active-nav-item" : ""
+  }`}
+>
+  Market News
+
                 {location.pathname === "/news-today" && (
                   <span className="absolute bottom-[-6px] left-0 w-full h-[2px] bg-purple-500 rounded-full"></span>
                 )}
               </Link>
               {/* Oldee Link */}
               <Link
-                to="/oldee"
-                onClick={scrollToTop}
-                className={`text-blue-700 hover:text-purple-500 font-medium relative text-m ${
-                  location.pathname === "/oldee" ? "active-nav-item" : ""
-                }`}
-              >
-                Oldee
-                {location.pathname === "/oldee" && (
-                  <span className="absolute bottom-[-6px] left-0 w-full h-[2px] bg-purple-500 rounded-full"></span>
-                )}
-              </Link>
+  to="/oldee"
+  state={{ resetFilters: true }}   // ✅ ADD THIS LINE
+  onClick={scrollToTop}
+  className={`text-blue-700 hover:text-purple-500 font-medium relative text-m ${
+    location.pathname === "/oldee" ? "active-nav-item" : ""
+  }`}
+>
+  Oldee
+  {location.pathname === "/oldee" && (
+    <span className="absolute bottom-[-6px] left-0 w-full h-[2px] bg-purple-500 rounded-full"></span>
+  )}
+</Link>
+
             </nav>
 
             {/* Search and Actions - Hidden on mobile */}
             <div className="hidden md:flex items-center space-x-3">
               {/* Search Bar Component with Auto Suggestions - MODIFIED */}
-              <div className="relative" ref={searchRef}>
-                <form
-                  onSubmit={handleSearchSubmit}
-                  className="w-full max-w-md flex items-center bg-white shadow-lg rounded-full px-3 py-1.5 gap-3"
-                >
-                  {/* Left side search icon REMOVED */}
-                  
-                  <input
-                    type="text"
-                    value={query}
-                    placeholder="Search products..."
-                    onChange={(e) => setQuery(e.target.value)}
-                    onFocus={() => query.trim() && setShowSuggestions(true)}
-                    className="flex-1 bg-transparent outline-none text-sm w-full pl-4"
-                  />
+             {/* Navbar Search – Oldee Style UI */}
+<div className="relative w-full max-w-lg" ref={searchRef}>
+  <form
+  onSubmit={handleSearchSubmit}
+  className="
+    flex items-center
+    bg-white
+    border border-gray-300
+    rounded-full
+    h-11
+    px-5
+    shadow-sm
+    transition
+  "
+>
 
-                  {/* Right side Search Icon Button - Blue Color */}
-                  <button
-                    type="button"
-                    onClick={handleIconSearch}
-                    className="text-blue-600 hover:text-blue-800 transition p-1"
-                  >
-                    <svg
-                      className="w-5 h-5"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                      />
-                    </svg>
-                  </button>
-                </form>
+   <input
+  type="text"
+  value={query}
+  placeholder="Search products..."
+  onChange={(e) => setQuery(e.target.value)}
+  onFocus={() => query.trim() && setShowSuggestions(true)}
+  className="
+    flex-1
+    bg-transparent
+    outline-none
+    focus:outline-none
+    focus:ring-0
+    text-sm
+    placeholder-gray-400
+  "
+/>
 
-                {/* Suggestions Box */}
-                {showSuggestions && suggestions.length > 0 && (
-                  <div className="absolute top-12 left-0 w-full bg-white shadow-lg rounded-lg border z-50 overflow-hidden">
-                    {suggestions.map((item) => (
-                      <div
-                        key={item.id}
-                        className="p-2 hover:bg-gray-100 cursor-pointer flex items-center gap-3"
-                        onClick={() => handleSelectSuggestion(item)}
-                      >
-                        <img
-                          src={item.mainImageUrl}
-                          alt={item.name}
-                          className="w-8 h-8 rounded object-cover"
-                        />
-                        <div>
-                          <p className="text-xs font-semibold">{item.name}</p>
-                          <p className="text-xs text-gray-500">{item.productTag}</p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
+
+   <button
+  type="button"
+  onClick={() => {
+    if (query) {
+      setQuery("");
+      setShowSuggestions(false);
+    } else {
+      handleIconSearch();
+    }
+  }}
+  className="
+    text-purple-600
+    hover:text-purple-800
+    transition
+    outline-none
+    focus:outline-none
+    focus:ring-0
+    active:outline-none
+  "
+>
+
+  {query ? (
+    // ❌ Clear icon
+    <svg
+      className="w-5 h-5"
+      fill="none"
+      stroke="currentColor"
+      viewBox="0 0 24 24"
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={2}
+        d="M6 18L18 6M6 6l12 12"
+      />
+    </svg>
+  ) : (
+    // 🔍 Search icon
+    <svg
+      className="w-5 h-5"
+      fill="none"
+      stroke="currentColor"
+      viewBox="0 0 24 24"
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={2}
+        d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+      />
+    </svg>
+  )}
+</button>
+
+  </form>
+
+  {/* Suggestions (unchanged) */}
+  {showSuggestions && suggestions.length > 0 && (
+    <div className="absolute top-12 left-0 w-full bg-white shadow-lg rounded-lg border z-50 overflow-hidden">
+      {suggestions.map((item) => (
+        <div
+          key={item.id}
+          className="p-2 hover:bg-gray-100 cursor-pointer flex items-center gap-3"
+          onClick={() => handleSelectSuggestion(item)}
+        >
+          <img
+            src={item.mainImageUrl}
+            alt={item.name}
+            className="w-8 h-8 rounded object-cover"
+          />
+          <div>
+            <p className="text-xs font-semibold">{item.name}</p>
+            <p className="text-xs text-gray-500">{item.productTag}</p>
+          </div>
+        </div>
+      ))}
+    </div>
+  )}
+</div>
+
               {/* END Search Bar Component */}
 
               {/* Upload and Download functionality */}
@@ -1250,55 +1312,63 @@ const UploadProgress = () => {
                   🏠 Home
                 </Link>
                 <Link
-                  to="/e-market"
-                  onClick={() => {
-                    setIsMenuOpen(false);
-                    scrollToTop();
-                  }}
-                  className="text-sm font-medium text-gray-900 hover:text-gray-700 flex items-center"
-                >
-                  🛒 E-Store
-                </Link>
+  to="/e-market"
+  state={{ resetFilters: true }}
+  onClick={() => {
+    setIsMenuOpen(false);
+    scrollToTop();
+  }}
+>
+  🛒 E-Store
+</Link>
+<Link
+  to="/local-market"
+  state={{ resetFilters: true }}   // ✅ ADD THIS
+  onClick={() => {
+    setIsMenuOpen(false);
+    scrollToTop();
+  }}
+  className="text-sm font-medium text-gray-900 hover:text-gray-700 flex items-center"
+>
+  🏪 Local Market
+</Link>
+
+               <Link
+  to="/printing"
+  state={{ resetFilters: true }}   // ✅ ADD
+  onClick={() => {
+    setIsMenuOpen(false);
+    scrollToTop();
+  }}
+  className="text-sm font-medium text-gray-900 hover:text-gray-700 flex items-center"
+>
+  🖨️ Printing
+</Link>
+
                 <Link
-                  to="/local-market"
-                  onClick={() => {
-                    setIsMenuOpen(false);
-                    scrollToTop();
-                  }}
-                  className="text-sm font-medium text-gray-900 hover:text-gray-700 flex items-center"
-                >
-                  🏪 Local Market
-                </Link>
+  to="/news-today"
+  state={{ resetFilters: true }}   // ✅ ADD THIS
+  onClick={() => {
+    setIsMenuOpen(false);
+    scrollToTop();
+  }}
+  className="text-sm font-medium text-gray-900 hover:text-gray-700 flex items-center"
+>
+  📰 Market News
+</Link>
+
                 <Link
-                  to="/printing"
-                  onClick={() => {
-                    setIsMenuOpen(false);
-                    scrollToTop();
-                  }}
-                  className="text-sm font-medium text-gray-900 hover:text-gray-700 flex items-center"
-                >
-                  🖨️ Printing
-                </Link>
-                <Link
-                  to="/news-today"
-                  onClick={() => {
-                    setIsMenuOpen(false);
-                    scrollToTop();
-                  }}
-                  className="text-sm font-medium text-gray-900 hover:text-gray-700 flex items-center"
-                >
-                  📰 Market News
-                </Link>
-                <Link
-                  to="/oldee"
-                  onClick={() => {
-                    setIsMenuOpen(false);
-                    scrollToTop();
-                  }}
-                  className="text-sm font-medium text-gray-900 hover:text-gray-700 flex items-center"
-                >
-                  👴 Oldee
-                </Link>
+  to="/oldee"
+  state={{ resetFilters: true }}   // ✅ ADD THIS
+  onClick={() => {
+    setIsMenuOpen(false);
+    scrollToTop();
+  }}
+  className="text-sm font-medium text-gray-900 hover:text-gray-700 flex items-center"
+>
+  👴 Oldee
+</Link>
+
               </nav>
             </div>
             
@@ -1306,41 +1376,80 @@ const UploadProgress = () => {
             <div className="py-4 px-5 space-y-4">
               {/* Mobile Search with Auto Suggestions - MODIFIED */}
               <div className="relative" ref={searchRef}>
-                <form
-                  onSubmit={handleSearchSubmit}
-                  className="flex items-center bg-gray-50 border border-gray-200 rounded-lg px-3 py-1.5 gap-2"
-                >
-                  {/* Left side search icon REMOVED for mobile too */}
-                  
-                  <input
-                    type="text"
-                    value={query}
-                    placeholder="Search products..."
-                    onChange={(e) => setQuery(e.target.value)}
-                    className="flex-1 bg-transparent outline-none text-xs pl-3"
-                  />
+               <form
+  onSubmit={handleSearchSubmit}
+  className="flex items-center bg-gray-50 border border-gray-200 rounded-lg px-3 py-1.5 gap-2"
+>
+  <input
+    type="text"
+    value={query}
+    placeholder="Search products..."
+    onChange={(e) => setQuery(e.target.value)}
+    onFocus={() => query.trim() && setShowSuggestions(true)}
+    className="
+      flex-1
+      bg-transparent
+      outline-none
+      focus:outline-none
+      focus:ring-0
+      text-xs
+      pl-3
+    "
+  />
 
-                  {/* Mobile Search Icon Button - Blue */}
-                  <button
-                    type="button"
-                    onClick={handleIconSearch}
-                    className="text-blue-600 hover:text-blue-800 transition p-1"
-                  >
-                    <svg
-                      className="w-4 h-4"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M21 21l-6-6m2-5a7 7 0 1114 0 7 7 0 01-7 7z"
-                      />
-                    </svg>
-                  </button>
-                </form>
+  <button
+    type="button"
+    onClick={() => {
+      if (query) {
+        setQuery("");
+        setShowSuggestions(false);
+      } else {
+        handleIconSearch();
+      }
+    }}
+    className="
+      text-blue-600
+      hover:text-blue-800
+      transition
+      outline-none
+      focus:outline-none
+      focus:ring-0
+      active:outline-none
+    "
+  >
+    {query ? (
+      // ❌ Clear icon
+      <svg
+        className="w-4 h-4"
+        fill="none"
+        stroke="currentColor"
+        viewBox="0 0 24 24"
+      >
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth={2}
+          d="M6 18L18 6M6 6l12 12"
+        />
+      </svg>
+    ) : (
+      // 🔍 Search icon
+      <svg
+        className="w-4 h-4"
+        fill="none"
+        stroke="currentColor"
+        viewBox="0 0 24 24"
+      >
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth={2}
+          d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+        />
+      </svg>
+    )}
+  </button>
+</form>
 
                 {/* Mobile Suggestions Box */}
                 {showSuggestions && suggestions.length > 0 && (

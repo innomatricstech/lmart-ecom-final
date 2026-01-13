@@ -399,6 +399,24 @@
     const [selectedRatings, setSelectedRatings] = useState([]);
 
     const { isLoggedIn } = useWishlist();
+    // 🔄 RESET FILTERS WHEN COMING FROM NAVBAR
+useEffect(() => {
+  if (location.state?.resetFilters) {
+    setSelectedMainCategory("All Products");
+    setSelectedSubCategory("All");
+    setSelectedBrand("All Brands");
+    setSelectedRatings([]);
+    setPriceRange([0, MAX_SLIDER]);
+    setShowFilters(false);
+
+    // clear state so it doesn’t loop
+    navigate(location.pathname, { replace: true, state: null });
+  }
+}, [location.key]); // ✅ THIS IS THE KEY FIX
+
+
+
+
 
     const searchQuery = useMemo(() => {
       const params = new URLSearchParams(location.search);
@@ -409,6 +427,8 @@
       const item = items.find(i => i.id === id);
       return item ? item.quantity : 0;
     };
+
+    
 
     // ---------------- FETCH PRODUCTS ----------------
     useEffect(() => {

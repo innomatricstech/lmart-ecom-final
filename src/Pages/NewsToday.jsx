@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { collection, onSnapshot, query, orderBy } from 'firebase/firestore'
 import { db } from '../../firebase'
+import { useLocation } from "react-router-dom";
+
 
 const NewsToday = () => {
   const [selectedCategory, setSelectedCategory] = useState('all')
@@ -12,6 +14,8 @@ const NewsToday = () => {
   const [selectedArticle, setSelectedArticle] = useState(null)
   const videoRef = useRef(null)
 
+  const location = useLocation();
+
   // 🔹 FORMAT DATE
   const formatDate = (dateInput) => {
     if (!dateInput) return '2024-01-01'
@@ -19,6 +23,14 @@ const NewsToday = () => {
       return dateInput.toDate().toISOString().split('T')[0]
     return dateInput
   }
+
+  useEffect(() => {
+  if (location.state?.resetFilters) {
+    setSelectedCategory("all");
+    setSearchTerm("");
+    setSelectedArticle(null);
+  }
+}, [location.state]);
 
   // 🔹 FETCH NEWS + CATEGORIES
   useEffect(() => {
@@ -142,10 +154,23 @@ const NewsToday = () => {
        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
 
           {filtered.map((article) => (
-            <div
-              key={article.id}
-              className="bg-white rounded-xl shadow-lg border hover:shadow-2xl transition flex flex-col overflow-hidden"
-            >
+           <div
+  key={article.id}
+  onClick={() => setSelectedArticle(article)}
+  className="
+    bg-white
+    rounded-xl
+    shadow-lg
+    border
+    hover:shadow-2xl
+    transition
+    flex
+    flex-col
+    overflow-hidden
+    cursor-pointer
+  "
+>
+
               {/* IMAGE */}
               <div className="h-44 bg-gray-100 flex items-center justify-center">
                 <img

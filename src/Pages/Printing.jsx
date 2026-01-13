@@ -145,6 +145,8 @@ const ProductCard = ({ product, addToCart, getQuantity, updateQuantity, navigate
   return isNaN(stock) ? 9999 : stock;
 };
 
+
+
 const availableStock = getAvailableStock(product);
 const isOutOfStock = availableStock === 0;
 
@@ -367,6 +369,20 @@ const Printing = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { items = [], addToCart, updateQuantity } = useCart();
+  useEffect(() => {
+  if (location.state?.resetFilters) {
+    setSelectedMainCategory("All Products");
+    setSelectedSubCategory("All");
+    setSelectedBrand("All Brands");
+    setSelectedRatings([]);
+    setPriceRange([0, MAX_SLIDER]);
+    setShowFilters(false);
+
+    // ✅ remove state + search params so it doesn’t loop
+    navigate("/printing", { replace: true });
+  }
+}, [location.state, navigate]);
+
 
   const [products, setProducts] = useState([]);
   const [mainCategories, setMainCategories] = useState(["All Products"]);
