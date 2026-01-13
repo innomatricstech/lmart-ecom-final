@@ -662,9 +662,9 @@ const selectRandomProducts = (products) => {
                         {product.image ? (
                       <div className="relative w-full h-14 sm:h-16 md:h-20 lg:h-24 xl:h-28 flex items-center justify-center bg-white p-2">
   {/* 🔥 TRENDING BADGE */}
-    <span className="absolute top-1 left-1 z-20 bg-orange-500 text-white text-[8px] sm:text-[9px] lg:text-[10px] font-bold px-1.5 py-0.5 rounded shadow">
+    {/* <span className="absolute top-1 left-1 z-20 bg-orange-500 text-white text-[8px] sm:text-[9px] lg:text-[10px] font-bold px-1.5 py-0.5 rounded shadow">
       LATEST
-    </span>
+    </span> */}
 
   <img
     src={product.image}
