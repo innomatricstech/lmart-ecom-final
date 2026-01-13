@@ -1026,7 +1026,7 @@ const UploadProgress = () => {
               {/* Search Bar Component with Auto Suggestions - MODIFIED */}
              {/* Navbar Search – Oldee Style UI */}
 <div className="relative w-full max-w-lg" ref={searchRef}>
-  <form
+ <form
   onSubmit={handleSearchSubmit}
   className="
     flex items-center
@@ -1037,8 +1037,12 @@ const UploadProgress = () => {
     px-5
     shadow-sm
     transition
+    focus-within:border-blue-600
+    focus-within:ring-2
+    focus-within:ring-blue-500
   "
 >
+
 
    <input
   type="text"
@@ -1376,10 +1380,20 @@ const UploadProgress = () => {
             <div className="py-4 px-5 space-y-4">
               {/* Mobile Search with Auto Suggestions - MODIFIED */}
               <div className="relative" ref={searchRef}>
-               <form
+ <form
   onSubmit={handleSearchSubmit}
-  className="flex items-center bg-gray-50 border border-gray-200 rounded-lg px-3 py-1.5 gap-2"
+  className="
+    flex items-center
+    bg-gray-50
+    border border-gray-200
+    rounded-lg
+    px-3 py-1.5 gap-2
+    focus-within:border-blue-600
+    focus-within:ring-2
+    focus-within:ring-blue-500
+  "
 >
+
   <input
     type="text"
     value={query}
