@@ -1145,31 +1145,39 @@ const UploadProgress = () => {
               {/* END Search Bar Component */}
 
               {/* Upload and Download functionality */}
-              <div className="flex items-center space-x-2">
-                <label className="flex items-center text-gray-700 hover:text-purple-600 text-xs cursor-pointer transition duration-200">
-                  <svg
-                    className="w-3.5 h-3.5 mr-1 text-gray-600"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
-                    />
-                  </svg>
-                  Upload files
-                  <input
-                    type="file"
-                    multiple
-                    className="hidden"
-                    onChange={handleFileUpload}
-                    disabled={isUploading}
-                  />
-                </label>
-                
+              <div className="flex items-center space-x-1">
+             <label className="
+  flex flex-nowrap items-center
+  whitespace-nowrap
+  text-gray-700 hover:text-purple-600
+  text-xs cursor-pointer
+  transition duration-200
+">
+  <svg
+    className="w-3.5 h-3.5 mr-1 text-gray-600 shrink-0"
+    fill="none"
+    stroke="currentColor"
+    viewBox="0 0 24 24"
+  >
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth={2}
+      d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
+    />
+  </svg>
+
+  <span className="whitespace-nowrap">Upload files</span>
+
+  <input
+    type="file"
+    multiple
+    className="hidden"
+    onChange={handleFileUpload}
+    disabled={isUploading}
+  />
+</label>
+
                 <button
                   onClick={() => {
                     navigate("/file-downloads");
