@@ -32,17 +32,19 @@
     return product.variants.find(v => Number(v.price) > 0) || product.variants[0] || null;
   };
 
-  const getPriceData = (product) => {
-    const variant = pickVariant(product);
-    const price = variant ? Number(variant.price || 0) : Number(product.price || 0);
-    const offer = variant?.offerPrice ? Number(variant.offerPrice) : 0;
+ const getPriceData = (product) => {
+  const variant = pickVariant(product);
+  const price = variant ? Number(variant.price || 0) : Number(product.price || 0);
+  const offer = variant?.offerPrice ? Number(variant.offerPrice) : 0;
 
-    const finalPrice = offer && offer < price ? offer : price;
-    const original = offer && offer < price ? price : 0;
-    const discount = original > 0 ? Math.round(((original - finalPrice) / original) * 100) : 0;
-
-    return { finalPrice, original, discount, variant };
+  return {
+    finalPrice: offer && offer < price ? offer : price,
+    original: offer && offer < price ? price : 0,
+    discount: offer && offer < price ? Math.round(((price - offer) / price) * 100) : 0,
+    variant,
+    stock: Number(variant?.stock ?? Infinity)
   };
+};
 
   const keywordMatches = (text, query) => {
     if (!text || !query) return false;
@@ -144,17 +146,27 @@
     calculateProductRating,
     productReviews 
   }) => {
-    const getAvailableStock = (product) => {
-    if (!product?.variants || product.variants.length === 0) return 9999;
+ const getAvailableStock = (product) => {
+  // No variants → always in stock
+  if (!Array.isArray(product?.variants) || product.variants.length === 0) {
+    return Infinity;
+  }
 
-    const variant = product.variants.find(v => Number(v.stock) >= 0) || product.variants[0];
-    const stock = Number(variant?.stock);
+  // Find first variant with real stock
+  const variantWithStock = product.variants.find(
+    v => Number(v.stock) > 0
+  );
 
-    return isNaN(stock) ? 9999 : stock;
-  };
+  // If none found → out of stock
+  if (!variantWithStock) return 0;
+
+  return Number(variantWithStock.stock);
+};
+
+
 
   const availableStock = getAvailableStock(product);
-  const isOutOfStock = availableStock === 0;
+const isOutOfStock = availableStock <= 0;
 
     const navigate = useNavigate();
     const qty = getQuantity(product.id);
@@ -197,16 +209,21 @@
 };
 
     const handleAddToCart = (e) => {
-      e.stopPropagation();
-      addToCart({ 
-        id: product.id, 
-        name: product.name,
-        price: finalPrice,
-        image: product.image,
-        ...product, 
-        quantity: 1 
-      });
-    };
+  e.stopPropagation();
+
+  if (availableStock === 0) return;
+
+  addToCart({
+    id: product.id,
+    name: product.name,
+    price: finalPrice,
+    image: product.image,
+    quantity: 1,
+    stock: availableStock,   // ✅ ADD THIS
+    variantId: product.variant?.id || null
+  });
+};
+
 
     return (
       <div

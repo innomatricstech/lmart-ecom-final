@@ -474,6 +474,7 @@ const Printing = () => {
           return {
             ...data,
             id: doc.id,
+            source: "printing",
             image: img,
             price: finalPrice,
             originalPrice: original,

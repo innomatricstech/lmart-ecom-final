@@ -338,8 +338,7 @@ const RelatedProducts = ({
       setLoading(true);
       try {
         let collectionName = "products";
-        if (source === "local-market") collectionName = "localmarket";
-        if (source === "printing") collectionName = "printing";
+      
 
         const productsRef = collection(db, collectionName);
         const querySnapshot = await getDocs(productsRef);
@@ -539,22 +538,18 @@ const RelatedProducts = ({
                   ({product.reviewCount ?? 0})
                 </span>
               </div>
+<div className="flex items-center gap-1 mt-0.5">
+  <span className="text-base font-bold text-gray-900">
+    ₹{product.price > 0 ? product.price.toLocaleString() : "—"}
+  </span>
 
-              <div className="flex items-center gap-1 mt-0.5">
-                <span className="text-base font-bold text-gray-900">
-                  ₹
-                  {product.price?.toLocaleString() ||
-                    product.offerPrice?.toLocaleString() ||
-                    "0"}
-                </span>
+  {product.originalPrice > product.price && (
+    <span className="text-xs text-gray-500 line-through">
+      ₹{product.originalPrice.toLocaleString()}
+    </span>
+  )}
+</div>
 
-                {product.originalPrice &&
-                  product.originalPrice > product.price && (
-                    <span className="text-xs text-gray-500 line-through">
-                      ₹{product.originalPrice.toLocaleString()}
-                    </span>
-                  )}
-              </div>
 
               <div className="mt-1">
                 <span className="inline-flex w-full items-center justify-center text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 px-3 py-1.5 rounded transition">
@@ -1842,9 +1837,11 @@ const onBuyNow = async (e) => {
     );
   }
 
-  // 📊 Product data calculations
-  const displayPrice =
-    variant?.offerPrice ?? variant?.price ?? product.price ?? 0;
+const displayPrice =
+  variant?.offerPrice > 0
+    ? variant.offerPrice
+    : variant?.price ?? product.price ?? 0;
+
   const originalPrice = variant?.price ?? product.price ?? 0;
   const discount =
     originalPrice > displayPrice
