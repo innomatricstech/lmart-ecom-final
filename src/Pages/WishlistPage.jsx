@@ -81,15 +81,16 @@ const fetchReviewStats = async (productId) => {
 
 // ⭐ PRICE HELPER FUNCTION
 const getVariantPrice = (product) => {
-  if (!Array.isArray(product?.variants)) {
+  if (!Array.isArray(product?.variants) || product.variants.length === 0) {
+    const price = Number(product.price || 0);
     return {
-      finalPrice: product.price || 0,
-      originalPrice: product.originalPrice || 0,
+      finalPrice: price,
+      originalPrice: 0,
     };
   }
 
   const variant =
-    product.variants.find((v) => v.offerPrice || v.price) ||
+    product.variants.find(v => Number(v.price) > 0) ||
     product.variants[0];
 
   if (!variant) {
@@ -97,9 +98,9 @@ const getVariantPrice = (product) => {
   }
 
   const price = Number(variant.price || 0);
-  const offer = Number(variant.offerPrice || 0);
+  const offer = Number(variant.offerPrice);
 
-  if (offer > 0 && offer < price) {
+  if (!isNaN(offer) && offer > 0 && offer < price) {
     return {
       finalPrice: offer,
       originalPrice: price,
@@ -111,6 +112,10 @@ const getVariantPrice = (product) => {
     originalPrice: 0,
   };
 };
+
+
+
+  
 
 // ⭐ UNIFIED PRODUCT FETCH FUNCTION
 const fetchProductDetails = async (productId) => {
@@ -212,25 +217,18 @@ const WishlistProductCard = ({ product }) => {
   const displayProduct = productDetails || product;
  
 
-// 🔥 STOCK CHECK
 const getAvailableStock = (product) => {
-  // ✅ CASE 1: Variant-based stock
-  if (Array.isArray(product?.variants) && product.variants.length > 0) {
-    const variant =
-      product.variants.find(v => typeof v.stock === "number") ||
-      product.variants[0];
-
-    const stock = Number(variant?.stock);
-    return isNaN(stock) ? 9999 : stock;
+  // No variants → assume in stock
+  if (!Array.isArray(product?.variants) || product.variants.length === 0) {
+    return Infinity;
   }
 
-  // ✅ CASE 2: Root-level stock
-  if (typeof product?.stock === "number") {
-    return product.stock;
-  }
+  // Find ANY variant with stock > 0
+  const variantWithStock = product.variants.find(
+    v => Number(v.stock) > 0
+  );
 
-  // ✅ CASE 3: No stock info → assume in stock
-  return 9999;
+  return variantWithStock ? Number(variantWithStock.stock) : 0;
 };
 
 const availableStock = getAvailableStock(displayProduct);
@@ -256,14 +254,22 @@ const handleNotifyMe = (e) => {
   const qty = items.find((i) => i.id === product.id)?.quantity || 0;
 
   const handleAddToCart = (e) => {
-    e.stopPropagation();
-    addToCart({ 
-      ...displayProduct, 
-      quantity: 1,
-      price: finalPrice,
-      originalPrice: originalPrice
-    });
-  };
+  e.stopPropagation();
+
+  if (availableStock === 0) return;
+
+  addToCart({
+    id: displayProduct.id,
+    productId: displayProduct.id,
+    name: displayProduct.name,
+    price: finalPrice,
+    originalPrice,
+    quantity: 1,
+    stock: availableStock,     // ✅ REQUIRED
+    image: displayProduct.image,
+  });
+};
+
 
   const handleViewCart = (e) => {
     e.stopPropagation();
@@ -366,7 +372,7 @@ const handleNotifyMe = (e) => {
         </h3>
 
         {/* RATING */}
-        <div className="flex items-center -mt-3">
+        <div className="flex items-center mt-1">
           <span className="text-[11px] sm:text-sm font-medium text-yellow-500 mr-1">
             {rating.toFixed(1)}
           </span>

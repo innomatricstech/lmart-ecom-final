@@ -146,12 +146,20 @@ const ProductCard = ({
   const navigate = useNavigate();
   const qty = getQuantity(product.id);
   const { finalPrice, original, discount } = getPriceData(product);
-  const getAvailableStock = (product) => {
-  if (!product?.variants || product.variants.length === 0) return 9999;
-  const variant = product.variants.find(v => Number(v.stock) >= 0) || product.variants[0];
-  const stock = Number(variant?.stock);
-  return isNaN(stock) ? 9999 : stock;
+ const getAvailableStock = (product) => {
+  // No variants → assume in stock
+  if (!Array.isArray(product?.variants) || product.variants.length === 0) {
+    return Infinity;
+  }
+
+  // Find ANY variant with stock > 0
+  const variantWithStock = product.variants.find(
+    v => Number(v.stock) > 0
+  );
+
+  return variantWithStock ? Number(variantWithStock.stock) : 0;
 };
+
 
 const availableStock = getAvailableStock(product);
 const isOutOfStock = availableStock === 0;
@@ -189,17 +197,24 @@ const isOutOfStock = availableStock === 0;
   window.open(`https://wa.me/${phoneNumber}?text=${message}`, "_blank");
 };
 
-  const handleAddToCart = (e) => {
-    e.stopPropagation();
-    addToCart({ 
-      id: product.id, 
-      name: product.name,
-      price: finalPrice,
-      image: product.image,
-      ...product, 
-      quantity: 1 
-    });
-  };
+ const handleAddToCart = (e) => {
+  e.stopPropagation();
+
+  if (availableStock === 0) return;
+
+  addToCart({
+    id: product.id,
+    productId: product.id,
+    name: product.name,
+    price: finalPrice,
+    originalPrice: original,
+    quantity: 1,
+    stock: availableStock,      // ✅ REQUIRED
+    image: product.image,
+    productTag: "Local Market", // ✅ helpful for routing
+  });
+};
+
 
   // 🔥 UPDATED: Image container with full image display
   return (

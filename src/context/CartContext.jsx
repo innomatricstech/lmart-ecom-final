@@ -106,17 +106,22 @@
                 };
 
             case ACTIONS.UPDATE_QTY:
-                return {
-                    ...state,
-                    items: state.items
-                        .map((x) =>
-                            (x.lineItemKey || x.id) === action.payload.lineItemKey
-                                ? { ...x, quantity: action.payload.quantity } // Update the quantity
-                                : x
-                        )
-                        // Remove items if quantity drops to 0 or less
-                        .filter((x) => x.quantity > 0), 
-                };
+  return {
+    ...state,
+    items: state.items.map((x) => {
+      if ((x.lineItemKey || x.id) !== action.payload.lineItemKey) return x;
+
+      const maxStock = Number(x.stock ?? Infinity);
+
+      return {
+        ...x,
+        quantity: Math.min(
+          Math.max(1, action.payload.quantity),
+          maxStock
+        ),
+      };
+    }),
+  };
 
             case ACTIONS.UPDATE_CUSTOMIZATION: {
                 const { lineItemKey: oldKey, ...custom } = action.payload;

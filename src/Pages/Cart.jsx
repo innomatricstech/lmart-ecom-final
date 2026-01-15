@@ -60,6 +60,12 @@
       }
 
       setVariantStockMap(stockMap);
+       Object.entries(stockMap).forEach(([key, stock]) => {
+    updateQuantity(key, Math.min(
+      items.find(i => (i.lineItemKey || i.id) === key)?.quantity || 1,
+      stock
+    ));
+  });
     };
 
     if (items.length > 0) {
@@ -365,21 +371,22 @@
                             {item.quantity}
                           </span>
 
-                        <button
-    onClick={() => handleQuantityIncrease(item)}
-    disabled={
-      variantStockMap[item.lineItemKey || item.id] !== undefined &&
-      item.quantity >= variantStockMap[item.lineItemKey || item.id]
-    }
-    className={`w-8 h-8 rounded-full flex items-center justify-center text-lg font-bold transition-all ${
-      variantStockMap[item.lineItemKey || item.id] !== undefined &&
-      item.quantity >= variantStockMap[item.lineItemKey || item.id]
-        ? "text-gray-300 cursor-not-allowed"
-        : "text-purple-600 hover:bg-purple-50"
-    }`}
-  >
-    +
-  </button>
+   <button
+  onClick={() => handleQuantityIncrease(item)}
+  disabled={
+    variantStockMap[item.lineItemKey || item.id] !== undefined &&
+    item.quantity >= variantStockMap[item.lineItemKey || item.id]
+  }
+  className={`w-6 h-6 rounded flex items-center justify-center ${
+    item.quantity >= (variantStockMap[item.lineItemKey || item.id] ?? Infinity)
+      ? "text-gray-300 cursor-not-allowed"
+      : "text-purple-600 hover:bg-purple-50"
+  }`}
+>
+  +
+</button>
+
+   
 
                         </div>
                       </div>

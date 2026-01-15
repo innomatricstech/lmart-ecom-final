@@ -1032,16 +1032,16 @@ const UploadProgress = () => {
     flex items-center
     bg-white
     border border-gray-300
-    rounded-full
+    rounded-md
     h-11
     px-5
-    shadow-sm
     transition
     focus-within:border-blue-600
-    focus-within:ring-2
+    focus-within:ring-1
     focus-within:ring-blue-500
   "
 >
+
 
 
    <input
@@ -1073,8 +1073,8 @@ const UploadProgress = () => {
     }
   }}
   className="
-    text-purple-600
-    hover:text-purple-800
+    text-gray-400
+    
     transition
     outline-none
     focus:outline-none

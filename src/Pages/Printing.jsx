@@ -180,17 +180,29 @@ const isOutOfStock = availableStock === 0;
   window.open(`https://wa.me/${phoneNumber}?text=${message}`, "_blank");
 };
 
-  const handleAddToCart = (e) => {
-    e.stopPropagation();
-    addToCart({ 
-      id: product.id, 
-      name: product.name,
-      price: finalPrice,
-      image: product.image,
-      ...product, 
-      quantity: 1 
-    });
-  };
+ const handleAddToCart = (e) => {
+  e.stopPropagation();
+
+  if (availableStock === 0) return;
+
+  addToCart({
+    id: product.id,               // cart key
+    productId: product.id,        // reference
+    name: product.name,
+
+    price: finalPrice,            // final price
+    originalPrice: original || 0, // strike price
+
+    quantity: 1,
+    stock: availableStock,        // ✅ IMPORTANT
+
+    image: product.image,
+    source: "printing",
+
+    // optional but SAFE
+    variant: product.variant || null,
+  });
+};
 
   // 🔥 UPDATED: Image container with full image display
   return (
