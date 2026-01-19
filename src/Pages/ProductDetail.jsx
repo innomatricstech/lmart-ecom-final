@@ -1515,39 +1515,22 @@ const handleQuantityChange = (e) => {
 
   // ⭐ Handle review button click - check login status
   const handleReviewButtonClick = () => {
-    const token = localStorage.getItem("token");
-    const isLoggedIn = token && localStorage.getItem("isLoggedIn") === "true";
+  // ✅ TRUST currentUser ONLY
+  if (currentUser) {
+    setShowReviewModal(true);
+    return;
+  }
 
-    if (isLoggedIn) {
-      if (!currentUser) {
-        const userDataStr = localStorage.getItem("userData");
-        if (userDataStr) {
-          try {
-            const userData = JSON.parse(userDataStr);
-            setCurrentUser({
-              uid: userData.uid || token,
-              id: userData.uid || token,
-              ...userData,
-              displayName: userData.displayName || userData.name || "User",
-            });
-          } catch (e) {
-            console.error("Error parsing userData:", e);
-          }
-        }
-      }
-
-      setShowReviewModal(true);
-    } else {
-      navigate("/login", {
-        state: {
-          reviewRedirect: true,
-          productId: productId,
-          productName: product?.name || "Product",
-          from: `/product/${productId}`,
-        },
-      });
-    }
-  };
+  // ❌ Only redirect if NOT logged in
+  navigate("/login", {
+    state: {
+      reviewRedirect: true,
+      productId,
+      productName: product?.name || "Product",
+      from: `/product/${productId}`,
+    },
+  });
+};
 
   // 🛒 Add to cart with stock check - UPDATED
   const onAddToCart = async (e) => {
