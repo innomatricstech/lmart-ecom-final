@@ -1415,7 +1415,7 @@ const openCreate = () => {
     onChange={(e) => setSearchQuery(e.target.value)}
     placeholder="Search products…"
     className="h-10 w-full px-4 pr-10 rounded-lg border border-gray-300 text-sm
-               focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+               focus:ring-3 focus:ring-blue-500 focus:border-transparent"
   />
 
   {searchQuery ? (

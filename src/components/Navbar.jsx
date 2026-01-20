@@ -1037,7 +1037,7 @@ const UploadProgress = () => {
     px-5
     transition
     focus-within:border-blue-600
-    focus-within:ring-2
+    focus-within:ring-3
     focus-within:ring-blue-500
   "
 >
