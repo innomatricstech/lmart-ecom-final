@@ -1026,21 +1026,23 @@ const UploadProgress = () => {
               {/* Search Bar Component with Auto Suggestions - MODIFIED */}
              {/* Navbar Search – Oldee Style UI */}
 <div className="relative w-64 max-w-lg" ref={searchRef}>
- <form
+<form
   onSubmit={handleSearchSubmit}
   className="
+    relative
     flex items-center
+    h-10
+    px-4
     bg-white
     border border-gray-300
-    rounded-md
-    h-10
-    px-5
+    rounded-lg
     transition
-    focus-within:border-blue-600
-    focus-within:ring-3
+    focus-within:ring-2
     focus-within:ring-blue-500
+    focus-within:border-transparent
   "
 >
+
 
 
 
