@@ -614,6 +614,11 @@ const Checkout = () => {
     return incompleteCustomization;
   };
 
+  const handleBack = () => {
+  navigate(-1);
+};
+
+
   // Handle customization changes
   const handleCustomizationChange = (itemId, field, value) => {
     setCheckoutItems(prevItems =>
@@ -1139,227 +1144,33 @@ await decreaseStockAfterOrder(checkoutItems);
     );
   };
 
+
   return (
     <div className="min-h-screen bg-gray-100 py-6">
+         {/* STEP INDICATOR */}
+         <div className="mb-4 flex ml-[1400px]">
+  <button
+    onClick={handleBack}
+    className="flex items-center  gap-2 text-md font-medium text-gray-600 hover:text-gray-900"
+  >
+    <svg
+      className="w-4 h-4"
+      fill="none"
+      stroke="currentColor"
+      viewBox="0 0 24 24"
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={2}
+        d="M15 19l-7-7 7-7"
+      />
+    </svg>
+    Back to Cart
+  </button>
+</div>
+      
       <div className="max-w-4xl mx-auto bg-white rounded-lg shadow-lg p-6">
-
-        {/* STEP INDICATOR */}
-         
-
-        {/* PAGE TITLE */}
-        <h2 className="text-2xl font-bold text-center mb-6">
-          {isBuyNow ? "Complete Your Purchase" : currentStep === 1 ? "Customize Your Order" : "Payment Details"}
-        </h2>
-
-        {/* BUY NOW INDICATOR */}
-        {isBuyNow && (
-          <div className="mb-4 text-center">
-            <div className="inline-flex items-center bg-green-100 text-green-800 px-4 py-2 rounded-full text-sm font-medium">
-              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-              </svg>
-              Buy Now - Direct Purchase
-            </div>
-          </div>
-        )}
-
-        {/* EMPTY CART MESSAGE */}
-        {isCartEmpty && !isFetchingUser && (
-          <div className="mb-8 p-6 bg-yellow-50 border border-yellow-200 rounded-lg text-center">
-            <div className="text-5xl mb-4">🛒</div>
-            <h3 className="text-xl font-bold text-yellow-700 mb-2">Your Cart is Empty</h3>
-            <p className="text-yellow-600 mb-4">
-              Your cart is empty. Please add items to checkout.
-            </p>
-            <div className="flex flex-col sm:flex-row gap-3 justify-center">
-              <button 
-                onClick={() => navigate("/")}
-                className="px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white font-medium rounded-lg transition-colors"
-              >
-                Continue Shopping
-              </button>
-              <button 
-                onClick={() => window.location.reload()}
-                className="px-6 py-3 bg-gray-600 hover:bg-gray-700 text-white font-medium rounded-lg transition-colors"
-              >
-                Refresh Page
-              </button>
-            </div>
-          </div>
-        )}
-
-         
-
-        {/* ERROR MESSAGES */}
-        {errors.customization && (
-          <div className="mb-4 text-red-600 font-semibold text-center p-3 bg-red-50 rounded-lg">
-            {errors.customization}
-          </div>
-        )}
-        {errors.form && (
-          <div className="mb-4 text-red-600 font-semibold text-center p-3 bg-red-50 rounded-lg">
-            {errors.form}
-          </div>
-        )}
-        {errors.payment && (
-          <div className="mb-4 text-red-600 font-semibold text-center p-3 bg-red-50 rounded-lg">
-            {errors.payment}
-          </div>
-        )}
-
-        {/* STEP 1: CUSTOMIZATION */}
-        {currentStep === 1 && !isCartEmpty && checkoutItems.length > 0 && (
-          <div>
-            <h3 className="text-xl font-semibold mb-4">Customize Your Items</h3>
-
-            <div className="space-y-6 mb-6">
-              {checkoutItems.map((item) => (
-                <div key={item.id} className="border rounded-lg p-4 bg-gray-50">
-                  <div className="flex flex-col md:flex-row gap-4 mb-4">
-                    <div className="relative">
-                      {loadingImages[item.id] && (
-                        <div className="absolute inset-0 flex items-center justify-center bg-gray-100 rounded-lg">
-                          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-purple-600"></div>
-                        </div>
-                      )}
-                      <img
-                        src={getProductImage(item)}
-                        alt={item.name}
-                        className={`w-20 h-20 object-cover rounded-lg ${loadingImages[item.id] ? 'opacity-0' : 'opacity-100'}`}
-                        onLoad={() => setLoadingImages(prev => ({ ...prev, [item.id]: false }))}
-                        onError={(e) => {
-                          e.target.onerror = null;
-                          e.target.src = "https://via.placeholder.com/150?text=No+Image";
-                          setLoadingImages(prev => ({ ...prev, [item.id]: false }));
-                        }}
-                      />
-                    </div>
-                    <div className="flex-1">
-                      <h4 className="font-bold text-lg">{item.name}</h4>
-                      <p className="text-gray-600">Quantity: {item.quantity}</p>
-                      <p className="text-purple-600 font-bold">
-                        {/* Ensure display is localized */}
-                        ₹{(item.price * item.quantity).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                      </p>
-                      {/* 🔥 SHOW PRODUCT TYPE BADGE */}
-                      {item.isOldee && (
-                        <span className="inline-block bg-orange-100 text-orange-800 text-xs px-2 py-1 rounded-full mt-1">
-                          Second-hand Product
-                        </span>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* CUSTOMIZATION OPTIONS */}
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    {/* COLOR SELECTION */}
-                    {item.colors && item.colors.length > 0 && (
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Color
-                        </label>
-                        <select
-                          value={item.selectedColor || ""}
-                          onChange={(e) => handleCustomizationChange(item.id, 'selectedColor', e.target.value)}
-                          className="w-full border border-gray-300 rounded-lg p-2"
-                        >
-                          <option value="">Select Color</option>
-                          {item.colors.map((color, index) => (
-                            <option key={index} value={color}>
-                              {color}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                    )}
-
-                    {/* SIZE SELECTION */}
-                    {item.sizes && item.sizes.length > 0 && (
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Size
-                        </label>
-                        <select
-                          value={item.selectedSize || ""}
-                          onChange={(e) => handleCustomizationChange(item.id, 'selectedSize', e.target.value)}
-                          className="w-full border border-gray-300 rounded-lg p-2"
-                        >
-                          <option value="">Select Size</option>
-                          {item.sizes.map((size, index) => (
-                            <option key={index} value={size}>
-                              {size}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                    )}
-
-                    {/* RAM SELECTION */}
-                    {item.rams && item.rams.length > 0 && (
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                          RAM
-                        </label>
-                        <select
-                          value={item.selectedRam || ""}
-                          onChange={(e) => handleCustomizationChange(item.id, 'selectedRam', e.target.value)}
-                          className="w-full border border-gray-300 rounded-lg p-2"
-                        >
-                          <option value="">Select RAM</option>
-                          {item.rams.map((ram, index) => (
-                            <option key={index} value={ram}>
-                              {ram}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* SELECTED CUSTOMIZATION DISPLAY */}
-                  {(item.selectedColor || item.selectedSize || item.selectedRam) && (
-                    <div className="mt-3 p-3 bg-blue-50 rounded-lg">
-                      <p className="text-sm font-medium text-blue-800">
-                        Selected:{" "}
-                        {[
-                          item.selectedColor && `Color: ${item.selectedColor}`,
-                          item.selectedSize && `Size: ${item.selectedSize}`,
-                          item.selectedRam && `RAM: ${item.selectedRam}`
-                        ].filter(Boolean).join(", ")}
-                      </p>
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-
-            {/* PROCEED TO PAYMENT BUTTON */}
-            <div className="flex gap-4">
-              <button
-                onClick={handleCancel}
-                className={`flex-1 py-3 rounded-lg font-medium transition-colors ${
-                  isBuyNow 
-                    ? 'bg-red-500 hover:bg-red-600' 
-                    : 'bg-red-600 hover:bg-red-700'
-                } text-white`}
-              >
-                {isBuyNow ? 'Cancel Purchase' : 'Cancel Order'}
-              </button>
-              <button
-                onClick={proceedToPayment}
-                disabled={checkoutItems.length === 0}
-                className={`flex-1 py-3 rounded-lg font-medium transition-colors ${
-                  checkoutItems.length === 0
-                    ? 'bg-gray-400 cursor-not-allowed'
-                    : 'bg-purple-600 hover:bg-purple-700'
-                } text-white`}
-              >
-                Proceed to Payment
-              </button>
-            </div>
-          </div>
-        )}
-
         {/* STEP 2: PAYMENT */}
         {currentStep === 2 && !isCartEmpty && checkoutItems.length > 0 && (
           <div>
@@ -1546,7 +1357,8 @@ await decreaseStockAfterOrder(checkoutItems);
 
 
                         {/* Show original price if offer price was used */}
-                        {isBuyNow && buyNowItem.offerPrice && buyNowItem.offerPrice !== buyNowItem.price && (
+                        {isBuyNow && buyNowItem?.offerPrice && buyNowItem.offerPrice !== buyNowItem.price && (
+
                             <p className="text-xs text-red-500 line-through">
                                 Original: ₹{buyNowItem.price.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                             </p>

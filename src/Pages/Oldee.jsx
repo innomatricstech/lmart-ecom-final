@@ -1577,7 +1577,10 @@ const openCreate = () => {
                         <span className="font-bold text-lg text-gray-900">₹{p.price}</span>
                       )}
                     </div>
-                    <p className="text-sm text-gray-600 line-clamp-2 mb-3">{p.description}</p>
+                   <p className="text-sm text-gray-600 line-clamp-2 mb-3 min-h-[40px]">
+  {p.description}
+</p>
+
                     <div className="flex items-center justify-between text-xs font-bold text-gray">
                       <span>
                         {p.createdAt?.toDate?.() 
