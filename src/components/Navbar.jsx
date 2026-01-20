@@ -1025,7 +1025,7 @@ const UploadProgress = () => {
             <div className="hidden md:flex items-center space-x-3">
               {/* Search Bar Component with Auto Suggestions - MODIFIED */}
              {/* Navbar Search – Oldee Style UI */}
-<div className="relative w-full max-w-lg" ref={searchRef}>
+<div className="relative w-64 max-w-lg" ref={searchRef}>
  <form
   onSubmit={handleSearchSubmit}
   className="
@@ -1033,11 +1033,11 @@ const UploadProgress = () => {
     bg-white
     border border-gray-300
     rounded-md
-    h-11
+    h-10
     px-5
     transition
     focus-within:border-blue-600
-    focus-within:ring-1
+    focus-within:ring-2
     focus-within:ring-blue-500
   "
 >
@@ -1086,7 +1086,7 @@ const UploadProgress = () => {
   {query ? (
     // ❌ Clear icon
     <svg
-      className="w-5 h-5"
+      className="w-4 h-4"
       fill="none"
       stroke="currentColor"
       viewBox="0 0 24 24"
@@ -1101,7 +1101,7 @@ const UploadProgress = () => {
   ) : (
     // 🔍 Search icon
     <svg
-      className="w-5 h-5"
+      className="w-4 h-4"
       fill="none"
       stroke="currentColor"
       viewBox="0 0 24 24"
