@@ -153,7 +153,7 @@ const UserProfile = () => {
         lastUpdated: serverTimestamp(),
       });
 
-      alert("✅ Profile picture updated successfully!");
+      
     } catch (err) {
       alert("❌ Image upload failed");
       console.error(err);
@@ -167,7 +167,7 @@ const UserProfile = () => {
   if (!user) return;
 
   if (!form.name.trim()) {
-    alert("Please enter your name");
+   
     return;
   }
 
@@ -185,10 +185,9 @@ const UserProfile = () => {
       photoURL: form.photoURL,
     });
 
-    alert("✅ Profile updated successfully");
   } catch (err) {
     console.error("Profile update error:", err);
-    alert("❌ Failed to update profile");
+   
   }
 };
 

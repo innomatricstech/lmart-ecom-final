@@ -702,9 +702,18 @@ const UploadProgress = () => {
                     onClick={handleUserIconClick}
                     className="w-7 h-7 border border-purple-300 rounded-full flex items-center justify-center bg-white hover:bg-gray-50 transition duration-200 focus:outline-none"
                   >
-                    <div className="w-5 h-5 bg-purple-600 rounded-full flex items-center justify-center text-white text-xs font-bold">
-                      {user.name ? user.name.charAt(0).toUpperCase() : 'U'}
-                    </div>
+                    {user.photoURL ? (
+  <img
+    src={user.photoURL}
+    alt="Profile"
+    className="w-5 h-5 rounded-full object-cover"
+  />
+) : (
+  <div className="w-5 h-5 bg-purple-600 rounded-full flex items-center justify-center text-white text-xs font-bold">
+    {user.name ? user.name.charAt(0).toUpperCase() : "U"}
+  </div>
+)}
+
                   </button>
 
                   {/* User Dropdown Menu */}

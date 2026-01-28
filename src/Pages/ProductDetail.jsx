@@ -1,7 +1,10 @@
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { db } from "../../firebase";
+import { useRef } from "react";
+
 import {
+
   doc,
   getDoc,
   collection,
@@ -86,6 +89,8 @@ const WriteReviewModal = ({
   const [submitting, setSubmitting] = useState(false);
   const [hoverRating, setHoverRating] = useState(0);
   const [errors, setErrors] = useState({});
+
+
 
   const validateForm = () => {
     const newErrors = {};
@@ -728,6 +733,7 @@ const isVideoUrl = (url) => {
 
 // ⭐ Main Product Detail Component
 const ProductDetail = ({ product: propProduct }) => {
+const manualImageChangeRef = useRef(false);
 
   const { productId } = useParams();
   const navigate = useNavigate();
@@ -802,7 +808,7 @@ const ProductDetail = ({ product: propProduct }) => {
   const [currentUser, setCurrentUser] = useState(null);
   const [availableColors, setAvailableColors] = useState([]);
   const [availableSizes, setAvailableSizes] = useState([]);
-  const [colorImageMap, setColorImageMap] = useState({});
+  
   const [showAllReviews, setShowAllReviews] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
 
@@ -849,7 +855,6 @@ const STORE_ROUTES = {
 navigate(STORE_ROUTES[resolvedSource] || "/e-market");
 
 
-navigate(path);
 
     setTimeout(() => {
       window.scrollTo({ top: 0, behavior: "smooth" });
@@ -1155,16 +1160,37 @@ navigate(path);
     }
   }, [productId, product?.rating]);
 
-     const getCollectionName = () => {
-  if (location.state?.source === "local-market") return "localmarket";
-  if (location.state?.source === "printing") return "printing";
+ const getCollectionName = () => "products";
+useEffect(() => {
+  if (!images.length) return;
 
-  // 🔁 fallback: infer from productTag if exists
-  if (product?.productTag === "local-market") return "localmarket";
-  if (product?.productTag === "printing") return "printing";
+  // ❌ if image was changed manually, skip auto logic
+  if (manualImageChangeRef.current) {
+    manualImageChangeRef.current = false;
+    return;
+  }
 
-  return "products"; // e-market
-};
+  // ✅ color-based image
+  if (selectedColor) {
+    const colorImages = images.filter(
+      img => img.color === selectedColor
+    );
+
+    if (colorImages.length > 0) {
+      setCurrentImg(colorImages[0].url);
+      setCurrentIsVideo(false);
+      setImageLoading(true);
+      return;
+    }
+  }
+
+  // fallback
+  setCurrentImg(images[0].url);
+  setCurrentIsVideo(false);
+  setImageLoading(true);
+}, [images, selectedColor]);
+
+
 
   // 🔄 LOAD PRODUCT DATA
   useEffect(() => {
@@ -1189,20 +1215,23 @@ navigate(path);
           const collectionName = getCollectionName();
 const productRef = doc(db, collectionName, productId);
 
-          const productSnap = await getDoc(productRef);
+      const productSnap = await getDoc(productRef);
 
-         productData = {
+if (!productSnap.exists()) {
+  setProduct(null);
+  setLoading(false);
+  return;
+}
+
+productData = {
   id: productSnap.id,
   ...productSnap.data(),
   source:
     location.state?.source ||
     productSnap.data()?.productTag ||
-    (collectionName === "localmarket"
-      ? "local-market"
-      : collectionName === "printing"
-      ? "printing"
-      : "e-market"),
+    "e-market",
 };
+
 
         }
 
@@ -1223,16 +1252,18 @@ const productRef = doc(db, collectionName, productId);
 
     const processProductData = (productData) => {
       const imageUrls = productData.imageUrls || [];
-      const urls = imageUrls
-        .filter((img) => {
-          if (typeof img === "string") return true;
-          if (img?.isMain === true) return false;
-          return true;
-        })
-        .map((img) => (typeof img === "string" ? img : img.url))
-        .filter(Boolean);
+      const galleryImages = imageUrls
+  .filter((img) => typeof img === "object" && img.isMain !== true)
+  .map((img) => ({
+    url: img.url,
+    color: img.color || "",
+    isMain: img.isMain || false,
+  }))
+  .filter(img => img.url);
 
-      setImages(urls);
+setImages(galleryImages);
+
+
 
       let videoUrls = [];
 
@@ -1305,51 +1336,10 @@ const productRef = doc(db, collectionName, productId);
       setAvailableColors(colors);
       setAvailableSizes(sizes);
 
-      if (productData.colorImageMap) {
-        setColorImageMap(productData.colorImageMap);
-      } else {
-        const defaultMap = {};
-        colors.forEach((color, index) => {
-          if (urls[index]) {
-            defaultMap[color] = index;
-          } else if (urls.length > 0) {
-            defaultMap[color] = index % urls.length;
-          }
-        });
-        setColorImageMap(defaultMap);
-      }
+    
 
-      const allMedia = [...urls, ...videoUrls];
+    
 
-      if (allMedia.length > 0) {
-        let nextImg = null;
-
-        if (!currentImg) {
-          if (
-            colors.length > 0 &&
-            colorImageMap[colors[0]] !== undefined &&
-            urls[colorImageMap[colors[0]]]
-          ) {
-            nextImg = urls[colorImageMap[colors[0]]];
-          } else {
-            nextImg = allMedia[0];
-          }
-        }
-        else if (allMedia.includes(currentImg)) {
-          nextImg = currentImg;
-        }
-        else {
-          nextImg = allMedia[0];
-        }
-
-        setCurrentImg(nextImg);
-        setCurrentIsVideo(isVideoUrl(nextImg));
-        setImageLoading(true);
-      } else {
-        setCurrentImg("https://placehold.co/600x400?text=No+Image");
-        setCurrentIsVideo(false);
-        setImageLoading(false);
-      }
 
       if (colors.length > 0) {
         setSelectedColor(colors[0]);
@@ -1421,21 +1411,17 @@ const productRef = doc(db, collectionName, productId);
 
   // 🎨 Handle color selection - updates image based on color
   const handleColorSelect = (color) => {
-    setSelectedColor(color);
-   
+  setSelectedColor(color);
 
-    if (colorImageMap[color] !== undefined && images[colorImageMap[color]]) {
-      setCurrentImg(images[colorImageMap[color]]);
-      setCurrentIsVideo(false);
-      setImageLoading(true);
-    } else {
-      if (images.length > 0) {
-        setCurrentImg(images[0]);
-        setCurrentIsVideo(false);
-        setImageLoading(true);
-      }
-    }
-  };
+  const colorImages = images.filter(img => img.color === color);
+
+  if (colorImages.length > 0) {
+    setCurrentImg(colorImages[0].url);
+    setCurrentIsVideo(false);
+    setImageLoading(true);
+  }
+};
+
   useEffect(() => {
   if (!product || !selectedColor) return;
 
@@ -1455,23 +1441,23 @@ const productRef = doc(db, collectionName, productId);
 }, [selectedColor, product]);
 
 
-  // 📱 Responsive image gallery handler
-  const onThumbnailClick = (media, index) => {
-    setCurrentImg(media);
-    setImageLoading(true);
+ const onThumbnailClick = (media) => {
+  // 🚫 SAME IMAGE CLICK → DO NOTHING
+  if (currentImg === media.url && currentIsVideo === (media.type === "video")) {
+    return;
+  }
 
-    const isVideo = isVideoUrl(media);
-    setCurrentIsVideo(isVideo);
+  manualImageChangeRef.current = true;
 
-    if (!isVideo && colorImageMap) {
-      for (const [color, imgIndex] of Object.entries(colorImageMap)) {
-        if (imgIndex === index) {
-          setSelectedColor(color);
-          break;
-        }
-      }
-    }
-  };
+  setCurrentImg(media.url);
+  setCurrentIsVideo(media.type === "video");
+  setImageLoading(true);
+
+  // 🎨 auto select color
+  if (media.type === "image" && media.color) {
+    setSelectedColor(media.color);
+  }
+};
 
   // ➕➖ Quantity handlers with stock limits - UPDATED
 const increment = () => {
@@ -1569,7 +1555,7 @@ if (maxAvailable < quantity) {
   selectedSize,
   image: !currentIsVideo
     ? currentImg
-    : images[0] || product.imageUrls?.[0]?.url || "",
+    : images[0]?.url || product.imageUrls?.[0]?.url || "",
   stock: maxAvailable,
   colors: availableColors || [],
   sizes: availableSizes || [],
@@ -1701,7 +1687,7 @@ const onBuyNow = async (e) => {
       selectedSize,
       image: !currentIsVideo
         ? currentImg
-        : images[0] || product.imageUrls?.[0]?.url || "",
+        : images[0]?.url?.url || product.imageUrls?.[0]?.url || "",
       stock: maxAvailable,
       brand: product.brand || "",
     };
@@ -1837,7 +1823,18 @@ const displayPrice =
   const maxStock = variant?.maxStock || 100;
   const stockPercentage = (stockLevel / maxStock) * 100;
 
-  const allMedia = [...images, ...videos];
+const allMedia = [
+  ...images.map(img => ({
+    type: "image",
+    url: img.url,
+    color: img.color || ""
+  })),
+  ...videos.map(v => ({
+    type: "video",
+    url: v
+  })),
+];
+
 
   return (
     
@@ -2036,7 +2033,8 @@ const displayPrice =
                       </div>
                     )}
 
-                    {currentIsVideo || isVideoUrl(currentImg) ? (
+                   {currentIsVideo ? (
+
                       <div className="w-full h-full flex items-center justify-center">
                         <video
                           src={currentImg}
@@ -2047,12 +2045,12 @@ const displayPrice =
                           onError={() => {
                             setImageLoading(false);
                             if (images.length > 0) {
-                              setCurrentImg(images[0]);
+                              setCurrentImg(images[0]?.url);
                               setCurrentIsVideo(false);
                             }
                           }}
                           poster={
-                            images[0] ||
+                            images[0]?.url ||
                             "https://placehold.co/600x400?text=Video+Loading"
                           }
                           playsInline
@@ -2083,7 +2081,7 @@ const displayPrice =
                     )}
 
                     <img
-                      src={images[0]}
+                      src={images[0]?.url}
                       alt={product.name}
                       className="w-full h-full object-contain transition-opacity duration-300"
                       onLoad={() => setImageLoading(false)}
@@ -2102,44 +2100,44 @@ const displayPrice =
               </div>
               
 
-              {/* THUMBNAILS */}
-              {allMedia.length > 1 && (
-                <div className="grid grid-cols-4 gap-3 w-full max-w-[420px] mx-auto lg:ml-[62px]">
-                  {allMedia.map((media, i) => {
-                    const isVideo = isVideoUrl(media);
+           {allMedia.length > 1 && (
+  <div className="grid grid-cols-4 gap-3 w-full max-w-[420px] mx-auto lg:ml-[62px]">
+    {allMedia.map((media, i) => {
+      const isVideo = media.type === "video";
 
-                    return (
-                      <button
-                        key={i}
-                        onClick={() => onThumbnailClick(media, i)}
-                        className={`rounded-xl overflow-hidden border-2 transition-all duration-200 ${
-                          currentImg === media
-                            ? "border-purple-500 ring-2 ring-purple-200"
-                            : "border-gray-300 hover:border-gray-400"
-                        }`}
-                      >
-                        {isVideo ? (
-                          <div className="relative h-20 sm:h-24 w-full bg-gradient-to-br from-gray-800 to-gray-900 flex items-center justify-center">
-                            <span className="text-white text-xs font-semibold">VIDEO</span>
-                          </div>
-                        ) : (
-                          <img
-                            src={media}
-                            alt={`Thumbnail ${i + 1}`}
-                            className="h-20 sm:h-24 w-full object-contain bg-white transition-opacity"
-                            loading="lazy"
-                            onError={(e) => {
-                              e.target.src =
-                                "https://placehold.co/150x100?text=Image";
-                            }}
-                          />
-                        )}
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
+      return (
+        <button
+          key={i}
+          onClick={() => onThumbnailClick(media)}
+          className={`rounded-xl overflow-hidden border-2 transition-all duration-200 ${
+            currentImg === media.url
+              ? "border-purple-500 ring-2 ring-purple-200"
+              : "border-gray-300 hover:border-gray-400"
+          }`}
+        >
+          {isVideo ? (
+            <div className="relative h-20 sm:h-24 w-full bg-gradient-to-br from-gray-800 to-gray-900 flex items-center justify-center">
+              <span className="text-white text-xs font-semibold">VIDEO</span>
             </div>
+          ) : (
+            <img
+              src={media.url}
+              alt={`Thumbnail ${i + 1}`}
+              className="h-20 sm:h-24 w-full object-contain bg-white transition-opacity"
+              loading="lazy"
+              onError={(e) => {
+                e.currentTarget.src =
+                  "https://placehold.co/150x100?text=Image";
+              }}
+            />
+          )}
+        </button>
+      );
+    })}
+  </div>
+)}
+</div>
+
 
             {/* RIGHT SIDE — DETAILS */}
             <div className="ml-0 lg:-ml-20">
